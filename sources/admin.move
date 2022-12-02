@@ -56,7 +56,8 @@ module scale::admin {
 
     public fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address){
         if (*addr == admin_cap.admin) return;
-        assert!(vec_set::size(&admin_cap.member) >= (MAX_ADMIN_NUM as u64), EAdminNumberOverflow);
+        // if (vec_set::contains(&admin_cap.member, addr)) return;
+        assert!(vec_set::size(&admin_cap.member) < (MAX_ADMIN_NUM as u64), EAdminNumberOverflow);
         vec_set::insert(&mut admin_cap.member, *addr);
     }
 

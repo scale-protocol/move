@@ -1,1 +1,1 @@
-ScaleProtocol sui contract program.
+ScaleProtocol sui contract program package.
