@@ -3,5 +3,4 @@ module scale::market{
     struct Market has key ,store {
         id: UID,
     }
-
 }
