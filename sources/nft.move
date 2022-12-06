@@ -12,11 +12,12 @@ module scale::nft {
     use scale::admin::AdminCap;
     use sui::dynamic_field as field;
     use std::option::{Self,Option};
-    // use scale_v1::Self;
+    // use scale_v1::nft;
 
     const ENameRequired:u64 = 1;
     const EDescriptionRequired:u64 = 2;
     const EUrlRequired:u64 = 3;
+    const EInvalidNFTID:u64 = 4;
     /// scale nft
     struct ScaleNFT<phantom P, phantom T> has key ,store {
         id: UID,
@@ -88,7 +89,8 @@ module scale::nft {
         // todo: check the expiration time .....
         if (option::is_some(&move_token)){
             // todo: Exempt from liquidated damages and give certain rewards if possible
-            let MoveToken {nft_id:_,expiration_time:_} = option::destroy_some(move_token);
+            let MoveToken {nft_id,expiration_time:_} = option::destroy_some(move_token);
+            assert!(object::uid_to_inner(&id) == nft_id, EInvalidNFTID);
         }else{            
             option::destroy_none(move_token);
         };
@@ -162,6 +164,7 @@ module scale::nft {
     }
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
     /// and there will be no liquidated damages
+    /// run in v2
     public entry fun generate_upgrade_move_token<P,T>(
         admin_cap: &mut AdminCap,
         nft: &ScaleNFT<P,T>,
@@ -176,6 +179,7 @@ module scale::nft {
     }
 
     /// This may happen during version upgrade, and no penalty will be incurred
+    /// run in v2
     public entry fun divestment_by_upgrade<P,T>(
         v_pool: &mut Pool<P,T>,
         nft: ScaleNFT<P,T>,

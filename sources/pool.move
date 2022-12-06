@@ -4,11 +4,15 @@ module scale::pool {
     use sui::balance::{Self, Supply, Balance};
     use sui::tx_context::{TxContext};
     use sui::transfer;
+    use scale::admin;
 
     friend scale::nft;
 
     const EZeroAmount: u64 = 1;
+
+    struct PoolSign has drop {}
     /// Original reserves of current pool funds
+    /// liquidity supply pool
     struct LSP<phantom P, phantom T> has drop {}
     /// Liquidity fund pool
     struct Pool<phantom P, phantom T> has key {
@@ -17,24 +21,29 @@ module scale::pool {
         /// the liquidity funds obtained through the issuance of NFT bonds
         vault_supply: Supply<LSP<P,T>>,
         /// Token balance of basic current fund.
-        base_balance: Balance<T>,
+        vault_balance: Balance<T>,
         /// Token balance of profit and loss fund
         profit_balance: Balance<T>,
         /// Insurance fund token balance
         insurance_balance: Balance<T>,
     }
 
-    public fun create_pool<P ,T: drop>(_token: T,ctx: &mut TxContext):ID {
+    fun create_pool_inner<P: drop ,T>(_pool_token: P,_token: &Coin<T>,ctx: &mut TxContext):ID {
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
         transfer::share_object(Pool {
             id: uid,
             vault_supply: balance::create_supply(LSP<P,T>{}),
-            base_balance: balance::zero<T>(),
+            vault_balance: balance::zero<T>(),
             profit_balance: balance::zero<T>(),
             insurance_balance: balance::zero<T>(),
         });
         id
+    }
+
+    public fun create_pool_<P: drop ,T>(pool_token: P,token: &Coin<T>,ctx: &mut TxContext) {
+        let id = create_pool_inner<P,T>(pool_token, token, ctx);
+        admin::create_scale_admin(ctx,id);
     }
 
     public(friend) fun add_liquidity<P,T>(
@@ -45,8 +54,16 @@ module scale::pool {
         assert!(coin::value(&token) > 0, EZeroAmount);
         let tok_balance = coin::into_balance(token);
         let minted = balance::value(&tok_balance);
-        balance::join(&mut pool.base_balance, tok_balance);
+        balance::join(&mut pool.vault_balance, tok_balance);
         coin::from_balance(balance::increase_supply(&mut pool.vault_supply, minted), ctx)
+    }
+    #[test_only]
+    public fun add_liquidity_for_testing<P,T>(
+        pool: &mut Pool<P, T>,
+        token: Coin<T>,
+        ctx: &mut TxContext
+    ):Coin<LSP<P, T>>{
+        add_liquidity(pool,token,ctx)
     }
 
     public(friend) fun remove_liquidity<P, T>(
@@ -57,8 +74,79 @@ module scale::pool {
         let balance_value = balance::value(&lsp_balance);
         assert!(balance_value > 0, EZeroAmount);
         balance::decrease_supply(&mut pool.vault_supply, lsp_balance);
-        coin::take(&mut pool.base_balance, balance_value, ctx)
+        coin::take(&mut pool.vault_balance, balance_value, ctx)
+    }
+    #[test_only]
+    public fun remove_liquidity_for_testing<P, T>(
+        pool: &mut Pool<P, T>,
+        lsp_balance: Balance<LSP<P, T>>,
+        ctx: &mut TxContext
+    ): Coin<T> {
+        remove_liquidity(pool,lsp_balance,ctx)
     }
 
-    public(friend) fun add(){}
+    public(friend) fun join_profit_balance<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        let vault_supply_value = balance::supply_value(&pool.vault_supply);
+        let base_amount = balance::join(&mut pool.vault_balance, balance);
+        if (base_amount > vault_supply_value){
+            balance::join(&mut pool.profit_balance, balance::split(&mut pool.vault_balance, base_amount - vault_supply_value));
+        }
+    }
+    #[test_only]
+    public fun join_profit_balance_for_testing<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        join_profit_balance(pool,balance)
+    }
+
+    public(friend) fun take_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        let profit_balance_value = balance::value(&mut pool.profit_balance);
+        if (profit_balance_value >= amount) {
+            return balance::split(&mut pool.profit_balance, amount)
+        };
+        let b = balance::split(&mut pool.profit_balance, profit_balance_value);
+        let s = amount - balance::value(&b);
+        balance::join(&mut b, balance::split(&mut pool.vault_balance, s));
+        b
+    }
+    #[test_only]
+    public fun take_profit_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        take_profit_balance(pool,amount)
+    }
+
+    public(friend) fun join_insurance_balance<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        balance::join(&mut pool.insurance_balance, balance);
+    }
+
+    #[test_only]
+    public fun join_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        join_insurance_balance(pool,balance)
+    }
+
+    public(friend) fun take_insurance_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        balance::split(&mut pool.insurance_balance, amount)
+    }
+    #[test_only]
+    public fun take_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        take_insurance_balance(pool,amount)
+    }
+    
+    public fun get_vault_supply<P,T>(pool: &Pool<P, T>):u64 {
+        balance::supply_value(&pool.vault_supply)
+    }
+
+    public fun get_vault_balance<P,T>(pool: &Pool<P, T>):u64 {
+        balance::value(&pool.vault_balance)
+    }
+
+    public fun get_profit_balance<P,T>(pool: &Pool<P, T>):u64 {
+        balance::value(&pool.profit_balance)
+    }
+
+    public fun get_insurance_balance<P,T>(pool: &Pool<P, T>):u64 {
+        balance::value(&pool.insurance_balance)
+    }
+
+    public entry fun create_pool<T>(token: &Coin<T>,ctx: &mut TxContext) {
+        let id = create_pool_inner(PoolSign{}, token, ctx);
+        admin::create_scale_admin(ctx,id);
+    }
 }

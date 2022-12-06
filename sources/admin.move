@@ -43,16 +43,16 @@ module scale::admin {
         vec_set::size(&scale_admin_cap.member)
     }
 
-    public fun is_super_admin(admin_cap: &ScaleAdminCap, addr: &address):bool{
-        admin_cap.admin == *addr
+    public fun is_super_admin(admin_cap: &ScaleAdminCap, addr: &address,id: ID):bool{
+        admin_cap.admin == *addr && admin_cap.object_id == id
     }
 
-    public fun is_admin(admin_cap: &ScaleAdminCap, addr: &address): bool {
-        admin_cap.admin == *addr || vec_set::contains(&admin_cap.member, addr)
+    public fun is_admin(admin_cap: &ScaleAdminCap, addr: &address,id: ID): bool {
+        admin_cap.object_id == id && (admin_cap.admin == *addr || vec_set::contains(&admin_cap.member, addr))
     }
 
-    public fun is_admin_member(admin_cap: &ScaleAdminCap, addr: &address): bool {
-        vec_set::contains(&admin_cap.member, addr)
+    public fun is_admin_member(admin_cap: &ScaleAdminCap, addr: &address,id: ID): bool {
+        vec_set::contains(&admin_cap.member, addr) && admin_cap.object_id == id
     }
 
     public fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address){
