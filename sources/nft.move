@@ -3,7 +3,8 @@ module scale::nft {
     use std::string::{Self,String};
     use sui::url::{Self, Url};
     use sui::balance::{Balance};
-    use scale::pool::{Self, Pool,LSP};
+    use scale::pool::{Self,LSP};
+    use scale::market::{Self,Market};
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self,TxContext};
     use std::vector;
@@ -72,7 +73,7 @@ module scale::nft {
     
     /// Withdraw funds from the current pool and destroy NFT bond certificates
     public fun divestment_inner<P,T>(
-        v_pool: &mut Pool<P,T>,
+        market: &mut Market<P,T>,
         nft: ScaleNFT<P,T>,
         move_token: Option<MoveToken>,
         ctx: &mut TxContext
@@ -94,7 +95,7 @@ module scale::nft {
         }else{            
             option::destroy_none(move_token);
         };
-        transfer::transfer(pool::remove_liquidity(v_pool,face_value,ctx),tx_context::sender(ctx));
+        transfer::transfer(pool::remove_liquidity(market::get_mut_pool(market),face_value,ctx),tx_context::sender(ctx));
         object::delete(id);
     }
     /// Project side add NFT style
@@ -130,7 +131,7 @@ module scale::nft {
 
     /// Provide current pool funds and obtain NFT bond certificates
     public entry fun investment<P,T>(
-        v_pool: &mut Pool<P,T>,
+        market: &mut Market<P,T>,
         token: Coin<T>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -138,7 +139,7 @@ module scale::nft {
     ){
         // assert!(!vector::is_empty(&name), ENameRequired);
         let mould = table::borrow(&factory.mould,string::utf8(name));
-        let lsp = pool::add_liquidity(v_pool,token,ctx);
+        let lsp = pool::add_liquidity(market::get_mut_pool(market),token,ctx);
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
 
@@ -156,11 +157,11 @@ module scale::nft {
     }
     /// Normal withdrawal of investment
     public entry fun divestment<P,T>(
-        v_pool: &mut Pool<P,T>,
+        market: &mut Market<P,T>,
         nft: ScaleNFT<P,T>,
         ctx: &mut TxContext
     ){
-        divestment_inner(v_pool,nft,option::none(),ctx);
+        divestment_inner(market,nft,option::none(),ctx);
     }
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
     /// and there will be no liquidated damages
@@ -181,13 +182,13 @@ module scale::nft {
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
     public entry fun divestment_by_upgrade<P,T>(
-        v_pool: &mut Pool<P,T>,
+        market: &mut Market<P,T>,
         nft: ScaleNFT<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext
     ){
         let UpgradeMoveToken {id,move_token} = move_token;
-        divestment_inner(v_pool,nft,option::some(move_token),ctx);
+        divestment_inner(market,nft,option::some(move_token),ctx);
         object::delete(id);
     }
 }

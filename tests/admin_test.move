@@ -23,7 +23,7 @@ module scale::admin_tests{
             let id = object::uid_to_inner(&uid);
             let o = O { id: uid };
             transfer::transfer(o,tx_context::sender(test_scenario::ctx(tx)));
-            admin::create_scale_admin(test_scenario::ctx(tx), id);
+            admin::create_scale_admin(id,test_scenario::ctx(tx));
         };
         test_scenario::next_tx(tx,owner);
         {
@@ -55,7 +55,7 @@ module scale::admin_tests{
             let id = object::uid_to_inner(&uid);
             let o = O { id: uid };
             transfer::transfer(o,tx_context::sender(test_scenario::ctx(tx)));
-            admin::create_scale_admin(test_scenario::ctx(tx), id);
+            admin::create_scale_admin(id,test_scenario::ctx(tx));
         };
         test_scenario::next_tx(tx,owner);
         {
@@ -63,8 +63,8 @@ module scale::admin_tests{
             let o = test_scenario::take_from_sender<O>(tx);
             let scale_admin = test_scenario::take_shared<admin::ScaleAdminCap>(tx);
 
-            admin::add_admin_member(&mut scale_admin,&owner);
-            admin::add_admin_member(&mut scale_admin,&owner2);
+            admin::add_admin_member_(&mut scale_admin,&owner);
+            admin::add_admin_member_(&mut scale_admin,&owner2);
 
             assert!(admin::is_admin(&scale_admin,&owner,object::uid_to_inner(&o.id)),1);
             assert!(admin::is_admin(&scale_admin,&owner2,object::uid_to_inner(&o.id)),2);
@@ -77,10 +77,10 @@ module scale::admin_tests{
             assert!(admin::is_admin_member(&scale_admin,&owner2,object::uid_to_inner(&o.id)),7);
 
             assert!(admin::get_scale_admin_mum(&scale_admin)==1,1);
-            admin::add_admin_member(&mut scale_admin,&(@0xA));
-            admin::add_admin_member(&mut scale_admin,&(@0xF));
-            admin::add_admin_member(&mut scale_admin,&(@0xB));
-            admin::add_admin_member(&mut scale_admin,&(@0xC));
+            admin::add_admin_member_(&mut scale_admin,&(@0xA));
+            admin::add_admin_member_(&mut scale_admin,&(@0xF));
+            admin::add_admin_member_(&mut scale_admin,&(@0xB));
+            admin::add_admin_member_(&mut scale_admin,&(@0xC));
             assert!(admin::get_scale_admin_mum(&scale_admin) == 5,2);
 
             // admin::add_admin_member(&mut scale_admin,&(@0xD));

@@ -1,10 +1,7 @@
 module scale::pool {
-    use sui::object::{Self,UID,ID};
     use sui::coin::{Self,Coin};
     use sui::balance::{Self, Supply, Balance};
     use sui::tx_context::{TxContext};
-    use sui::transfer;
-    use scale::admin;
 
     friend scale::nft;
 
@@ -15,8 +12,7 @@ module scale::pool {
     /// liquidity supply pool
     struct LSP<phantom P, phantom T> has drop {}
     /// Liquidity fund pool
-    struct Pool<phantom P, phantom T> has key {
-        id: UID,
+    struct Pool<phantom P, phantom T> has store {
         /// The original supply of the liquidity pool represents 
         /// the liquidity funds obtained through the issuance of NFT bonds
         vault_supply: Supply<LSP<P,T>>,
@@ -28,22 +24,17 @@ module scale::pool {
         insurance_balance: Balance<T>,
     }
 
-    fun create_pool_inner<P: drop ,T>(_pool_token: P,_token: &Coin<T>,ctx: &mut TxContext):ID {
-        let uid = object::new(ctx);
-        let id = object::uid_to_inner(&uid);
-        transfer::share_object(Pool {
-            id: uid,
+    public fun create_pool<P: drop ,T>(_pool_token: P,_token: &Coin<T>):Pool<P,T> {
+        Pool {
             vault_supply: balance::create_supply(LSP<P,T>{}),
             vault_balance: balance::zero<T>(),
             profit_balance: balance::zero<T>(),
             insurance_balance: balance::zero<T>(),
-        });
-        id
+        }
     }
 
-    public fun create_pool_<P: drop ,T>(pool_token: P,token: &Coin<T>,ctx: &mut TxContext) {
-        let id = create_pool_inner<P,T>(pool_token, token, ctx);
-        admin::create_scale_admin(ctx,id);
+    public entry fun create_pool_<T>(token: &Coin<T>):Pool<PoolSign,T> {
+        create_pool(PoolSign{}, token)
     }
 
     public(friend) fun add_liquidity<P,T>(
@@ -145,8 +136,4 @@ module scale::pool {
         balance::value(&pool.insurance_balance)
     }
 
-    public entry fun create_pool<T>(token: &Coin<T>,ctx: &mut TxContext) {
-        let id = create_pool_inner(PoolSign{}, token, ctx);
-        admin::create_scale_admin(ctx,id);
-    }
 }

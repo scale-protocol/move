@@ -6,7 +6,8 @@ module scale::admin {
     /// Up to 5 administrators can be set
     const MAX_ADMIN_NUM:u8 = 5;
 
-    const EAdminNumberOverflow:u64=1;
+    const EAdminNumberOverflow:u64 = 1;
+    const ENoPermission:u64 = 2;
     /// Management voucher, used to achieve certain management capabilities
     /// There is only one super administrator
     struct AdminCap has key {
@@ -30,7 +31,7 @@ module scale::admin {
     }
 
     /// Set the object administrator
-    public fun create_scale_admin(ctx: &mut TxContext,object_id: ID){
+    public fun create_scale_admin(object_id: ID, ctx: &mut TxContext){
         transfer::share_object(ScaleAdminCap{
             id: object::new(ctx),
             object_id,
@@ -41,6 +42,10 @@ module scale::admin {
     
     public fun get_scale_admin_mum(scale_admin_cap:&ScaleAdminCap):u64{
         vec_set::size(&scale_admin_cap.member)
+    }
+
+    public fun is_a_super(admin_cap: &ScaleAdminCap, addr: &address):bool{
+        admin_cap.admin == *addr
     }
 
     public fun is_super_admin(admin_cap: &ScaleAdminCap, addr: &address,id: ID):bool{
@@ -55,15 +60,25 @@ module scale::admin {
         vec_set::contains(&admin_cap.member, addr) && admin_cap.object_id == id
     }
 
-    public fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address){
+    public fun add_admin_member_(admin_cap:&mut ScaleAdminCap, addr: &address){
         if (*addr == admin_cap.admin) return;
         // if (vec_set::contains(&admin_cap.member, addr)) return;
         assert!(vec_set::size(&admin_cap.member) < (MAX_ADMIN_NUM as u64), EAdminNumberOverflow);
         vec_set::insert(&mut admin_cap.member, *addr);
     }
 
-    public fun remove_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address){
+    public fun remove_admin_member_(admin_cap:&mut ScaleAdminCap, addr: &address){
         vec_set::remove(&mut admin_cap.member, addr);
+    }
+
+    public entry fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address, ctx: &mut TxContext){
+        assert!(is_a_super(admin_cap, &tx_context::sender(ctx)), ENoPermission);
+        add_admin_member_(admin_cap, addr);
+    }
+    
+    public entry fun remove_admin_member(admin_cap:&mut ScaleAdminCap, addr: &address, ctx: &mut TxContext){
+        assert!(is_a_super(admin_cap, &tx_context::sender(ctx)), ENoPermission);
+        remove_admin_member_(admin_cap, addr);
     }
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext){
