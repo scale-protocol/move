@@ -24,7 +24,7 @@ module scale::pool {
         insurance_balance: Balance<T>,
     }
 
-    public fun create_pool<P: drop ,T>(_pool_token: P,_token: &Coin<T>):Pool<P,T> {
+    public fun create_pool<P: drop ,T>(_pool_token: P,_token: &Coin<T>): Pool<P,T> {
         Pool {
             vault_supply: balance::create_supply(LSP<P,T>{}),
             vault_balance: balance::zero<T>(),
@@ -33,7 +33,7 @@ module scale::pool {
         }
     }
 
-    public entry fun create_pool_<T>(token: &Coin<T>):Pool<PoolSign,T> {
+    public fun create_pool_<T>(token: &Coin<T>): Pool<PoolSign,T> {
         create_pool(PoolSign{}, token)
     }
 
@@ -88,7 +88,7 @@ module scale::pool {
         join_profit_balance(pool,balance)
     }
 
-    public(friend) fun take_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+    public(friend) fun split_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         let profit_balance_value = balance::value(&mut pool.profit_balance);
         if (profit_balance_value >= amount) {
             return balance::split(&mut pool.profit_balance, amount)
@@ -99,8 +99,8 @@ module scale::pool {
         b
     }
     #[test_only]
-    public fun take_profit_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
-        take_profit_balance(pool,amount)
+    public fun split_profit_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        split_profit_balance(pool,amount)
     }
 
     public(friend) fun join_insurance_balance<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
@@ -112,12 +112,12 @@ module scale::pool {
         join_insurance_balance(pool,balance)
     }
 
-    public(friend) fun take_insurance_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+    public(friend) fun split_insurance_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         balance::split(&mut pool.insurance_balance, amount)
     }
     #[test_only]
-    public fun take_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
-        take_insurance_balance(pool,amount)
+    public fun split_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        split_insurance_balance(pool,amount)
     }
     
     public fun get_vault_supply<P,T>(pool: &Pool<P, T>):u64 {

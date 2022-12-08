@@ -9,7 +9,7 @@ module scale::pool_tests {
 
     struct P has drop{}
 
-    struct MK<phantom P,phantom T> has key{
+    struct MK<phantom P,phantom T> has key {
         pool:pool::Pool<P,T>
     }
 
@@ -100,19 +100,19 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&mk.pool) == 5000,3);
             assert!(pool::get_insurance_balance(&mk.pool) == 0,4);
             // test take
-            let ts_token = pool::take_profit_balance_for_testing(&mut mk.pool,4000);
+            let ts_token = pool::split_profit_balance_for_testing(&mut mk.pool,4000);
             assert!(pool::get_vault_supply(&mk.pool) == 1000_000_000,5);
             assert!(pool::get_vault_balance(&mk.pool) == 1000_000_000,6);
             assert!(pool::get_profit_balance(&mk.pool) == 1000,7);
             assert!(pool::get_insurance_balance(&mk.pool) == 0,8);
 
-            let tss_token = pool::take_profit_balance_for_testing(&mut mk.pool,1000);
+            let tss_token = pool::split_profit_balance_for_testing(&mut mk.pool,1000);
             assert!(pool::get_vault_supply(&mk.pool) == 1000_000_000,9);
             assert!(pool::get_vault_balance(&mk.pool) == 1000_000_000,10);
             assert!(pool::get_profit_balance(&mk.pool) == 0,11);
             assert!(pool::get_insurance_balance(&mk.pool) == 0,12);
 
-            let tsss_token = pool::take_profit_balance_for_testing(&mut mk.pool,1000);
+            let tsss_token = pool::split_profit_balance_for_testing(&mut mk.pool,1000);
             assert!(pool::get_vault_supply(&mk.pool) == 1000_000_000,13);
             assert!(pool::get_vault_balance(&mk.pool) == 999_999_000,14);
             assert!(pool::get_profit_balance(&mk.pool) == 0,15);
@@ -157,7 +157,7 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&mk.pool) == 0,3);
             assert!(pool::get_insurance_balance(&mk.pool) == 5000,4);
 
-            let ts_token = pool::take_insurance_balance_for_testing(&mut mk.pool,4000);
+            let ts_token = pool::split_insurance_balance_for_testing(&mut mk.pool,4000);
             assert!(pool::get_vault_supply(&mk.pool) == 2000_000_000,5);
             assert!(pool::get_vault_balance(&mk.pool) == 2000_000_000,6);
             assert!(pool::get_profit_balance(&mk.pool) == 0,7);

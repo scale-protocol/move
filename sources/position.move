@@ -5,7 +5,9 @@ module scale::position {
         id: UID,
         offset: u64,
         /// Initial position margin
-        margin: Balance<T>,
+        margin: u64,
+        /// Current actual margin balance
+        margin_value: Balance<T>,
         /// leverage size
         leverage: u64,
         /// 1 full position mode, 2 independent position modes.

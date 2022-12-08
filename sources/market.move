@@ -18,11 +18,11 @@ module scale::market{
     const ENameRequired:u64 = 7;
     const EDescriptionRequired:u64 = 8;
     const ENoPermission:u64 = 9;
-    const EInvalidSellPrice:u64 = 9;
+    const EInvalidSellPrice:u64 = 10;
     ///  For example, when the exposure proportion is 70%, this value is 7/1000.
     const FUND_RATE: u64 = 100;
 
-    struct Market<phantom P, phantom T> has key ,store {
+    struct Market<phantom P, phantom T> has key {
         id: UID,
         /// Maximum allowable leverage ratio
         max_leverage: u8,
@@ -61,7 +61,7 @@ module scale::market{
     }
 
     public fun get_price<P,T>(market: &Market<P,T>): Price{
-        let real_price = 1000_000_000_000;
+        let real_price = 1000_000_000;
         assert!(real_price > market.spread, EInvalidSellPrice);
         let sell_price = real_price - market.spread;
         Price{
