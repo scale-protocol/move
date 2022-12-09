@@ -2,9 +2,10 @@ module scale::account {
     use sui::balance::{Self,Balance};
     use sui::object::{Self,UID};
     use sui::tx_context::{Self,TxContext};
-    use sui::coin::{Coin};
+    use sui::coin::{Self,Coin};
     use sui::transfer;
 
+    const EInsufficientCoins: u64 = 1;
     /// User transaction account
     struct Account<phantom T> has key {
         id: UID,
@@ -113,5 +114,22 @@ module scale::account {
             margin_independent_buy_total: 0,
             margin_independent_sell_total: 0,
         });
+    }
+    /// If amount is 0, the whole coin will be consumed
+    public entry fun deposit<T>(account: &mut Account<T> ,token: Coin<T>, amount: u64 ,ctx: &mut TxContext) {
+        if (amount == 0) {
+            balance::join(&mut account.balance, coin::into_balance(token));
+            return
+        };
+        assert!(amount < coin::value(&token), EInsufficientCoins);
+        balance::join(&mut account.balance, coin::into_balance(coin::split(&mut token, amount,ctx)));
+        transfer::transfer(token,tx_context::sender(ctx))
+    }
+
+    public entry fun withdrawal<T>(account: &mut Account<T>, amount: u64, ctx: &mut TxContext) {
+        // todo: check amount
+        let balance = balance::split(&mut account.balance, amount);
+        let coin = coin::from_balance(balance,ctx);
+        transfer::transfer(coin,tx_context::sender(ctx))
     }
 }

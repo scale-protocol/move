@@ -53,13 +53,28 @@ module scale::market{
         pool: Pool<P,T>,
     }
 
-    struct Price has drop,copy{
+    struct Price has drop,copy {
         buy_price: u64,
         sell_price: u64,
         real_price: u64,
         // spread: u64,
     }
-
+    public fun get_direction_price(price:&Price, direction: u8) : u64{
+        if (direction == 1) {
+            price.buy_price
+        }else{
+            price.sell_price
+        }
+    }
+    public fun get_buy_price(price:&Price) : u64{
+        price.buy_price
+    }
+    public fun get_sell_price(price:&Price) : u64{
+        price.sell_price
+    }
+    public fun get_real_price(price:&Price) : u64{
+        price.real_price
+    }
     public fun get_price<P,T>(market: &Market<P,T>): Price{
         let real_price = 1000_000_000;
         assert!(real_price > market.spread, EInvalidSellPrice);
