@@ -19,6 +19,8 @@ module scale::market{
     const EDescriptionRequired:u64 = 8;
     const ENoPermission:u64 = 9;
     const EInvalidSellPrice:u64 = 10;
+    const EInvalidSize:u64 = 11;
+
     ///  For example, when the exposure proportion is 70%, this value is 7/1000.
     const FUND_RATE: u64 = 100;
 
@@ -51,6 +53,9 @@ module scale::market{
         officer: bool,
         /// coin pool of the market
         pool: Pool<P,T>,
+        /// Basic size of transaction pair contract
+        /// Constant 1 in the field of encryption
+        size: u64,
     }
 
     struct Price has drop,copy {
@@ -66,16 +71,18 @@ module scale::market{
             price.sell_price
         }
     }
-    public fun get_buy_price(price:&Price) : u64{
-        price.buy_price
+    public fun set_direction_price(price:&mut Price, direction: u8, price_value: u64) {
+        if (direction == 1) {
+            price.buy_price = price_value;
+        }else{
+            price.sell_price = price_value;
+        }
     }
-    public fun get_sell_price(price:&Price) : u64{
-        price.sell_price
-    }
+
     public fun get_real_price(price:&Price) : u64{
         price.real_price
     }
-    public fun get_price<P,T>(market: &Market<P,T>): Price{
+    public fun get_price<P,T>(market: &Market<P,T>): Price {
         let real_price = 1000_000_000;
         assert!(real_price > market.spread, EInvalidSellPrice);
         let sell_price = real_price - market.spread;
@@ -147,18 +154,23 @@ module scale::market{
     public fun get_mut_pool<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
         &mut market.pool
     }
+    public fun get_size<P,T>(market: &Market<P,T>) : u64{
+        market.size
+    }
     /// Create a market
     public entry fun create_market <P,T>(
         token: &Coin<T>,
         name: vector<u8>,
         description: vector<u8>,
+        size: u64,
         spread: u64,
         ctx: &mut TxContext
     ){
         assert!(!vector::is_empty(&name), ENameRequired);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         assert!(spread > 0,EInvalidSpread);
-
+        assert!(size > 0,EInvalidSize);
+        
         transfer::share_object(Market{
             id: object::new(ctx),
             max_leverage: 125,
@@ -172,6 +184,7 @@ module scale::market{
             spread: spread,
             officer: false,
             pool: pool::create_pool_(token),
+            size,
         });
     }
 

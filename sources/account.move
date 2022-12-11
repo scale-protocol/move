@@ -1,9 +1,10 @@
 module scale::account {
     use sui::balance::{Self,Balance};
-    use sui::object::{Self,UID};
+    use sui::object::{Self,UID,ID};
     use sui::tx_context::{Self,TxContext};
     use sui::coin::{Self,Coin};
     use sui::transfer;
+    use sui::vec_map::{Self,VecMap};
 
     const EInsufficientCoins: u64 = 1;
     /// User transaction account
@@ -28,9 +29,27 @@ module scale::account {
         margin_full_sell_total: u64,
         margin_independent_buy_total: u64,
         margin_independent_sell_total: u64,
+        full_position_idx: VecMap<PFK,ID>,
+    }
+
+    struct PFK has store,copy,drop {
+        market_id: ID,
+        account_id: ID,
+        direction: u8,
+    }
+
+    public fun new_PFK<T>(market_id: ID,account_id: ID, direction: u8):  PFK {
+        PFK {
+            market_id,
+            account_id,
+            direction,
+        }
     }
     public fun get_uid<T>(account: &Account<T>): &UID {
         &account.id
+    }
+    public fun get_uid_mut<T>(account: &mut Account<T>): &mut UID {
+        &mut account.id
     }
     public fun get_owner<T>(account: &Account<T>): address {
         account.owner
@@ -64,6 +83,18 @@ module scale::account {
     }
     public fun get_margin_independent_sell_total<T>(account: &Account<T>): u64 {
         account.margin_independent_sell_total
+    }
+    public fun contains_pfk<T>(account: &Account<T>,pfk: &PFK): bool {
+        vec_map::contains(&account.full_position_idx, pfk)
+    }
+    public fun get_pfk_id<T>(account: &Account<T>,pfk: &PFK): ID {
+        *vec_map::get(&account.full_position_idx, pfk)
+    }
+    public fun add_pfk_id<T>(account: &mut Account<T>,pfk: PFK,id: ID) {
+        vec_map::insert(&mut account.full_position_idx, pfk, id);
+    }
+    public fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
+        vec_map::remove(&mut account.full_position_idx, pfk);
     }
     public fun set_offset<T>(account: &mut Account<T>, offset: u64) {
         account.offset = offset;
@@ -113,6 +144,7 @@ module scale::account {
             margin_full_sell_total: 0,
             margin_independent_buy_total: 0,
             margin_independent_sell_total: 0,
+            full_position_idx: vec_map::empty<PFK,ID>(),
         });
     }
     /// If amount is 0, the whole coin will be consumed
