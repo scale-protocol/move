@@ -5,6 +5,7 @@ module scale::account {
     use sui::coin::{Self,Coin};
     use sui::transfer;
     use sui::vec_map::{Self,VecMap};
+    use std::vector;
 
     const EInsufficientCoins: u64 = 1;
     /// User transaction account
@@ -96,6 +97,19 @@ module scale::account {
     public fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
         vec_map::remove(&mut account.full_position_idx, pfk);
     }
+
+    public fun get_pfk_ids<T>(account: &Account<T>):vector<ID> {
+        let i = 0;
+        let n = vec_map::size(&account.full_position_idx);
+        let r = vector::empty<ID>();
+        while (i < n) {
+            let (_,v) = vec_map::get_entry_by_idx(&account.full_position_idx, i);
+            vector::push_back(&mut r, *v);
+            i = i + 1;
+        };
+        r
+    }
+
     public fun set_offset<T>(account: &mut Account<T>, offset: u64) {
         account.offset = offset;
     }
@@ -105,29 +119,53 @@ module scale::account {
     public fun split_balance<T>(account: &mut Account<T>, amount: u64): Balance<T> {
         balance::split(&mut account.balance, amount)
     }
-    public fun set_profit<T>(account: &mut Account<T>, profit: u64) {
-        account.profit = profit;
+    public fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
+        account.profit = account.profit + profit;
     }
-    public fun set_margin_total<T>(account: &mut Account<T>, margin_total: u64) {
-        account.margin_total = margin_total;
+    public fun dec_profit<T>(account: &mut Account<T>, profit: u64) {
+        account.profit = account.profit - profit;
     }
-    public fun set_margin_full_total<T>(account: &mut Account<T>, margin_full_total: u64) {
-        account.margin_full_total = margin_full_total;
+    public fun inc_margin_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_total = account.margin_total + margin;
     }
-    public fun set_margin_independent_total<T>(account: &mut Account<T>, margin_independent_total: u64) {
-        account.margin_independent_total = margin_independent_total;
+    public fun dec_margin_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_total = account.margin_total - margin;
     }
-    public fun set_margin_full_buy_total<T>(account: &mut Account<T>, margin_full_buy_total: u64) {
-        account.margin_full_buy_total = margin_full_buy_total;
+    public fun inc_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_total = account.margin_full_total + margin;
     }
-    public fun set_margin_full_sell_total<T>(account: &mut Account<T>, margin_full_sell_total: u64) {
-        account.margin_full_sell_total = margin_full_sell_total;
+    public fun dec_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_total = account.margin_full_total - margin;
     }
-    public fun set_margin_independent_buy_total<T>(account: &mut Account<T>, margin_independent_buy_total: u64) {
-        account.margin_independent_buy_total = margin_independent_buy_total;
+    public fun inc_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_total = account.margin_independent_total + margin;
     }
-    public fun set_margin_independent_sell_total<T>(account: &mut Account<T>, margin_independent_sell_total: u64) {
-        account.margin_independent_sell_total = margin_independent_sell_total;
+    public fun dec_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_total = account.margin_independent_total - margin;
+    }
+    public fun inc_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_buy_total = account.margin_full_buy_total + margin;
+    }
+    public fun dec_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_buy_total = account.margin_full_buy_total - margin;
+    }
+    public fun inc_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_sell_total = account.margin_full_sell_total + margin;
+    }
+    public fun dec_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_full_sell_total = account.margin_full_sell_total - margin;
+    }
+    public fun inc_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_buy_total = account.margin_independent_buy_total + margin;
+    }
+    public fun dec_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_buy_total = account.margin_independent_buy_total - margin;
+    }
+    public fun inc_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_sell_total = account.margin_independent_sell_total + margin;
+    }
+    public fun dec_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_independent_sell_total = account.margin_independent_sell_total - margin;
     }
 
     public entry fun create_account<T>(_token: &Coin<T>, ctx: &mut TxContext) {

@@ -4,6 +4,7 @@ module scale::pool {
     use sui::tx_context::{TxContext};
 
     friend scale::nft;
+    friend scale::position;
 
     const EZeroAmount: u64 = 1;
 

@@ -95,7 +95,7 @@ module scale::nft {
         }else{            
             option::destroy_none(move_token);
         };
-        transfer::transfer(pool::remove_liquidity(market::get_mut_pool(market),face_value,ctx),tx_context::sender(ctx));
+        transfer::transfer(pool::remove_liquidity(market::get_pool_mut(market),face_value,ctx),tx_context::sender(ctx));
         object::delete(id);
     }
     /// Project side add NFT style
@@ -139,7 +139,7 @@ module scale::nft {
     ){
         // assert!(!vector::is_empty(&name), ENameRequired);
         let mould = table::borrow(&factory.mould,string::utf8(name));
-        let lsp = pool::add_liquidity(market::get_mut_pool(market),token,ctx);
+        let lsp = pool::add_liquidity(market::get_pool_mut(market),token,ctx);
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
 
