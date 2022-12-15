@@ -9,6 +9,7 @@ module scale::position {
     use sui::dynamic_object_field as dof;
     use scale::pool;
     use std::vector;
+    use scale::i64::{Self, I64};
     // use sui::dynamic_field as df;/
 
     const EInvalidLot:u64 = 2;
@@ -58,7 +59,7 @@ module scale::position {
         // Actual quotation currently obtained
         close_real_price: u64,
         // PL
-        profit: u64,
+        profit: I64,
         /// Automatic profit stop price
         stop_surplus_price: u64,
         /// Automatic stop loss price
@@ -103,6 +104,7 @@ module scale::position {
         let r = (fund_size as u128) / (leverage as u128) * (margin_rate as u128) / (denominator as u128);
         (r as u64)
     }
+
     /// get Floating P/L
     public fun get_pl<T>(position: &Position<T>,price: &Price) :u64 {
         if (position.direction == 1) {
@@ -140,7 +142,7 @@ module scale::position {
             close_price: 0,
             close_spread: 0,
             close_real_price: 0,
-            profit: 0,
+            profit: i64::new(0,false),
             stop_surplus_price: 0,
             stop_loss_price: 0,
             create_time: 0,
@@ -277,9 +279,9 @@ module scale::position {
     }
 
     public fun get_equity<P,T>(
-        market_list: &mut MarketList,
-        curr_market: &Market<P,T>,
-        curr_price: &Price,
+        // market_list: &mut MarketList,
+        // curr_market: &Market<P,T>,
+        // curr_price: &Price,
         account: &Account<T>,
     ) {
         let ids = account::get_pfk_ids<T>(account);
@@ -290,14 +292,15 @@ module scale::position {
             let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
 
             if ( ps.position_status == 1 ){
-                let curr_market_id = object::uid_to_inner(market::get_uid(curr_market));
-                let (market, price) = if ( ps.market_id == curr_market_id ){
-                    (curr_market, curr_price)
-                } else {
-                    let m: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),ps.market_id);
-                    let price = market::get_price(m);
-                    (m, &price)
-                };
+                // let curr_market_id = object::uid_to_inner(market::get_uid(curr_market));
+                // let (market, price) = if ( ps.market_id == curr_market_id ){
+                //     (curr_market, curr_price)
+                // } else {
+                //     let m: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),ps.market_id);
+                //     let price = market::get_price(m);
+                //     (m, &price)
+                // };
+
                 // let fund_size = get_fund_size<P,T>(p);
                 // let margin_size = get_margin_size<P,T>(market,p);
                 // let margin_rate = (margin_size as u128) * (market::get_denominator(market) as u128) / (fund_size as u128);
@@ -307,19 +310,19 @@ module scale::position {
         };
     }
     
-    public fun risk_assertion<P,T>(
-        market: &Market<P,T>,
-        account: &Account<T>,
-        position: &Position<T>,
-        pre_exposure: u64,
-    ){
-            let exposure = market::get_exposure<P,T>(market);
-            let total_liquidity = market::get_total_liquidity<P,T>(market);
-            assert!(
-                exposure <= total_liquidity * POSITION_DIFF_PROPORTION / POSITION_DENOMINATOR && exposure > pre_exposure,
-                ERiskControlBlockingExposure
-            );
-    }
+    // public fun risk_assertion<P,T>(
+    //     market: &Market<P,T>,
+    //     account: &Account<T>,
+    //     position: &Position<T>,
+    //     pre_exposure: u64,
+    // ){
+    //         let exposure = market::get_exposure<P,T>(market);
+    //         let total_liquidity = market::get_total_liquidity<P,T>(market);
+    //         assert!(
+    //             exposure <= total_liquidity * POSITION_DIFF_PROPORTION / POSITION_DENOMINATOR && exposure > pre_exposure,
+    //             ERiskControlBlockingExposure
+    //         );
+    // }
 
     /// The value of lot field in encrypted transaction is 0 by default
     public entry fun open_position<P,T>(

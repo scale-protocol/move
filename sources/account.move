@@ -6,6 +6,7 @@ module scale::account {
     use sui::transfer;
     use sui::vec_map::{Self,VecMap};
     use std::vector;
+    use scale::i64::{Self,I64};
 
     const EInsufficientCoins: u64 = 1;
     /// User transaction account
@@ -19,7 +20,7 @@ module scale::account {
         /// and the balance here will be deducted when the deposit used in the full position mode is deducted)
         balance: Balance<T>,
         /// User settled profit
-        profit: u64,
+        profit: I64,
         /// Total amount of margin used.
         margin_total: u64,
         /// Total amount of used margin in full warehouse mode.
@@ -61,8 +62,8 @@ module scale::account {
     public fun get_balance<T>(account: &Account<T>): u64 {
         balance::value(&account.balance)
     }
-    public fun get_profit<T>(account: &Account<T>): u64 {
-        account.profit
+    public fun get_profit<T>(account: &Account<T>): &I64 {
+        &account.profit
     }
     public fun get_margin_total<T>(account: &Account<T>): u64 {
         account.margin_total
@@ -120,10 +121,10 @@ module scale::account {
         balance::split(&mut account.balance, amount)
     }
     public fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
-        account.profit = account.profit + profit;
+        i64::inc_u64(&mut account.profit, profit);
     }
     public fun dec_profit<T>(account: &mut Account<T>, profit: u64) {
-        account.profit = account.profit - profit;
+        i64::dec_u64(&mut account.profit, profit);
     }
     public fun inc_margin_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_total = account.margin_total + margin;
@@ -174,7 +175,7 @@ module scale::account {
             owner: tx_context::sender(ctx),
             offset: 0,
             balance: balance::zero<T>(),
-            profit: 0,
+            profit: i64::new(0,false),
             margin_total: 0,
             margin_full_total: 0,
             margin_independent_total: 0,
