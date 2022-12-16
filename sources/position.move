@@ -212,7 +212,8 @@ module scale::position {
         inc_margin<P,T>(market,account,position_type,direction,margin);
         risk_assertion<P,T>(
             market,
-            &position,
+            get_fund_size(&position),
+            direction,
             pre_exposure,
         );
         if ( position_type == 2 ){
@@ -336,11 +337,13 @@ module scale::position {
             );
             position.margin = margin_new;
             let pre_exposure = market::get_exposure(market);
+            let fund_size = get_fund_size<T>(position);
             dec_margin<P,T>(market,account,position_type,direction,margin_old);
             inc_margin<P,T>(market,account,position_type,direction,margin_new);
             risk_assertion<P,T>(
                 market,
-                position,
+                fund_size,
+                direction,
                 pre_exposure,
             );
             collect_insurance<P,T>(market,account,margin_new);
@@ -353,7 +356,8 @@ module scale::position {
 
     fun risk_assertion<P,T>(
         market: &Market<P,T>,
-        position: &Position<T>,
+        fund_size: u64,
+        direction: u8,
         pre_exposure: u64,
     ){
         let exposure = market::get_exposure<P,T>(market);
@@ -363,25 +367,27 @@ module scale::position {
             ERiskControlBlockingExposure
         );
         assert!(
-            get_fund_size(position) < total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR,
+            fund_size < total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR,
             RiskControlBlockingFundSize
         );
         assert!(
-            market::get_curr_position_total(market,position.direction) < total_liquidity * POSITION_PROPORTION / DENOMINATOR,
+            market::get_curr_position_total(market,direction) < total_liquidity * POSITION_PROPORTION / DENOMINATOR,
             RiskControlBlockingFundPool
         );
     }
-    public fun check_margin(){
-        // let equity = get_equity(
-        //     market_list,
-        //     curr_market,
-        //     curr_price,
-        //     account,
-        // );
-        // let margin_used = account::get_margin_used(account);
-        // if (margin_used > 0) {
-        //     assert!(i64::get_positive(&equity) / margin_used > BURST_RATE / DENOMINATOR, ERiskControlBurstRate);
-        // }
+
+    fun check_margin<P,T>(
+        market_list: &MarketList,
+        account: &Account<T>,
+    ){
+        let equity = get_equity<P,T>(
+            market_list,
+            account,
+        );
+        let margin_used = account::get_margin_used(account);
+        if (margin_used > 0) {
+            assert!(i64::get_positive(&equity) / margin_used > BURST_RATE / DENOMINATOR, ERiskControlBurstRate);
+        }
     }
     /// The value of lot field in encrypted transaction is 0 by default
     public entry fun open_position<P,T>(
@@ -431,13 +437,6 @@ module scale::position {
                 account::add_pfk_id(account,pfk,id);
             };
         };
-        // risk_assertion<P,T>(
-        //     market_list,
-        //     market,
-        //     price,
-        //     account,
-        //     &position,
-        //     pre_exposure,
-        // );
+        check_margin<P,T>(market_list,account);
     }
 }
