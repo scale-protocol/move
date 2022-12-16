@@ -21,13 +21,14 @@ module scale::market{
     const ENoPermission:u64 = 9;
     const EInvalidSellPrice:u64 = 10;
     const EInvalidSize:u64 = 11;
-    
-
+    const EInvalidFundRate:u64 = 12;
+    const EInvalidOpingPrice:u64 = 13;
+    /// Denominator reference when scaling, default is 10000
+    /// e.g. 5% = 5000/10000
+    const DENOMINATOR: u64 = 10000;
     const MAX_VALUE: u64 = {
         18446744073709551615 / 10000
     };
-    ///  For example, when the exposure proportion is 70%, this value is 7/1000.
-    const FUND_RATE: u64 = 100;
 
     struct MarketList has key {
         id: UID,
@@ -39,9 +40,19 @@ module scale::market{
         /// Maximum allowable leverage ratio
         max_leverage: u8,
         /// insurance rate
-        insurance_rate: u64,
+        insurance_fee: u64,
         /// margin rate,Current constant positioning 100%
-        margin_rate: u64,
+        margin_fee: u64,
+        /// The position fund rate will be calculated automatically according to the rules, 
+        /// and this value will be used when manually set
+        fund_fee: u64,
+        /// Take the value of fund_fee when this value is true
+        fund_fee_manual: bool,
+        /// Point difference (can be understood as slip point),
+        /// deviation between the executed quotation and the actual quotation
+        spread_fee: u64,
+        /// Take the value of spread_fee when this value is true
+        spread_fee_manual: bool,
         /// Market status:
         /// 1 Normal;
         /// 2. Lock the market, allow closing settlement and not open positions;
@@ -56,9 +67,6 @@ module scale::market{
         name: String,
         /// market description
         description: String,
-        /// Point difference (can be understood as slip point),
-        /// deviation between the executed quotation and the actual quotation
-        spread: u64,
         /// Market operator, 1 project party, other marks to be defined
         officer: bool,
         /// coin pool of the market
@@ -66,9 +74,8 @@ module scale::market{
         /// Basic size of transaction pair contract
         /// Constant 1 in the field of encryption
         size: u64,
-        /// Denominator reference when scaling, default is 10000
-        /// e.g. 5% = 5000/10000
-        denominator: u64,
+        /// The price at 0 o'clock in the utc of the current day, which is used to calculate the spread_fee
+        opening_price: u64,
         pyth_id: ID,
     }
 
@@ -76,7 +83,7 @@ module scale::market{
         buy_price: u64,
         sell_price: u64,
         real_price: u64,
-        // spread: u64,
+        spread: u64,
     }
 
     fun new_market_list(ctx: &mut TxContext):MarketList{
@@ -117,39 +124,97 @@ module scale::market{
     public fun get_sell_price(price:&Price) : u64{
         price.sell_price
     }
-
-    public fun get_price<P,T>(market: &Market<P,T>): Price {
-        let real_price = 1000_000_000;
-        assert!(real_price > market.spread, EInvalidSellPrice);
-        let sell_price = real_price - market.spread;
+    public fun get_spread(price:&Price) : u64{
+        price.spread
+    }
+    fun get_price_<P,T>(market: &Market<P,T>,real_price: u64):Price{
+        let spread = get_spread_fee(market) * real_price / DENOMINATOR;
+        // To increase the calculation accuracy
+        let half_spread = spread * DENOMINATOR / 2;
         Price{
-            buy_price: real_price + market.spread,
-            sell_price,
+            buy_price: (real_price * DENOMINATOR + half_spread) / DENOMINATOR,
+            sell_price: (real_price * DENOMINATOR - half_spread) / DENOMINATOR,
             real_price,
-            // spread: market.spread,
+            spread: market.spread_fee,
         }
     }
+    public fun get_price<P,T>(market: &Market<P,T>): Price {
+        let real_price = 1000_000_000;
+        // todo: get real price from pyth
+        get_price_(market, real_price)
+    }
 
+    #[test_only]
+    public fun get_price_for_testing<P,T>(market: &Market<P,T>,real_price: u64):Price {
+        get_price_(market, real_price)
+    }
+    #[test_only]
+    public fun set_opening_price_for_testing<P,T>(market: &mut Market<P,T>, opening_price: u64) {
+        assert!(opening_price > 0 ,EInvalidOpingPrice);
+        market.opening_price = opening_price;
+    }
     public fun get_exposure<P,T>(market: &Market<P,T>):u64{
         math::max(market.long_position_total, market.short_position_total) - math::min(market.long_position_total, market.short_position_total)
     }
     /// 1 buy
     /// 2 sell
+    /// 3 Balanced
     public fun get_dominant_direction<P,T>(market: &Market<P,T>) :u8{
-        if (market.long_position_total > market.short_position_total) {
+        if (market.long_position_total == market.short_position_total) {
+            3
+        } else if (market.long_position_total > market.short_position_total) {
             1
         }else{
             2
         }
+    }
+    public fun get_curr_position_total<P,T>(market:&Market<P,T>,direction:u8):u64{
+        if (direction==1){
+            market.long_position_total
+        }else{
+            market.short_position_total
+        }
+    }
+    public fun get_max_position_total<P,T>(market:&Market<P,T>):u64{
+        math::max(market.long_position_total , market.short_position_total)
+    }
+    public fun get_min_position_total<P,T>(market:&Market<P,T>):u64{
+        math::min(market.long_position_total , market.short_position_total)
     }
 
     public fun get_total_liquidity<P,T>(market: &Market<P,T>) :u64{
         pool::get_vault_balance(&market.pool) + pool::get_profit_balance(&market.pool)
     }
 
-    // public fun get_fund_rate<P,T>(market: &Market<P,T>) :u64{
-    //     FUND_RATE
-    // }
+    public fun get_fund_fee<P,T>(market: &Market<P,T>) :u64{
+        if (market.fund_fee_manual) {
+            return market.fund_fee
+        };
+        let total_liquidity = get_total_liquidity(market);
+        let exposure = get_exposure(market);
+        if (exposure == 0 || total_liquidity == 0) {
+            return 0
+        };
+        let exposure_rate = exposure * DENOMINATOR / total_liquidity;
+        if (exposure_rate <= 1000) { return 3 };
+        if (exposure_rate > 1000 && exposure_rate <= 2000) {return 5 };
+        if (exposure_rate > 2000 && exposure_rate <= 3000) {return 7 };
+        if (exposure_rate > 3000 && exposure_rate <= 4000) {return 10};
+        if (exposure_rate > 4000 && exposure_rate <= 5000) {return 20};
+        if (exposure_rate > 5000 && exposure_rate <= 6000) {return 40};
+        return 70
+    }
+
+    public fun get_spread_fee<P,T>(market: &Market<P,T>) : u64{
+        if (market.spread_fee_manual) {
+            return market.spread_fee
+        };
+        if (market.opening_price <= 300) {return 30};
+        if (market.opening_price > 300 && market.opening_price <= 1000) {
+            return market.opening_price / 10
+        };
+        return 150
+    }
 
     public fun get_uid<P,T>(market:&Market<P,T>) : &UID{
         &market.id
@@ -160,11 +225,11 @@ module scale::market{
     public fun get_max_leverage<P,T>(market: &Market<P,T>) : u8{
         market.max_leverage
     }
-    public fun get_insurance_rate<P,T>(market: &Market<P,T>) : u64{
-        market.insurance_rate
+    public fun get_insurance_fee<P,T>(market: &Market<P,T>) : u64{
+        market.insurance_fee
     }
-    public fun get_margin_rate<P,T>(market: &Market<P,T>) : u64{
-        market.margin_rate
+    public fun get_margin_fee<P,T>(market: &Market<P,T>) : u64{
+        market.margin_fee
     }
     public fun get_status<P,T>(market: &Market<P,T>) : u8{
         market.status
@@ -193,9 +258,6 @@ module scale::market{
     public fun get_description<P,T>(market: &Market<P,T>) : &String{
         &market.description
     }
-    public fun get_spread<P,T>(market: &Market<P,T>) : u64{
-        market.spread
-    }
     public fun is_officer<P,T>(market: &Market<P,T>) : bool{
         market.officer
     }
@@ -208,8 +270,8 @@ module scale::market{
     public fun get_size<P,T>(market: &Market<P,T>) : u64{
         market.size
     }
-    public fun get_denominator<P,T>(market: &Market<P,T>) : u64{
-        market.denominator
+    public fun get_denominator() : u64{
+        DENOMINATOR
     }
     public fun get_max_value() : u64 {
         MAX_VALUE
@@ -230,30 +292,33 @@ module scale::market{
         name: vector<u8>,
         description: vector<u8>,
         size: u64,
-        spread: u64,
+        spread_fee: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
         assert!(!vector::is_empty(&name), ENameRequired);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
-        assert!(spread > 0,EInvalidSpread);
+        assert!(spread_fee > 0,EInvalidSpread);
         assert!(size > 0,EInvalidSize);
         let uid = object::new(ctx);
         dof::add(&mut list.id,object::uid_to_inner(&uid),Market{
             id: uid,
             max_leverage: 125,
-            insurance_rate: 5,
-            margin_rate: 10000,
+            insurance_fee: 5,
+            margin_fee: 10000,
+            fund_fee: 1,
+            fund_fee_manual: false,
             status: 1,
             long_position_total: 0,
             short_position_total: 0,
             name: string::utf8(name),
             description: string::utf8(description),
-            spread: spread,
+            spread_fee: spread_fee,
+            spread_fee_manual: false,
             officer: false,
             pool: pool::create_pool_(token),
             size,
-            denominator: 10000,
+            opening_price: 0,
             pyth_id,
         });
     }
@@ -269,28 +334,39 @@ module scale::market{
         market.max_leverage = max_leverage;
     }
 
-    public entry fun update_insurance_rate<P,T>(
+    public entry fun update_insurance_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
-        insurance_rate: u64,
+        insurance_fee: u64,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-        assert!(insurance_rate > 0 && insurance_rate <= MAX_VALUE, EInvalidInsuranceRate);
-        market.insurance_rate = insurance_rate;
+        assert!(insurance_fee > 0 && insurance_fee <= DENOMINATOR, EInvalidInsuranceRate);
+        market.insurance_fee = insurance_fee;
     }
 
-    public entry fun update_margin_rate<P,T>(
+    public entry fun update_margin_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
-        margin_rate: u64,
+        margin_fee: u64,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-        assert!(margin_rate > 0 && margin_rate <= MAX_VALUE, EInvalidMarginRate);
-        market.margin_rate = margin_rate;
+        assert!(margin_fee > 0 && margin_fee <= DENOMINATOR, EInvalidMarginRate);
+        market.margin_fee = margin_fee;
     }
-
+    public entry fun update_fund_fee<P,T>(
+        pac:&mut ScaleAdminCap,
+        market:&mut Market<P,T>,
+        fund_fee: u64,
+        manual: bool,
+        ctx: &mut TxContext
+    ){
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(fund_fee > 0 && fund_fee <= DENOMINATOR, EInvalidFundRate);
+        market.fund_fee = fund_fee;
+        market.fund_fee_manual = manual;
+    }
     public entry fun update_status<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
@@ -313,15 +389,17 @@ module scale::market{
         market.description = string::utf8(description);
     }
 
-    public entry fun update_spread<P,T>(
+    public entry fun update_spread_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
-        spread: u64,
+        spread_fee: u64,
+        manual: bool,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-        assert!(spread > 0,EInvalidSpread);
-        market.spread = spread;
+        assert!(spread_fee > 0 && spread_fee <= DENOMINATOR,EInvalidSpread);
+        market.spread_fee = spread_fee;
+        market.spread_fee_manual = manual;
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
@@ -332,5 +410,17 @@ module scale::market{
         _ctx: &mut TxContext
     ){
         market.officer = officer;
+    }
+
+    /// The robot updates the initial price regularly
+    public entry fun update_oping_price<P,T>(
+        pac:&mut ScaleAdminCap,
+        market:&mut Market<P,T>,
+        opening_price: u64,
+        ctx: &mut TxContext
+    ){
+        assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(opening_price > 0 ,EInvalidOpingPrice);
+        market.opening_price = opening_price;
     }
 }

@@ -152,4 +152,39 @@ module scale::pool_tests {
         pool::destroy_for_testing(pool);
         test_scenario::end(test_tx);  
     }
+    #[test]
+    fun test_join_take_spread_profit(){
+        let owner = @0x1;
+        let test_tx = test_scenario::begin(owner);
+        let tx = &mut test_tx;
+        let s_token =  coin::mint_for_testing<SCALE>(3000_000_000,test_scenario::ctx(tx));
+        let pool = pool::create_pool(P{},&s_token);
+        
+        test_scenario::next_tx(tx,owner);
+        {
+            let s_token =  coin::mint_for_testing<SCALE>(3000_000_000,test_scenario::ctx(tx));
+            let t_s_token = coin::split(&mut s_token,2000_000_000,test_scenario::ctx(tx));
+            let lsp_coin = pool::add_liquidity_for_testing(&mut pool,t_s_token,test_scenario::ctx(tx));
+            let t_s_token2 = coin::split(&mut s_token,5000,test_scenario::ctx(tx));
+            pool::join_spread_profit_for_testing(&mut pool,coin::into_balance(t_s_token2));
+            assert!(pool::get_vault_supply(&pool) == 2000_000_000,1);
+            assert!(pool::get_vault_balance(&pool) == 2000_000_000,2);
+            assert!(pool::get_profit_balance(&pool) == 0,3);
+            assert!(pool::get_spread_profit(&pool) == 5000,4);
+
+            let ts_token = pool::split_insurance_balance_for_testing(&mut pool,4000);
+            assert!(pool::get_vault_supply(&pool) == 2000_000_000,5);
+            assert!(pool::get_vault_balance(&pool) == 2000_000_000,6);
+            assert!(pool::get_profit_balance(&pool) == 0,7);
+            assert!(pool::get_spread_profit(&pool) == 1000,8);
+            assert!(balance::value(&ts_token) == 4000,9);
+
+            coin::destroy_for_testing(s_token);
+            coin::destroy_for_testing(coin::from_balance(ts_token,test_scenario::ctx(tx)));
+            coin::destroy_for_testing(lsp_coin);
+        };
+        coin::destroy_for_testing(s_token);
+        pool::destroy_for_testing(pool);
+        test_scenario::end(test_tx);  
+    }    
 }

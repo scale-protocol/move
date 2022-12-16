@@ -107,4 +107,40 @@ module scale::i64_tests {
         i64::dec_u64(&mut i, 1);
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_809 && !i64::is_negative(&i), 2);
     }
+    #[test]
+    fun test_i64_add(){
+        let i = i64::new(0, false);
+        let i2 = i64::new(2, true);
+        assert!(i64::i64_add(&i, &i2) == i64::new(2, true), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(2, true);
+        assert!(i64::i64_add(&i, &i2) == i64::new(102, true), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(200, true);
+        assert!(i64::i64_add(&i, &i2) == i64::new(300, true), 1);
+        let i = i64::new(100, false);
+        let i2 = i64::new(500, true);
+        assert!(i64::i64_add(&i, &i2) == i64::new(400, true), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(500, false);
+        assert!(i64::i64_add(&i, &i2) == i64::new(400, false), 1);
+    }
+    #[test]
+    fun test_i64_sub(){
+        let i = i64::new(9, false);
+        let i2 = i64::new(2, true);
+        assert!(i64::i64_sub(&i, &i2) == i64::new(11, false), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(2, true);
+        assert!(i64::i64_sub(&i, &i2) == i64::new(98, true), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(200, true);
+        assert!(i64::i64_sub(&i, &i2) == i64::new(100, false), 1);
+        let i = i64::new(100, false);
+        let i2 = i64::new(500, true);
+        assert!(i64::i64_sub(&i, &i2) == i64::new(600, false), 1);
+        let i = i64::new(100, true);
+        let i2 = i64::new(500, false);
+        assert!(i64::i64_sub(&i, &i2) == i64::new(600, true), 1);
+    }
 }

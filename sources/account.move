@@ -7,6 +7,7 @@ module scale::account {
     use sui::vec_map::{Self,VecMap};
     use std::vector;
     use scale::i64::{Self,I64};
+    use sui::math;
 
     const EInsufficientCoins: u64 = 1;
     /// User transaction account
@@ -70,6 +71,9 @@ module scale::account {
     }
     public fun get_margin_full_total<T>(account: &Account<T>): u64 {
         account.margin_full_total
+    }
+    public fun get_margin_used<T>(account: &Account<T>): u64 {
+        math::max(account.margin_full_buy_total, account.margin_full_sell_total)
     }
     public fun get_margin_independent_total<T>(account: &Account<T>): u64 {
         account.margin_independent_total

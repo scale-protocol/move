@@ -19,14 +19,25 @@ module scale::position {
     const ENoPermission:u64 = 6;
     const EInvalidPositionStatus:u64 = 7;
     const ENumericOverflow:u64 = 8;
-    const ERiskControlBlockingExposure:u64 = 9;
+    const EInvalidMarketStatus:u64 = 9;
+    const ERiskControlBlockingExposure:u64 = 10;
+    const ERiskControlBurstRate:u64 = 11;
+    const RiskControlBlockingFundSize:u64 = 12;
+    const RiskControlBlockingFundPool:u64 = 13;
 
     const MAX_U64_VALUE: u128 = 18446744073709551615;
+    const DENOMINATOR: u64 = 10000;
     /// The exposure ratio should not exceed 70% of the current pool,
     /// so as to avoid the risk that the platform's current pool is empty.
-    const POSITION_DIFF_PROPORTION: u64 = 70;
-    const POSITION_DENOMINATOR: u64 = 100;
-    
+    const POSITION_DIFF_PROPORTION: u64 = 7000;
+    /// The liquidation line ratio means that if the user's margin loss exceeds this ratio in one quotation,
+    /// the system will be liquidated and the position will be forced to close.
+    const BURST_RATE: u64 = 5000;
+    /// so as to avoid the risk of malicious position opening.
+    const POSITION_PROPORTION: u64 = 15000;
+    /// The size of a single position shall not be greater than 20% of the exposure
+    const POSITION_PROPORTION_ONE: u64 = 2000;
+
     struct Position<phantom T> has key,store {
         id: UID,
         offset: u64,
@@ -95,23 +106,64 @@ module scale::position {
         margin_size(
             get_fund_size<T>(position),
             (position.leverage as u64),
-            market::get_margin_rate(market),
-            market::get_denominator(market),
+            market::get_margin_fee(market),
+            market::get_denominator(),
         )
     }
 
-    fun margin_size(fund_size:u64,leverage:u64, margin_rate: u64,denominator: u64) :u64{
-        let r = (fund_size as u128) / (leverage as u128) * (margin_rate as u128) / (denominator as u128);
+    fun margin_size(fund_size:u64,leverage:u64, margin_fee: u64,denominator: u64) :u64{
+        let r = (fund_size as u128) / (leverage as u128) * (margin_fee as u128) / (denominator as u128);
         (r as u64)
     }
 
     /// get Floating P/L
-    public fun get_pl<T>(position: &Position<T>,price: &Price) :u64 {
+    public fun get_pl<T>(position: &Position<T>,price: &Price) :I64 {
         if (position.direction == 1) {
-            fund_size(position.size,position.lot,market::get_sell_price(price)) - get_fund_size<T>(position)
+            i64::u64_sub(fund_size(position.size,position.lot,market::get_sell_price(price)) , get_fund_size<T>(position))
+            
         } else {
-            get_fund_size<T>(position) - fund_size(position.size,position.lot,market::get_direction_price(price,2))
+            i64::u64_sub(get_fund_size<T>(position) , fund_size(position.size,position.lot,market::get_buy_price(price)))
         }
+    }
+
+    public fun get_position_fund_fee<P,T>(
+        market: &Market<P,T>,
+        position: &Position<T>,
+    ) :I64 {
+        let dominant_direction = market::get_dominant_direction(market);
+        if (dominant_direction == 3){
+            return i64::new(0,false)
+        };
+        if (position.direction == market::get_dominant_direction(market)) {
+            i64::new(get_fund_size(position) * market::get_fund_fee(market),true)
+        } else {
+            let max = market::get_max_position_total(market);
+            let min = market::get_min_position_total(market);
+            i64::new(max * market::get_fund_fee(market) * get_fund_size(position) / min,false)
+        }
+    }
+
+    public fun get_equity<P,T>(
+        market_list: &MarketList,
+        account: &Account<T>,
+    ) :I64 {
+        let ids = account::get_pfk_ids<T>(account);
+        let n = vector::length(&ids);
+        let i = 0;
+        let pl = i64::new(0,false);
+        while ( i < n ){
+            let id = vector::borrow(&ids,i);
+            let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
+
+            if ( ps.position_status == 1 ){
+                let market: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),ps.market_id);
+                let price = market::get_price(market);
+                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(market,ps),&get_pl<T>(ps,&price)));
+            };
+            i = i + 1;
+        };
+        i64::inc_u64(&mut pl,account::get_balance(account));
+        pl
     }
 
     fun create_position_inner<P,T>(
@@ -137,7 +189,7 @@ module scale::position {
             size: market::get_size(market),
             lot,
             open_price: market::get_direction_price(price,direction),
-            open_spread : market::get_spread(market),
+            open_spread : market::get_spread(price),
             open_real_price: market::get_real_price(price),
             close_price: 0,
             close_spread: 0,
@@ -156,10 +208,18 @@ module scale::position {
         };
         let margin = get_margin_size<P,T>(market,&position);
         position.margin = margin;
+        let pre_exposure = market::get_exposure<P,T>(market);
+        inc_margin<P,T>(market,account,position_type,direction,margin);
+        risk_assertion<P,T>(
+            market,
+            &position,
+            pre_exposure,
+        );
         if ( position_type == 2 ){
             balance::join(&mut position.margin_balance,account::split_balance(account,margin));
         };
-        inc_margin<P,T>(market,account,position_type,direction,margin);
+        collect_insurance<P,T>(market,account,margin);
+        collect_spread<P,T>(market,position.open_spread,get_fund_size(&position));
         position
     }
 
@@ -223,10 +283,17 @@ module scale::position {
     }
 
     fun collect_insurance<P,T>(market: &mut Market<P,T>,account: &mut Account<T>,margin: u64){
-        let insurance_rate = market::get_insurance_rate(market);
-        let insurance_size = (margin as u128) * (insurance_rate as u128) / (market::get_denominator(market) as u128);
+        let insurance_fee = market::get_insurance_fee(market);
+        let insurance_size = (margin as u128) * (insurance_fee as u128) / (market::get_denominator() as u128);
         let insurance_balance = account::split_balance(account,(insurance_size as u64));
         pool::join_insurance_balance<P,T>(market::get_pool_mut<P,T>(market),insurance_balance);
+    }
+
+    fun collect_spread<P,T>(market: &mut Market<P,T>,spread: u64, position_fund_size: u64){
+        // let spread_size = (position_fund_size as u128) * (market::get_spread_fee(market) as u128) / (market::get_denominator() as u128);
+        let pool = market::get_pool_mut<P,T>(market);
+        let spread_balance = pool::split_profit_balance(pool,(position_fund_size * spread / 2));
+        pool::join_spread_profit<P,T>(pool,spread_balance);
     }
 
     fun merge_position<P,T>(
@@ -247,11 +314,11 @@ module scale::position {
 
             let fund_size_old = get_fund_size<T>(position);
             let fund_size_new = fund_size(size, lot, market::get_direction_price(price,direction));
-
+            let open_spread = market::get_spread(price);
             // Reset average price
             market::set_direction_price(price,direction, (fund_size_old + fund_size_new) / (size * lot + position.size * position.lot));
             position.open_price = market::get_direction_price(price,direction);
-            position.open_spread = market::get_spread(market);
+            position.open_spread = open_spread;
             position.open_real_price = market::get_real_price(price);
             position.lot = position.lot + lot;
             position.leverage = leverage;
@@ -264,66 +331,58 @@ module scale::position {
             let margin_new = margin_size(
                 fund_size_new,
                 (leverage as u64),
-                market::get_margin_rate(market),
-                market::get_denominator(market),
+                market::get_margin_fee(market),
+                market::get_denominator(),
             );
             position.margin = margin_new;
-
+            let pre_exposure = market::get_exposure(market);
             dec_margin<P,T>(market,account,position_type,direction,margin_old);
             inc_margin<P,T>(market,account,position_type,direction,margin_new);
+            risk_assertion<P,T>(
+                market,
+                position,
+                pre_exposure,
+            );
             collect_insurance<P,T>(market,account,margin_new);
+            collect_spread<P,T>(market,open_spread,fund_size_new);
             true
         } else {
             false
         }
     }
 
-    public fun get_equity<P,T>(
-        // market_list: &mut MarketList,
-        // curr_market: &Market<P,T>,
-        // curr_price: &Price,
-        account: &Account<T>,
-    ) {
-        let ids = account::get_pfk_ids<T>(account);
-        let n = vector::length(&ids);
-        let i = 0;
-        while ( i < n ){
-            let id = vector::borrow(&ids,i);
-            let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
-
-            if ( ps.position_status == 1 ){
-                // let curr_market_id = object::uid_to_inner(market::get_uid(curr_market));
-                // let (market, price) = if ( ps.market_id == curr_market_id ){
-                //     (curr_market, curr_price)
-                // } else {
-                //     let m: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),ps.market_id);
-                //     let price = market::get_price(m);
-                //     (m, &price)
-                // };
-
-                // let fund_size = get_fund_size<P,T>(p);
-                // let margin_size = get_margin_size<P,T>(market,p);
-                // let margin_rate = (margin_size as u128) * (market::get_denominator(market) as u128) / (fund_size as u128);
-                // assert!(margin_rate <= (market::get_max_margin_rate(market) as u128), EInvalidMarginRate);
-            };
-            i = i + 1;
-        };
+    fun risk_assertion<P,T>(
+        market: &Market<P,T>,
+        position: &Position<T>,
+        pre_exposure: u64,
+    ){
+        let exposure = market::get_exposure<P,T>(market);
+        let total_liquidity = market::get_total_liquidity<P,T>(market);
+        assert!(
+            exposure <= total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR && exposure > pre_exposure,
+            ERiskControlBlockingExposure
+        );
+        assert!(
+            get_fund_size(position) < total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR,
+            RiskControlBlockingFundSize
+        );
+        assert!(
+            market::get_curr_position_total(market,position.direction) < total_liquidity * POSITION_PROPORTION / DENOMINATOR,
+            RiskControlBlockingFundPool
+        );
     }
-    
-    // public fun risk_assertion<P,T>(
-    //     market: &Market<P,T>,
-    //     account: &Account<T>,
-    //     position: &Position<T>,
-    //     pre_exposure: u64,
-    // ){
-    //         let exposure = market::get_exposure<P,T>(market);
-    //         let total_liquidity = market::get_total_liquidity<P,T>(market);
-    //         assert!(
-    //             exposure <= total_liquidity * POSITION_DIFF_PROPORTION / POSITION_DENOMINATOR && exposure > pre_exposure,
-    //             ERiskControlBlockingExposure
-    //         );
-    // }
-
+    public fun check_margin(){
+        // let equity = get_equity(
+        //     market_list,
+        //     curr_market,
+        //     curr_price,
+        //     account,
+        // );
+        // let margin_used = account::get_margin_used(account);
+        // if (margin_used > 0) {
+        //     assert!(i64::get_positive(&equity) / margin_used > BURST_RATE / DENOMINATOR, ERiskControlBurstRate);
+        // }
+    }
     /// The value of lot field in encrypted transaction is 0 by default
     public entry fun open_position<P,T>(
         market_list: &mut MarketList,
@@ -336,6 +395,7 @@ module scale::position {
         ctx: &mut TxContext
     ) {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),market_id);
+        assert!(market::get_status(market) == 1, EInvalidMarketStatus);
         assert!(lot > 0, EInvalidLot);
         assert!(leverage > 0 && leverage <= market::get_max_leverage(market), EInvalidLeverage);
         assert!(position_type == 1 || position_type == 2, EInvalidPositionType);
@@ -370,7 +430,14 @@ module scale::position {
             if ( position_type == 1 ){
                 account::add_pfk_id(account,pfk,id);
             };
-            // transfer::share_object(position);
         };
+        // risk_assertion<P,T>(
+        //     market_list,
+        //     market,
+        //     price,
+        //     account,
+        //     &position,
+        //     pre_exposure,
+        // );
     }
 }

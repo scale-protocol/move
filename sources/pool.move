@@ -5,6 +5,8 @@ module scale::pool {
 
     friend scale::nft;
     friend scale::position;
+    friend scale::market;
+    friend scale::account;
 
     const EZeroAmount: u64 = 1;
 
@@ -14,15 +16,17 @@ module scale::pool {
     struct LSP<phantom P, phantom T> has drop {}
     /// Liquidity fund pool
     struct Pool<phantom P, phantom T> has store {
-        /// The original supply of the liquidity pool represents 
-        /// the liquidity funds obtained through the issuance of NFT bonds
+        // The original supply of the liquidity pool represents 
+        // the liquidity funds obtained through the issuance of NFT bonds
         vault_supply: Supply<LSP<P,T>>,
-        /// Token balance of basic current fund.
+        // Token balance of basic current fund.
         vault_balance: Balance<T>,
-        /// Token balance of profit and loss fund
+        // Token balance of profit and loss fund
         profit_balance: Balance<T>,
-        /// Insurance fund token balance
+        // Insurance fund token balance
         insurance_balance: Balance<T>,
+        // Spread benefits, to prevent robot cheating and provide benefits to sponsors
+        spread_profit: Balance<T>,
     }
 
     public fun create_pool<P: drop ,T>(_pool_token: P,_token: &Coin<T>): Pool<P,T> {
@@ -31,6 +35,7 @@ module scale::pool {
             vault_balance: balance::zero<T>(),
             profit_balance: balance::zero<T>(),
             insurance_balance: balance::zero<T>(),
+            spread_profit: balance::zero<T>(),
         }
     }
 
@@ -108,6 +113,14 @@ module scale::pool {
         balance::join(&mut pool.insurance_balance, balance);
     }
 
+    public(friend) fun join_spread_profit<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        balance::join(&mut pool.spread_profit, balance);
+    }
+    #[test_only]
+    public fun join_spread_profit_for_testing<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
+        join_spread_profit(pool,balance)
+    }
+
     #[test_only]
     public fun join_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, balance: Balance<T>){
         join_insurance_balance(pool,balance)
@@ -120,7 +133,14 @@ module scale::pool {
     public fun split_insurance_balance_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         split_insurance_balance(pool,amount)
     }
-    
+
+    public(friend) fun split_spread_profit<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        balance::split(&mut pool.spread_profit, amount)
+    }
+    #[test_only]
+    public fun split_spread_profit_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        split_spread_profit(pool,amount)
+    }
     public fun get_vault_supply<P,T>(pool: &Pool<P, T>):u64 {
         balance::supply_value(&pool.vault_supply)
     }
@@ -136,12 +156,16 @@ module scale::pool {
     public fun get_insurance_balance<P,T>(pool: &Pool<P, T>):u64 {
         balance::value(&pool.insurance_balance)
     }
+    public fun get_spread_profit<P,T>(pool: &Pool<P, T>):u64 {
+        balance::value(&pool.spread_profit)
+    }
     #[test_only]
     public fun destroy_for_testing<P,T>(pool: Pool<P, T>){
-        let Pool{vault_supply, vault_balance, profit_balance, insurance_balance} = pool;
+        let Pool{vault_supply, vault_balance, profit_balance, insurance_balance,spread_profit} = pool;
         balance::destroy_supply_for_testing<LSP<P,T>>(vault_supply);
         balance::destroy_for_testing<T>(vault_balance);
         balance::destroy_for_testing<T>(profit_balance);
         balance::destroy_for_testing<T>(insurance_balance);
+        balance::destroy_for_testing<T>(spread_profit);
     }
 }

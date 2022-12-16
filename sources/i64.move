@@ -68,6 +68,34 @@ module scale::i64 {
             new(u - u2,false)
         }
     }
+
+    public fun i64_add(i: &I64, i2: &I64): I64 {
+        if (i.negative && i2.negative) {
+            new(i.value + i2.value,true)
+        } else if (!(i.negative || i2.negative)){
+            new(i.value + i2.value,false)
+        }else{
+            if (i.value > i2.value) {
+                new(i.value - i2.value,i.negative)
+            }else{
+                new(i2.value - i.value,i2.negative)
+            }
+        }
+    }
+
+    public fun i64_sub(i: &I64, i2: &I64): I64 {
+        let negative = if (i2.negative && true){
+            false
+        }else{
+            true
+        };
+        let i3 = I64 {
+            negative,
+            value: i2.value,
+        };
+        i64_add(i,&i3)
+    }
+    
     public fun inc_u64(i: &mut I64, u: u64) {
         if (i.negative) {
             if (i.value > u) {
