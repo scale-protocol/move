@@ -5,9 +5,9 @@ module scale::in {
     use scale::market::{Self, MarketList,Market};
     use scale::nft::{Self, ScaleNFTFactory,ScaleNFT,UpgradeMoveToken};
     use sui::tx_context::{TxContext};
-    use sui::object::ID;
     use sui::coin::Coin;
     use std::option;
+    use sui::object::ID;
 
     public entry fun create_account<T>(
         token: &Coin<T>,
@@ -47,6 +47,17 @@ module scale::in {
         ctx: &mut TxContext
     ){
         admin::remove_admin_member(admin_cap,addr,ctx);
+    }
+    public entry fun create_market <P,T>(
+        list: &mut MarketList,
+        token: &Coin<T>,
+        name: vector<u8>,
+        description: vector<u8>,
+        size: u64,
+        pyth_id: ID,
+        ctx: &mut TxContext
+    ){
+        market::create_market<P,T>(list,token,name,description,size,pyth_id,ctx);
     }
     public entry fun update_max_leverage<P,T>(
         pac:&mut ScaleAdminCap,
@@ -115,21 +126,21 @@ module scale::in {
     public entry fun update_officer<P,T>(
         cap:&mut AdminCap,
         market:&mut Market<P,T>,
-        officer: bool,
+        officer: u8,
         ctx: &mut TxContext
     ){
         market::update_officer(cap,market,officer,ctx);
     }
 
     /// When the robot fails to update the price, update manually
-    public entry fun update_oping_price<P,T>(
-        cap:&mut AdminCap,
-        market:&mut Market<P,T>,
-        opening_price: u64,
-        ctx: &mut TxContext
-    ){
-        market::update_oping_price(cap,market,opening_price,ctx);
-    }
+    // public entry fun update_oping_price<P,T>(
+    //     pac:&mut ScaleAdminCap,
+    //     market:&mut Market<P,T>,
+    //     opening_price: u64,
+    //     ctx: &mut TxContext
+    // ){
+    //     market::update_oping_price(pac,market,opening_price,ctx);
+    // }
 
     /// The robot triggers at 0:00 every day to update the price of the day
     public entry fun trigger_update_opening_price<P,T>(
@@ -200,7 +211,7 @@ module scale::in {
 
     public entry fun open_position<P,T>(
         market_list: &mut MarketList,
-        market_id: ID,
+        market: &mut Market<P,T>,
         account: &mut Account<T>,
         lot: u64,
         leverage: u8,
@@ -208,7 +219,7 @@ module scale::in {
         direction: u8,
         ctx: &mut TxContext
     ){
-        position::open_position<P,T>(market_list,market_id,account,lot,leverage,position_type,direction,ctx);
+        position::open_position<P,T>(market_list,market,account,lot,leverage,position_type,direction,ctx);
     }
 
     public entry fun close_position<P,T>(

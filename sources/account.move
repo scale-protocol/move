@@ -235,6 +235,7 @@ module scale::account {
         ctx: &mut TxContext
     ) {
         assert!(account.owner == tx_context::sender(ctx), ENotOwner);
+        i64::dec_u64(&mut equity, amount);
         assert!(!i64::is_negative(&equity), EInsufficientEquity);
         let margin_used = get_margin_used(account);
         // assert!(margin_used <= i64::get_value(&equity), EInsufficientEquity);

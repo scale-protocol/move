@@ -25,6 +25,10 @@ module scale::market{
     const EInvalidSize:u64 = 11;
     const EInvalidFundRate:u64 = 12;
     const EInvalidOpingPrice:u64 = 13;
+    const EInvalidOfficer:u64 = 14;
+    const ENameTooLong:u64 = 15;
+    const EDescriptionTooLong:u64 = 16;
+
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
@@ -69,8 +73,11 @@ module scale::market{
         name: String,
         /// market description
         description: String,
-        /// Market operator, 1 project party, other marks to be defined
-        officer: bool,
+        /// Market operator, 
+        /// 1 project team
+        /// 2 Certified Third Party
+        /// 3 Community
+        officer: u8,
         /// coin pool of the market
         pool: Pool<P,T>,
         /// Basic size of transaction pair contract
@@ -264,7 +271,7 @@ module scale::market{
     public fun get_description<P,T>(market: &Market<P,T>) : &String{
         &market.description
     }
-    public fun is_officer<P,T>(market: &Market<P,T>) : bool{
+    public fun get_officer<P,T>(market: &Market<P,T>) : u8{
         market.officer
     }
     public fun get_pool<P,T>(market: &Market<P,T>) : &Pool<P,T>{
@@ -298,13 +305,13 @@ module scale::market{
         name: vector<u8>,
         description: vector<u8>,
         size: u64,
-        spread_fee: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
         assert!(!vector::is_empty(&name), ENameRequired);
+        assert!(vector::length(&name) < 20, ENameTooLong);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
-        assert!(spread_fee > 0,EInvalidSpread);
+        assert!(vector::length(&description) < 180, EDescriptionTooLong);
         assert!(size > 0,EInvalidSize);
         let uid = object::new(ctx);
         dof::add(&mut list.id,object::uid_to_inner(&uid),Market{
@@ -319,9 +326,9 @@ module scale::market{
             short_position_total: 0,
             name: string::utf8(name),
             description: string::utf8(description),
-            spread_fee: spread_fee,
+            spread_fee: 1000,
             spread_fee_manual: false,
-            officer: false,
+            officer: 2,
             pool: pool::create_pool_(token),
             size,
             opening_price: 0,
@@ -380,7 +387,7 @@ module scale::market{
         status: u8,
         ctx: &mut TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(status > 0 && status <= 3,EInvalidStatus);
         market.status = status;
     }
@@ -413,23 +420,24 @@ module scale::market{
     public fun update_officer<P,T>(
         _cap:&mut AdminCap,
         market:&mut Market<P,T>,
-        officer: bool,
+        officer: u8,
         _ctx: &mut TxContext
     ){
+        assert!(officer > 0 && officer < 4,EInvalidOfficer);
         market.officer = officer;
     }
 
     /// When the robot fails to update the price, update manually
-    public fun update_oping_price<P,T>(
-        _cap:&mut AdminCap,
-        market:&mut Market<P,T>,
-        opening_price: u64,
-        _ctx: &mut TxContext
-    ){
-        // assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-        // assert!(opening_price > 0 ,EInvalidOpingPrice);
-        market.opening_price = opening_price;
-    }
+    // public fun update_oping_price<P,T>(
+    //     pac:&mut ScaleAdminCap,
+    //     market:&mut Market<P,T>,
+    //     opening_price: u64,
+    //     ctx: &mut TxContext
+    // ){
+    //     assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+    //     assert!(opening_price > 0 ,EInvalidOpingPrice);
+    //     market.opening_price = opening_price;
+    // }
 
     /// The robot triggers at 0:00 every day to update the price of the day
     public fun trigger_update_opening_price<P,T>(

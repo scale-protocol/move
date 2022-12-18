@@ -420,7 +420,7 @@ module scale::position {
     
     public fun open_position<P,T>(
         market_list: &mut MarketList,
-        market_id: ID,
+        market: &mut Market<P,T>,
         account: &mut Account<T>,
         lot: u64,
         leverage: u8,
@@ -428,7 +428,7 @@ module scale::position {
         direction: u8,
         ctx: &mut TxContext
     ) {
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),market_id);
+        // let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),market_id);
         assert!(market::get_status(market) == 1, EInvalidMarketStatus);
         assert!(lot > 0, EInvalidLot);
         assert!(leverage > 0 && leverage <= market::get_max_leverage(market), EInvalidLeverage);
@@ -480,6 +480,7 @@ module scale::position {
         assert!(market::get_status(market) != 3, EInvalidMarketStatus);
         assert!(object::id(market) == position.market_id, EInvalidMarketId);
         assert!(object::id(account) == position.account_id, EInvalidAccountId);
+        position.status = 2;
         settlement_pl<P,T>(market,account,position,owner);
     }
 
@@ -498,7 +499,6 @@ module scale::position {
         // todo: update close_time
         position.close_time = 0;
         position.close_operator = close_operator;
-        position.status = 2;
 
         collect_spread<P,T>(market,position.close_spread,size);
         let pl = get_pl(position,&price);
@@ -558,6 +558,7 @@ module scale::position {
             }
         };
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),position.market_id);
+        position.status = 3;
         settlement_pl<P,T>(market,account,position,tx_context::sender(ctx));
     }
 }
