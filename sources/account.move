@@ -8,8 +8,21 @@ module scale::account {
     use std::vector;
     use scale::i64::{Self,I64};
     use sui::math;
+    use sui::typed_id::{Self,TypedID};
 
+    friend scale::position;
+    friend scale::in;
+        
     const EInsufficientCoins: u64 = 1;
+    const ENotOwner: u64 = 2;
+    const EInsufficientEquity: u64 = 3;
+
+    struct UserAccount<phantom T> has key {
+        id: UID,
+        owner: address,
+        account_id: TypedID<Account<T>>
+    }
+
     /// User transaction account
     struct Account<phantom T> has key {
         id: UID,
@@ -96,10 +109,10 @@ module scale::account {
     public fun get_pfk_id<T>(account: &Account<T>,pfk: &PFK): ID {
         *vec_map::get(&account.full_position_idx, pfk)
     }
-    public fun add_pfk_id<T>(account: &mut Account<T>,pfk: PFK,id: ID) {
+    public(friend) fun add_pfk_id<T>(account: &mut Account<T>,pfk: PFK,id: ID) {
         vec_map::insert(&mut account.full_position_idx, pfk, id);
     }
-    public fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
+    public(friend) fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
         vec_map::remove(&mut account.full_position_idx, pfk);
     }
 
@@ -115,66 +128,69 @@ module scale::account {
         r
     }
 
-    public fun set_offset<T>(account: &mut Account<T>, offset: u64) {
+    public(friend) fun set_offset<T>(account: &mut Account<T>, offset: u64) {
         account.offset = offset;
     }
-    public fun join_balance<T>(account: &mut Account<T>, balance: Balance<T>) {
+    public(friend) fun join_balance<T>(account: &mut Account<T>, balance: Balance<T>) {
         balance::join(&mut account.balance, balance);
     }
-    public fun split_balance<T>(account: &mut Account<T>, amount: u64): Balance<T> {
+    public(friend) fun split_balance<T>(account: &mut Account<T>, amount: u64): Balance<T> {
         balance::split(&mut account.balance, amount)
     }
-    public fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
+    public(friend) fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
         i64::inc_u64(&mut account.profit, profit);
     }
-    public fun dec_profit<T>(account: &mut Account<T>, profit: u64) {
+    public(friend) fun dec_profit<T>(account: &mut Account<T>, profit: u64) {
         i64::dec_u64(&mut account.profit, profit);
     }
-    public fun inc_margin_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_total = account.margin_total + margin;
     }
-    public fun dec_margin_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_total = account.margin_total - margin;
     }
-    public fun inc_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_total = account.margin_full_total + margin;
     }
-    public fun dec_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_total = account.margin_full_total - margin;
     }
-    public fun inc_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_total = account.margin_independent_total + margin;
     }
-    public fun dec_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_total = account.margin_independent_total - margin;
     }
-    public fun inc_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_buy_total = account.margin_full_buy_total + margin;
     }
-    public fun dec_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_buy_total = account.margin_full_buy_total - margin;
     }
-    public fun inc_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_sell_total = account.margin_full_sell_total + margin;
     }
-    public fun dec_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_full_sell_total = account.margin_full_sell_total - margin;
     }
-    public fun inc_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_buy_total = account.margin_independent_buy_total + margin;
     }
-    public fun dec_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_buy_total = account.margin_independent_buy_total - margin;
     }
-    public fun inc_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun inc_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_sell_total = account.margin_independent_sell_total + margin;
     }
-    public fun dec_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
+    public(friend) fun dec_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_independent_sell_total = account.margin_independent_sell_total - margin;
     }
 
-    public entry fun create_account<T>(_token: &Coin<T>, ctx: &mut TxContext) {
-        transfer::share_object(Account {
+    public fun create_account<T>(
+        _token: &Coin<T>,
+        ctx: &mut TxContext
+    ) {
+        let account = Account {
             id: object::new(ctx),
             owner: tx_context::sender(ctx),
             offset: 0,
@@ -188,10 +204,21 @@ module scale::account {
             margin_independent_buy_total: 0,
             margin_independent_sell_total: 0,
             full_position_idx: vec_map::empty<PFK,ID>(),
-        });
+        };
+        transfer::transfer(UserAccount{
+            id: object::new(ctx),
+            owner: tx_context::sender(ctx),
+            account_id: typed_id::new(&account),
+        }, tx_context::sender(ctx));
+        transfer::share_object(account);
     }
     /// If amount is 0, the whole coin will be consumed
-    public entry fun deposit<T>(account: &mut Account<T> ,token: Coin<T>, amount: u64 ,ctx: &mut TxContext) {
+    public fun deposit<T>(
+        account: &mut Account<T>,
+        token: Coin<T>,
+        amount: u64,
+        ctx: &mut TxContext
+    ) {
         if (amount == 0) {
             balance::join(&mut account.balance, coin::into_balance(token));
             return
@@ -201,8 +228,19 @@ module scale::account {
         transfer::transfer(token,tx_context::sender(ctx))
     }
 
-    public entry fun withdrawal<T>(account: &mut Account<T>, amount: u64, ctx: &mut TxContext) {
-        // todo: check amount
+    public(friend) fun withdrawal<P,T>(
+        equity: I64,
+        account: &mut Account<T>,
+        amount: u64,
+        ctx: &mut TxContext
+    ) {
+        assert!(account.owner == tx_context::sender(ctx), ENotOwner);
+        assert!(!i64::is_negative(&equity), EInsufficientEquity);
+        let margin_used = get_margin_used(account);
+        // assert!(margin_used <= i64::get_value(&equity), EInsufficientEquity);
+        if (margin_used > 0) {
+            assert!(i64::get_value(&equity) * 10000 / margin_used > 10000, EInsufficientEquity);
+        };
         let balance = balance::split(&mut account.balance, amount);
         let coin = coin::from_balance(balance,ctx);
         transfer::transfer(coin,tx_context::sender(ctx))

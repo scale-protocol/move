@@ -10,6 +10,8 @@ module scale::market{
     use sui::math;
     use sui::dynamic_object_field as dof;
 
+    friend scale::position;
+    
     const ELSPCreatorPermissionRequired:u64 = 1;
     const EInvalidLeverage:u64 = 2;
     const EInvalidSpread:u64 = 3;
@@ -128,7 +130,7 @@ module scale::market{
         price.spread
     }
     fun get_price_<P,T>(market: &Market<P,T>,real_price: u64):Price{
-        let spread = get_spread_fee(market) * real_price / DENOMINATOR;
+        let spread = get_spread_fee(market,real_price) * real_price / DENOMINATOR;
         // To increase the calculation accuracy
         let half_spread = spread * DENOMINATOR / 2;
         Price{
@@ -138,9 +140,12 @@ module scale::market{
             spread: market.spread_fee,
         }
     }
-    public fun get_price<P,T>(market: &Market<P,T>): Price {
-        let real_price = 1000_000_000;
+    public fun get_pyth_price(_id: vector<u8>):u64 {
         // todo: get real price from pyth
+        1000_000_000
+    }
+    public fun get_price<P,T>(market: &Market<P,T>): Price {
+        let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
         get_price_(market, real_price)
     }
 
@@ -205,13 +210,14 @@ module scale::market{
         return 70
     }
 
-    public fun get_spread_fee<P,T>(market: &Market<P,T>) : u64{
+    public fun get_spread_fee<P,T>(market: &Market<P,T>,real_price: u64) : u64{
         if (market.spread_fee_manual) {
             return market.spread_fee
         };
-        if (market.opening_price <= 300) {return 30};
-        if (market.opening_price > 300 && market.opening_price <= 1000) {
-            return market.opening_price / 10
+        let change = math::max(real_price, market.opening_price) - math::min(real_price, market.opening_price) / market.opening_price * DENOMINATOR;
+        if (change <= 300) {return 30};
+        if (change > 300 && change <= 1000) {
+            return change / 10
         };
         return 150
     }
@@ -240,16 +246,16 @@ module scale::market{
     public fun get_short_position_total<P,T>(market: &Market<P,T>) : u64{
         market.short_position_total
     }
-    public fun inc_long_position_totail<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun inc_long_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.long_position_total = self.long_position_total + value;
     }
-    public fun dec_long_position_totail<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun dec_long_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.long_position_total = self.long_position_total - value;
     }
-    public fun inc_short_position_totail<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun inc_short_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.short_position_total = self.short_position_total + value;
     }
-    public fun dec_short_position_totail<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun dec_short_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.short_position_total = self.short_position_total - value;
     }
     public fun get_name<P,T>(market: &Market<P,T>) : &String{
@@ -286,7 +292,7 @@ module scale::market{
         list.total
     }
     /// Create a market
-    public entry fun create_market <P,T>(
+    public fun create_market <P,T>(
         list: &mut MarketList,
         token: &Coin<T>,
         name: vector<u8>,
@@ -321,9 +327,10 @@ module scale::market{
             opening_price: 0,
             pyth_id,
         });
+        list.total = list.total + 1;
     }
 
-    public entry fun update_max_leverage<P,T>(
+    public fun update_max_leverage<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         max_leverage: u8,
@@ -334,7 +341,7 @@ module scale::market{
         market.max_leverage = max_leverage;
     }
 
-    public entry fun update_insurance_fee<P,T>(
+    public fun update_insurance_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         insurance_fee: u64,
@@ -345,7 +352,7 @@ module scale::market{
         market.insurance_fee = insurance_fee;
     }
 
-    public entry fun update_margin_fee<P,T>(
+    public fun update_margin_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         margin_fee: u64,
@@ -355,7 +362,7 @@ module scale::market{
         assert!(margin_fee > 0 && margin_fee <= DENOMINATOR, EInvalidMarginRate);
         market.margin_fee = margin_fee;
     }
-    public entry fun update_fund_fee<P,T>(
+    public fun update_fund_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         fund_fee: u64,
@@ -367,7 +374,7 @@ module scale::market{
         market.fund_fee = fund_fee;
         market.fund_fee_manual = manual;
     }
-    public entry fun update_status<P,T>(
+    public fun update_status<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         status: u8,
@@ -378,7 +385,7 @@ module scale::market{
         market.status = status;
     }
 
-    public entry fun update_description<P,T>(
+    public fun update_description<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         description: vector<u8>,
@@ -389,7 +396,7 @@ module scale::market{
         market.description = string::utf8(description);
     }
 
-    public entry fun update_spread_fee<P,T>(
+    public fun update_spread_fee<P,T>(
         pac:&mut ScaleAdminCap,
         market:&mut Market<P,T>,
         spread_fee: u64,
@@ -403,7 +410,7 @@ module scale::market{
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
-    public entry fun update_officer<P,T>(
+    public fun update_officer<P,T>(
         _cap:&mut AdminCap,
         market:&mut Market<P,T>,
         officer: bool,
@@ -412,15 +419,25 @@ module scale::market{
         market.officer = officer;
     }
 
-    /// The robot updates the initial price regularly
-    public entry fun update_oping_price<P,T>(
-        pac:&mut ScaleAdminCap,
+    /// When the robot fails to update the price, update manually
+    public fun update_oping_price<P,T>(
+        _cap:&mut AdminCap,
         market:&mut Market<P,T>,
         opening_price: u64,
-        ctx: &mut TxContext
+        _ctx: &mut TxContext
     ){
-        assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-        assert!(opening_price > 0 ,EInvalidOpingPrice);
+        // assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        // assert!(opening_price > 0 ,EInvalidOpingPrice);
         market.opening_price = opening_price;
+    }
+
+    /// The robot triggers at 0:00 every day to update the price of the day
+    public fun trigger_update_opening_price<P,T>(
+        market: &mut Market<P,T>,
+        _ctx: &mut TxContext
+    ){
+        let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
+        // todo check price time
+        market.opening_price = real_price;
     }
 }

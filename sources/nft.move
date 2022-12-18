@@ -72,7 +72,7 @@ module scale::nft {
     }
     
     /// Withdraw funds from the current pool and destroy NFT bond certificates
-    public fun divestment_inner<P,T>(
+    public fun divestment<P,T>(
         market: &mut Market<P,T>,
         nft: ScaleNFT<P,T>,
         move_token: Option<MoveToken>,
@@ -99,7 +99,7 @@ module scale::nft {
         object::delete(id);
     }
     /// Project side add NFT style
-    public entry fun add_factory_mould(
+    public fun add_factory_mould(
         _admin_cap:&mut AdminCap,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -119,7 +119,7 @@ module scale::nft {
     }
 
     /// Project side delete NFT style
-    public entry fun remove_factory_mould(
+    public fun remove_factory_mould(
         _admin_cap:&mut AdminCap,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -130,7 +130,7 @@ module scale::nft {
     }
 
     /// Provide current pool funds and obtain NFT bond certificates
-    public entry fun investment<P,T>(
+    public fun investment<P,T>(
         market: &mut Market<P,T>,
         token: Coin<T>,
         factory: &mut ScaleNFTFactory,
@@ -139,34 +139,25 @@ module scale::nft {
     ){
         // assert!(!vector::is_empty(&name), ENameRequired);
         let mould = table::borrow(&factory.mould,string::utf8(name));
-        let lsp = pool::add_liquidity(market::get_pool_mut(market),token,ctx);
         let uid = object::new(ctx);
-        let id = object::uid_to_inner(&uid);
 
         // Index all existing NFTs for interest distribution
-        field::add(&mut factory.id,id,true);
+        field::add(&mut factory.id,object::uid_to_inner(&uid),true);
         transfer::transfer(ScaleNFT<P,T> {
             id: uid,
             name: mould.name,
             description: mould.description,
             url: mould.url,
             mint_time: 0,
-            face_value: coin::into_balance(lsp),
+            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(market),token,ctx)),
             issue_expiration_time: 0,
         },tx_context::sender(ctx));
     }
-    /// Normal withdrawal of investment
-    public entry fun divestment<P,T>(
-        market: &mut Market<P,T>,
-        nft: ScaleNFT<P,T>,
-        ctx: &mut TxContext
-    ){
-        divestment_inner(market,nft,option::none(),ctx);
-    }
+
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
     /// and there will be no liquidated damages
     /// run in v2
-    public entry fun generate_upgrade_move_token<P,T>(
+    public fun generate_upgrade_move_token<P,T>(
         admin_cap: &mut AdminCap,
         nft: &ScaleNFT<P,T>,
         expiration_time: u64,
@@ -181,14 +172,14 @@ module scale::nft {
 
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
-    public entry fun divestment_by_upgrade<P,T>(
+    public fun divestment_by_upgrade<P,T>(
         market: &mut Market<P,T>,
         nft: ScaleNFT<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext
     ){
         let UpgradeMoveToken {id,move_token} = move_token;
-        divestment_inner(market,nft,option::some(move_token),ctx);
+        divestment(market,nft,option::some(move_token),ctx);
         object::delete(id);
     }
 }

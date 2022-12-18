@@ -6,7 +6,7 @@ module scale::pool {
     friend scale::nft;
     friend scale::position;
     friend scale::market;
-    friend scale::account;
+    // friend scale::account;
 
     const EZeroAmount: u64 = 1;
 
