@@ -55,10 +55,11 @@ module scale::in {
         name: vector<u8>,
         description: vector<u8>,
         size: u64,
+        opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
-        market::create_market<T>(list,token,name,description,size,pyth_id,ctx);
+        market::create_market<T>(list,token,name,description,size,opening_price,pyth_id,ctx);
     }
     public entry fun update_max_leverage<P,T>(
         pac:&mut ScaleAdminCap,

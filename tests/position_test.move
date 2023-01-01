@@ -34,7 +34,7 @@ module scale::position_tests {
             let id = object::last_created(ctx);
             let n = b"BTC/USD";
             let d = b"BTC/USD";
-            market::create_market(&mut list,&token,n,d,1u64,id,ctx);
+            market::create_market(&mut list,&token,n,d,1u64,100u64,id,ctx);
             market_id = object::last_created(ctx);
             account::create_account(&token,ctx);
             coin::destroy_for_testing(token);

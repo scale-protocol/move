@@ -307,6 +307,7 @@ module scale::market{
         name: vector<u8>,
         description: vector<u8>,
         size: u64,
+        opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
@@ -315,6 +316,7 @@ module scale::market{
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         assert!(vector::length(&description) < 180, EDescriptionTooLong);
         assert!(size > 0,EInvalidSize);
+        assert!(opening_price > 0,EInvalidOpeningPrice);
         let uid = object::new(ctx);
         dof::add(&mut list.id,object::uid_to_inner(&uid),Market{
             id: uid,
@@ -447,7 +449,7 @@ module scale::market{
         _ctx: &mut TxContext
     ){
         let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
-        // todo check price time
+        // todo check price time and openg price must gt 0
         market.opening_price = real_price;
     }
     #[test_only]

@@ -6,6 +6,7 @@ module scale::pool_tests {
     use sui::coin;
     // use sui::transfer;
     use sui::balance;
+    use std::debug;
 
     struct P has drop{}
     struct MK<phantom P,phantom T> has key{
@@ -172,7 +173,9 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&pool) == 0,3);
             assert!(pool::get_spread_profit(&pool) == 5000,4);
 
-            let ts_token = pool::split_insurance_balance_for_testing(&mut pool,4000);
+            debug::print(&pool::get_insurance_balance(&pool));
+
+            let ts_token = pool::split_spread_profit_for_testing(&mut pool,4000);
             assert!(pool::get_vault_supply(&pool) == 2000_000_000,5);
             assert!(pool::get_vault_balance(&pool) == 2000_000_000,6);
             assert!(pool::get_profit_balance(&pool) == 0,7);
