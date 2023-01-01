@@ -5,7 +5,7 @@ module scale::position {
     use scale::market::{Self,Market,Price,MarketList};
     use scale::account::{Self,Account,PFK};
     use sui::tx_context::{Self,TxContext};
-    // use sui::transfer;
+    use sui::transfer;
     use sui::dynamic_object_field as dof;
     use scale::pool;
     use std::vector;
@@ -159,7 +159,7 @@ module scale::position {
     }
 
     public fun get_equity<P,T>(
-        market_list: &MarketList,
+        list: &MarketList,
         account: &Account<T>,
     ) :I64 {
         let ids = account::get_pfk_ids<T>(account);
@@ -171,7 +171,7 @@ module scale::position {
             let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
 
             if ( ps.status == 1 ){
-                let market: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),ps.market_id);
+                let market: &Market<P,T> = dof::borrow(market::get_list_uid(list),ps.market_id);
                 let price = market::get_price(market);
                 pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(market,ps),&get_pl<T>(ps,&price)));
             };
@@ -404,11 +404,11 @@ module scale::position {
     }
 
     fun check_margin<P,T>(
-        market_list: &MarketList,
+        list: &MarketList,
         account: &Account<T>,
     ){
         let equity = get_equity<P,T>(
-            market_list,
+            list,
             account,
         );
         assert!(!i64::is_negative(&equity), ERiskControlNegativeEquity);
@@ -419,8 +419,8 @@ module scale::position {
     }
     
     public fun open_position<P,T>(
-        market_list: &mut MarketList,
-        market: &mut Market<P,T>,
+        list: &mut MarketList,
+        market_id: ID,
         account: &mut Account<T>,
         lot: u64,
         leverage: u8,
@@ -428,7 +428,7 @@ module scale::position {
         direction: u8,
         ctx: &mut TxContext
     ) {
-        // let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),market_id);
+        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         assert!(market::get_status(market) == 1, EInvalidMarketStatus);
         assert!(lot > 0, EInvalidLot);
         assert!(leverage > 0 && leverage <= market::get_max_leverage(market), EInvalidLeverage);
@@ -465,23 +465,25 @@ module scale::position {
                 account::add_pfk_id(account,pfk,id);
             };
         };
-        check_margin<P,T>(market_list,account);
+        check_margin<P,T>(list,account);
     }
 
     public fun close_position<P,T>(
         market: &mut Market<P,T>,
         account: &mut Account<T>,
-        position: &mut Position<T>,
+        position_id: ID,
         ctx: &mut TxContext,
     ){
         let owner = tx_context::sender(ctx);
         assert!(owner == account::get_owner(account), ENoPermission);
+        let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         assert!(position.status == 1, EInvalidPositionStatus);
         assert!(market::get_status(market) != 3, EInvalidMarketStatus);
         assert!(object::id(market) == position.market_id, EInvalidMarketId);
         assert!(object::id(account) == position.account_id, EInvalidAccountId);
         position.status = 2;
-        settlement_pl<P,T>(market,account,position,owner);
+        settlement_pl<P,T>(market,account,&mut position,owner);
+        transfer::transfer(position,owner);
     }
 
     fun settlement_pl<P,T>(
@@ -525,20 +527,21 @@ module scale::position {
     }
 
     public fun burst_position<P,T>(
-        market_list: &mut MarketList,
+        list: &mut MarketList,
         account: &mut Account<T>,
-        position: &mut Position<T>,
+        position_id: ID,
         ctx: &mut TxContext,
     ){
+        let position: &Position<T> = dof::borrow(account::get_uid_mut(account),position_id);
         assert!(position.status == 1, EInvalidPositionStatus);
         assert!(object::id(account) == position.account_id, EInvalidAccountId);
         // assert
         {
-            let market: &Market<P,T> = dof::borrow(market::get_list_uid(market_list),position.market_id);
+            let market: &Market<P,T> = dof::borrow(market::get_list_uid(list),position.market_id);
             assert!(market::get_status(market) < 3, EInvalidMarketStatus);
             if (position.type == 1){
                 let equity = get_equity<P,T>(
-                    market_list,
+                    list,
                     account,
                 );
                 if (!i64::is_negative(&equity)){
@@ -557,8 +560,11 @@ module scale::position {
                 }
             }
         };
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(market_list),position.market_id);
+        // settlement
+        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),position.market_id);
+        let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         position.status = 3;
-        settlement_pl<P,T>(market,account,position,tx_context::sender(ctx));
+        settlement_pl<P,T>(market,account,&mut position,tx_context::sender(ctx));
+        transfer::transfer(position,tx_context::sender(ctx));
     }
 }

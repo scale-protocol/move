@@ -28,7 +28,7 @@ module scale::market{
     const EInvalidOfficer:u64 = 14;
     const ENameTooLong:u64 = 15;
     const EDescriptionTooLong:u64 = 16;
-
+    const EInvalidOpeningPrice:u64 = 17;
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
@@ -95,7 +95,7 @@ module scale::market{
         spread: u64,
     }
 
-    fun new_market_list(ctx: &mut TxContext):MarketList{
+    fun new_market_list(ctx: &mut TxContext): MarketList{
         MarketList{
             id: object::new(ctx),
             total: 0,
@@ -221,6 +221,7 @@ module scale::market{
         if (market.spread_fee_manual) {
             return market.spread_fee
         };
+        assert!(market.opening_price > 0, EInvalidOpeningPrice);
         let change = math::max(real_price, market.opening_price) - math::min(real_price, market.opening_price) / market.opening_price * DENOMINATOR;
         if (change <= 300) {return 30};
         if (change > 300 && change <= 1000) {
@@ -299,7 +300,7 @@ module scale::market{
         list.total
     }
     /// Create a market
-    public fun create_market <P,T>(
+    public fun create_market <T>(
         list: &mut MarketList,
         token: &Coin<T>,
         name: vector<u8>,
@@ -447,5 +448,9 @@ module scale::market{
         let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
         // todo check price time
         market.opening_price = real_price;
+    }
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext){
+        init(ctx);
     }
 }

@@ -10,7 +10,7 @@ module scale::pool {
 
     const EZeroAmount: u64 = 1;
 
-    struct PoolSign has drop {}
+    struct Tag has drop {}
     /// Original reserves of current pool funds
     /// liquidity supply pool
     struct LSP<phantom P, phantom T> has drop {}
@@ -39,8 +39,8 @@ module scale::pool {
         }
     }
 
-    public fun create_pool_<T>(token: &Coin<T>): Pool<PoolSign,T> {
-        create_pool(PoolSign{}, token)
+    public fun create_pool_<T>(token: &Coin<T>): Pool<Tag,T> {
+        create_pool(Tag{}, token)
     }
 
     public(friend) fun add_liquidity<P,T>(

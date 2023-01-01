@@ -19,6 +19,7 @@ module scale::nft {
     const EDescriptionRequired:u64 = 2;
     const EUrlRequired:u64 = 3;
     const EInvalidNFTID:u64 = 4;
+    const EInvalidMarketID:u64 = 5;
     /// scale nft
     struct ScaleNFT<phantom P, phantom T> has key ,store {
         id: UID,
@@ -28,6 +29,7 @@ module scale::nft {
         mint_time: u64,
         face_value: Balance<LSP<P,T>>,
         issue_expiration_time: u64,
+        market_id: ID,
     }
     /// The scale nft factory stores some token templates and styles
     struct ScaleNFTFactory has key {
@@ -85,8 +87,10 @@ module scale::nft {
             url:_,
             mint_time:_,
             face_value,
-            issue_expiration_time:_
+            issue_expiration_time:_,
+            market_id,
         } = nft;
+        assert!(market_id == object::id(market), EInvalidMarketID);
         // todo: check the expiration time .....
         if (option::is_some(&move_token)){
             // todo: Exempt from liquidated damages and give certain rewards if possible
@@ -151,6 +155,7 @@ module scale::nft {
             mint_time: 0,
             face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(market),token,ctx)),
             issue_expiration_time: 0,
+            market_id: object::id(market),
         },tx_context::sender(ctx));
     }
 
