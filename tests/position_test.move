@@ -8,6 +8,7 @@ module scale::position_tests {
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
     use std::debug;
+    use scale::pool;
     // use sui::transfer;
     // use sui::tx_context;
     use sui::coin;
@@ -46,12 +47,17 @@ module scale::position_tests {
             // set opening price
             market::set_opening_price_for_testing(market,100);
             let account = test_scenario::take_shared<Account<SCALE>>(tx);
-            let token = coin::mint_for_testing<SCALE>(1000,test_scenario::ctx(tx));
-
+            let liquidity = coin::mint_for_testing<SCALE>(1000_000_000,test_scenario::ctx(tx));
+            let token = coin::mint_for_testing<SCALE>(1000_000_000,test_scenario::ctx(tx));
+            account::deposit(&mut account,token,10000,test_scenario::ctx(tx));
+            // add liquidity
+            let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut(market),liquidity,test_scenario::ctx(tx));
             position::open_position<Tag,SCALE>(&mut list,market_id,&mut account,1,1,1,1,test_scenario::ctx(tx));
             let position: &mut Position<SCALE> = dof::borrow_mut(account::get_uid_mut<SCALE>(&mut account),object::last_created(test_scenario::ctx(tx)));
             debug::print(position);
-            coin::destroy_for_testing(token);
+            // todo: check position
+            // coin::destroy_for_testing(token);
+            coin::destroy_for_testing(lsp_coin);
             test_scenario::return_shared(list);
             test_scenario::return_shared(account);
         };

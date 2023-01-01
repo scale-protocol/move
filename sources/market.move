@@ -149,7 +149,7 @@ module scale::market{
     }
     public fun get_pyth_price(_id: vector<u8>):u64 {
         // todo: get real price from pyth
-        1000_000_000
+        1000
     }
     public fun get_price<P,T>(market: &Market<P,T>): Price {
         let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
@@ -222,7 +222,8 @@ module scale::market{
             return market.spread_fee
         };
         assert!(market.opening_price > 0, EInvalidOpeningPrice);
-        let change = math::max(real_price, market.opening_price) - math::min(real_price, market.opening_price) / market.opening_price * DENOMINATOR;
+        let change_price = math::max(real_price, market.opening_price) - math::min(real_price, market.opening_price);
+        let change = change_price / market.opening_price * DENOMINATOR;
         if (change <= 300) {return 30};
         if (change > 300 && change <= 1000) {
             return change / 10
