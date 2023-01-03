@@ -318,6 +318,7 @@ module scale::market{
         assert!(size > 0,EInvalidSize);
         assert!(opening_price > 0,EInvalidOpeningPrice);
         let uid = object::new(ctx);
+        admin::create_scale_admin(object::uid_to_inner(&uid),ctx);
         dof::add(&mut list.id,object::uid_to_inner(&uid),Market{
             id: uid,
             max_leverage: 125,

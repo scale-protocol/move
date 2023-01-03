@@ -17,7 +17,6 @@ module scale::i64 {
         MAX_NEGATIVE
     }
 
-    
     struct I64 has copy, drop, store {
         negative: bool,
         value: u64,
