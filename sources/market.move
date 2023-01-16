@@ -70,7 +70,7 @@ module scale::market{
         short_position_total: u64,
         /// Transaction pair (token type, such as BTC, ETH)
         /// len: 4+20
-        name: String,
+        symbol: String,
         /// market description
         description: String,
         /// Market operator, 
@@ -144,7 +144,7 @@ module scale::market{
             buy_price: (real_price * DENOMINATOR + half_spread) / DENOMINATOR,
             sell_price: (real_price * DENOMINATOR - half_spread) / DENOMINATOR,
             real_price,
-            spread: market.spread_fee,
+            spread,
         }
     }
     public fun get_pyth_price(_id: vector<u8>):u64 {
@@ -267,8 +267,8 @@ module scale::market{
     public(friend) fun dec_short_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.short_position_total = self.short_position_total - value;
     }
-    public fun get_name<P,T>(market: &Market<P,T>) : &String{
-        &market.name
+    public fun get_symbol<P,T>(market: &Market<P,T>) : &String{
+        &market.symbol
     }
     public fun get_description<P,T>(market: &Market<P,T>) : &String{
         &market.description
@@ -304,15 +304,15 @@ module scale::market{
     public fun create_market <T>(
         list: &mut MarketList,
         token: &Coin<T>,
-        name: vector<u8>,
+        symbol: vector<u8>,
         description: vector<u8>,
         size: u64,
         opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
-        assert!(!vector::is_empty(&name), ENameRequired);
-        assert!(vector::length(&name) < 20, ENameTooLong);
+        assert!(!vector::is_empty(&symbol), ENameRequired);
+        assert!(vector::length(&symbol) < 20, ENameTooLong);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         assert!(vector::length(&description) < 180, EDescriptionTooLong);
         assert!(size > 0,EInvalidSize);
@@ -329,7 +329,7 @@ module scale::market{
             status: 1,
             long_position_total: 0,
             short_position_total: 0,
-            name: string::utf8(name),
+            symbol: string::utf8(symbol),
             description: string::utf8(description),
             spread_fee: 1000,
             spread_fee_manual: false,

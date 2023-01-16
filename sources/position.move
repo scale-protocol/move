@@ -149,7 +149,7 @@ module scale::position {
         if (dominant_direction == 3){
             return i64::new(0,false)
         };
-        if (position.direction == market::get_dominant_direction(market)) {
+        if (position.direction == dominant_direction) {
             i64::new(get_fund_size(position) * market::get_fund_fee(market),true)
         } else {
             let max = market::get_max_position_total(market);
