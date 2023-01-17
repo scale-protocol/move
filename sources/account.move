@@ -11,7 +11,7 @@ module scale::account {
     use sui::typed_id::{Self,TypedID};
 
     friend scale::position;
-    friend scale::in;
+    friend scale::enter;
         
     const EInsufficientCoins: u64 = 1;
     const ENotOwner: u64 = 2;

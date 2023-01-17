@@ -1,4 +1,4 @@
-module scale::in {
+module scale::enter {
     use scale::account::{Self, Account};
     use scale::admin::{Self, AdminCap, ScaleAdminCap};
     use scale::position;
