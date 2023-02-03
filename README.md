@@ -1,1 +1,1 @@
-ScaleProtocol sui contract program package.
+ScaleProtocol move contract.

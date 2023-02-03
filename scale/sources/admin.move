@@ -24,10 +24,9 @@ module scale::admin {
     }
 
     fun init(ctx: &mut TxContext){
-        let admin = AdminCap{
+        transfer::transfer(AdminCap{
             id: object::new(ctx),
-        };
-        transfer::transfer(admin,tx_context::sender(ctx));
+        },tx_context::sender(ctx));
     }
 
     /// Set the object administrator

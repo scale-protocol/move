@@ -1,0 +1,2 @@
+- This is a simple price oracle.
+- It is mainly used to test the correctness of scale in the development network and test network.
