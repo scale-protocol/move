@@ -27,13 +27,14 @@ module scale::enter {
     }
 
     public entry fun withdrawal<P,T>(
-        market_list: &MarketList,
+        list: &MarketList,
         account: &mut Account<T>,
         amount: u64,
         ctx: &mut TxContext
     ){
-        account::withdrawal<P,T>(position::get_equity<P,T>(market_list, account),account,amount,ctx);
+        account::withdrawal<P,T>(position::get_equity<P,T>(list, account),account,amount,ctx);
     }
+
     public entry fun add_admin_member(
         admin_cap:&mut ScaleAdminCap,
         addr: address,
@@ -49,6 +50,7 @@ module scale::enter {
     ){
         admin::remove_admin_member(admin_cap,addr,ctx);
     }
+
     public entry fun create_market <T>(
         list: &mut MarketList,
         token: &Coin<T>,
@@ -61,6 +63,7 @@ module scale::enter {
     ){
         market::create_market<T>(list,token,symbol,description,size,opening_price,pyth_id,ctx);
     }
+
     public entry fun update_max_leverage<P,T>(
         pac:&mut ScaleAdminCap,
         list: &mut MarketList,
@@ -93,6 +96,7 @@ module scale::enter {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_margin_fee(pac,market,margin_fee,ctx);
     }
+
     public entry fun update_fund_fee<P,T>(
         pac:&mut ScaleAdminCap,
         list: &mut MarketList,
@@ -104,6 +108,7 @@ module scale::enter {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_fund_fee(pac,market,fund_fee,manual,ctx);
     }
+    
     public entry fun update_status<P,T>(
         pac: &mut ScaleAdminCap,
         list: &mut MarketList,
@@ -169,7 +174,7 @@ module scale::enter {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::trigger_update_opening_price(market,ctx);
     }
-        /// Project side add NFT style
+    /// Project side add NFT style
     public entry fun add_factory_mould(
         admin_cap:&mut AdminCap,
         factory: &mut ScaleNFTFactory,
@@ -189,6 +194,7 @@ module scale::enter {
     ){
         nft::remove_factory_mould(admin_cap,factory,name,ctx);
     }
+
     public entry fun investment<P,T>(
         list: &mut MarketList,
         market_id: ID,

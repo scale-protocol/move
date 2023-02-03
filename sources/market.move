@@ -336,7 +336,7 @@ module scale::market{
             officer: 2,
             pool: pool::create_pool_(token),
             size,
-            opening_price: 0,
+            opening_price,
             pyth_id,
         });
         list.total = list.total + 1;

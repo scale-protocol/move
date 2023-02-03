@@ -154,6 +154,9 @@ module scale::position {
         } else {
             let max = market::get_max_position_total(market);
             let min = market::get_min_position_total(market);
+            if (min == 0){
+                return i64::new(0,false)
+            };
             i64::new(max * market::get_fund_fee(market) * get_fund_size(position) / min,false)
         }
     }
@@ -463,6 +466,8 @@ module scale::position {
             dof::add(account::get_uid_mut(account),id,position);
             if ( position_type == 1 ){
                 account::add_pfk_id(account,pfk,id);
+            }else{
+                account::add_independent_position_id(account,id);
             };
         };
         check_margin<P,T>(list,account);
@@ -524,6 +529,12 @@ module scale::position {
         };
         position.profit = pl;
         dec_margin<P,T>(market,account,position.type,position.direction,position.margin,get_fund_size(position));
+        if (position.type == 1) {
+            let pfk = account::new_PFK<T>(position.market_id,position.account_id,position.direction);
+            account::remove_pfk_id(account,&pfk);
+        }else{
+            account::remove_independent_position_id(account,object::uid_to_inner(&position.id));
+        };
     }
 
     public fun burst_position<P,T>(
@@ -565,6 +576,27 @@ module scale::position {
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         position.status = 3;
         settlement_pl<P,T>(market,account,&mut position,tx_context::sender(ctx));
+        if (position.type == 1) {
+            let pfk = account::new_PFK<T>(position.market_id,position.account_id,position.direction);
+            account::remove_pfk_id(account,&pfk);
+        }else{
+            account::remove_independent_position_id(account,object::uid_to_inner(&position.id));
+        };
         transfer::transfer(position,tx_context::sender(ctx));
     }
+
+    // public fun process_fund_fee<T>(
+    //     list: &mut MarketList,
+    //     account: &mut Account<T>,
+    //     ctx: &mut TxContext,
+    // ){
+    //     let ids = account::get_all_position_ids(account);
+    //     let i = 0;
+    //     let n = vector::length(&ids);
+    //     while (i < n) {
+    //         let v = vector::borrow(&ids, i);
+            
+    //         i = i + 1;
+    //     };
+    // }
 }

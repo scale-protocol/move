@@ -46,6 +46,7 @@ module scale::account {
         margin_independent_buy_total: u64,
         margin_independent_sell_total: u64,
         full_position_idx: VecMap<PFK,ID>,
+        independent_position_idx: vector<ID>,
     }
 
     struct PFK has store,copy,drop {
@@ -61,30 +62,39 @@ module scale::account {
             direction,
         }
     }
+
     public fun get_uid<T>(account: &Account<T>): &UID {
         &account.id
     }
+
     public fun get_uid_mut<T>(account: &mut Account<T>): &mut UID {
         &mut account.id
     }
+
     public fun get_owner<T>(account: &Account<T>): address {
         account.owner
     }
+
     public fun get_offset<T>(account: &Account<T>): u64 {
         account.offset
     }
+
     public fun get_balance<T>(account: &Account<T>): u64 {
         balance::value(&account.balance)
     }
+
     public fun get_profit<T>(account: &Account<T>): &I64 {
         &account.profit
     }
+
     public fun get_margin_total<T>(account: &Account<T>): u64 {
         account.margin_total
     }
+
     public fun get_margin_full_total<T>(account: &Account<T>): u64 {
         account.margin_full_total
     }
+
     public fun get_margin_used<T>(account: &Account<T>): u64 {
         math::max(account.margin_full_buy_total, account.margin_full_sell_total)
     }
@@ -115,7 +125,32 @@ module scale::account {
     public(friend) fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
         vec_map::remove(&mut account.full_position_idx, pfk);
     }
-
+    public(friend) fun add_independent_position_id<T>(account: &mut Account<T>,id: ID) {
+        vector::push_back(&mut account.independent_position_idx, id);
+    }
+    public(friend) fun remove_independent_position_id<T>(account: &mut Account<T>,id: ID) {
+        let i = 0;
+        let n = vector::length(&account.independent_position_idx);
+        while (i < n) {
+            let v = vector::borrow(&account.independent_position_idx, i);
+            if (*v == id) {
+                vector::swap_remove(&mut account.independent_position_idx, i);
+                return
+            };
+            i = i + 1;
+        };
+    }
+    public fun get_all_position_ids<T>(account: &Account<T>):vector<ID> {
+        let idx = account.independent_position_idx;
+        let i = 0;
+        let n = vec_map::size(&account.full_position_idx);
+        while (i < n) {
+            let (_,v) = vec_map::get_entry_by_idx(&account.full_position_idx, i);
+            vector::push_back(&mut idx, *v);
+            i = i + 1;
+        };
+        idx
+    }
     public fun get_pfk_ids<T>(account: &Account<T>):vector<ID> {
         let i = 0;
         let n = vec_map::size(&account.full_position_idx);
@@ -127,7 +162,6 @@ module scale::account {
         };
         r
     }
-
     public(friend) fun set_offset<T>(account: &mut Account<T>, offset: u64) {
         account.offset = offset;
     }
@@ -204,6 +238,7 @@ module scale::account {
             margin_independent_buy_total: 0,
             margin_independent_sell_total: 0,
             full_position_idx: vec_map::empty<PFK,ID>(),
+            independent_position_idx: vector::empty<ID>(),
         };
         transfer::transfer(UserAccount{
             id: object::new(ctx),

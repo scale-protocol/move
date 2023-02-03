@@ -52,7 +52,7 @@ module scale::position_tests {
             account::deposit(&mut account,token,10000,test_scenario::ctx(tx));
             // add liquidity
             let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut(market),liquidity,test_scenario::ctx(tx));
-            position::open_position<Tag,SCALE>(&mut list,market_id,&mut account,1,1,1,1,test_scenario::ctx(tx));
+            position::open_position<Tag,SCALE>(&mut list,market_id,&mut account,1,2,1,2,test_scenario::ctx(tx));
             let position: &mut Position<SCALE> = dof::borrow_mut(account::get_uid_mut<SCALE>(&mut account),object::last_created(test_scenario::ctx(tx)));
             debug::print(position);
             // todo: check position
