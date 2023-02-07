@@ -585,18 +585,25 @@ module scale::position {
         transfer::transfer(position,tx_context::sender(ctx));
     }
 
-    // public fun process_fund_fee<T>(
-    //     list: &mut MarketList,
-    //     account: &mut Account<T>,
-    //     ctx: &mut TxContext,
-    // ){
-    //     let ids = account::get_all_position_ids(account);
-    //     let i = 0;
-    //     let n = vector::length(&ids);
-    //     while (i < n) {
-    //         let v = vector::borrow(&ids, i);
-            
-    //         i = i + 1;
-    //     };
-    // }
+    public fun process_fund_fee<P,T>(
+        list: &mut MarketList,
+        account: &mut Account<T>,
+        _ctx: &TxContext,
+    ){
+        let ids = account::get_all_position_ids(account);
+        let i = 0;
+        let n = vector::length(&ids);
+        while (i < n) {
+            let id = vector::borrow(&ids, i);
+            let position: &Position<T> = dof::borrow(account::get_uid(account),*id);
+            let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),position.market_id);
+            let fund_fee = get_position_fund_fee(market,position);
+            if (i64::is_negative(&fund_fee)){
+                pool::join_profit_balance(market::get_pool_mut(market),account::split_balance(account,i64::get_value(&fund_fee)));
+            }else{
+                account::join_balance(account,pool::split_profit_balance(market::get_pool_mut(market),i64::get_value(&fund_fee)));
+            };
+            i = i + 1;
+        };
+    }
 }

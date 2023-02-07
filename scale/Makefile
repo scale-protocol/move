@@ -1,2 +1,2 @@
 publish:
-	sui client publish --gas-budget 10000 .
+	sui client publish --gas-budget 10000 ./oracle

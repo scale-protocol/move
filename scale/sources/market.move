@@ -9,6 +9,7 @@ module scale::market{
     use std::vector;
     use sui::math;
     use sui::dynamic_object_field as dof;
+    use oracle::oracle;
 
     friend scale::position;
     
@@ -147,12 +148,15 @@ module scale::market{
             spread,
         }
     }
-    public fun get_pyth_price(_id: vector<u8>):u64 {
+
+    public fun get_pyth_price(id: &ID):u64 {
         // todo: get real price from pyth
-        1000
+        let (price , _timestamp) = oracle::get_price(id);
+        price
     }
+
     public fun get_price<P,T>(market: &Market<P,T>): Price {
-        let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
+        let real_price = get_pyth_price(&market.pyth_id);
         get_price_(market, real_price)
     }
 
@@ -449,7 +453,7 @@ module scale::market{
         market: &mut Market<P,T>,
         _ctx: &mut TxContext
     ){
-        let real_price = get_pyth_price(object::id_to_bytes(&market.pyth_id));
+        let real_price = get_pyth_price(&market.pyth_id);
         // todo check price time and openg price must gt 0
         market.opening_price = real_price;
     }
