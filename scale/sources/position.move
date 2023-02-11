@@ -10,6 +10,7 @@ module scale::position {
     use scale::pool;
     use std::vector;
     use scale::i64::{Self, I64};
+    use oracle::oracle;
     // use sui::dynamic_field as df;/
 
     
@@ -164,6 +165,7 @@ module scale::position {
     public fun get_equity<P,T>(
         list: &MarketList,
         account: &Account<T>,
+        root: &oracle::Root,
     ) :I64 {
         let ids = account::get_pfk_ids<T>(account);
         let n = vector::length(&ids);
@@ -175,7 +177,7 @@ module scale::position {
 
             if ( ps.status == 1 ){
                 let market: &Market<P,T> = dof::borrow(market::get_list_uid(list),ps.market_id);
-                let price = market::get_price(market);
+                let price = market::get_price(market,root);
                 pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(market,ps),&get_pl<T>(ps,&price)));
             };
             i = i + 1;
@@ -409,10 +411,12 @@ module scale::position {
     fun check_margin<P,T>(
         list: &MarketList,
         account: &Account<T>,
+        root: &oracle::Root,
     ){
         let equity = get_equity<P,T>(
             list,
             account,
+            root,
         );
         assert!(!i64::is_negative(&equity), ERiskControlNegativeEquity);
         let margin_used = account::get_margin_used(account);
@@ -425,6 +429,7 @@ module scale::position {
         list: &mut MarketList,
         market_id: ID,
         account: &mut Account<T>,
+        root: &oracle::Root,
         lot: u64,
         leverage: u8,
         position_type: u8,
@@ -439,7 +444,7 @@ module scale::position {
         assert!(direction == 1 || direction == 2, EInvalidDirection);
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
 
-        let price = market::get_price(market);
+        let price = market::get_price(market, root);
         let size = market::get_size(market);
         let pfk = account::new_PFK<T>(object::id(market),object::id(account),direction);
 
@@ -470,12 +475,13 @@ module scale::position {
                 account::add_independent_position_id(account,id);
             };
         };
-        check_margin<P,T>(list,account);
+        check_margin<P,T>(list,account,root);
     }
 
     public fun close_position<P,T>(
         market: &mut Market<P,T>,
         account: &mut Account<T>,
+        root: &oracle::Root,
         position_id: ID,
         ctx: &mut TxContext,
     ){
@@ -487,17 +493,18 @@ module scale::position {
         assert!(object::id(market) == position.market_id, EInvalidMarketId);
         assert!(object::id(account) == position.account_id, EInvalidAccountId);
         position.status = 2;
-        settlement_pl<P,T>(market,account,&mut position,owner);
+        settlement_pl<P,T>(market,account,root, &mut position,owner);
         transfer::transfer(position,owner);
     }
 
     fun settlement_pl<P,T>(
         market: &mut Market<P,T>,
         account: &mut Account<T>,
+        root: &oracle::Root,
         position: &mut Position<T>,
         close_operator: address,
     ){
-        let price = market::get_price(market);
+        let price = market::get_price(market,root);
         let size = size(position.lot,position.size);
         
         position.close_spread = market::get_spread(&price);
@@ -540,6 +547,7 @@ module scale::position {
     public fun burst_position<P,T>(
         list: &mut MarketList,
         account: &mut Account<T>,
+        root: &oracle::Root,
         position_id: ID,
         ctx: &mut TxContext,
     ){
@@ -554,6 +562,7 @@ module scale::position {
                 let equity = get_equity<P,T>(
                     list,
                     account,
+                    root,
                 );
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
@@ -562,7 +571,7 @@ module scale::position {
                     }
                 }
             } else {
-                let price = market::get_price(market);
+                let price = market::get_price(market,root);
                 let pl = i64::i64_add(&get_position_fund_fee(market,position),&get_pl<T>(position,&price));
                 // equity = pl + margin
                 i64::inc_u64(&mut pl,position.margin);
@@ -575,7 +584,7 @@ module scale::position {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),position.market_id);
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         position.status = 3;
-        settlement_pl<P,T>(market,account,&mut position,tx_context::sender(ctx));
+        settlement_pl<P,T>(market,account, root, &mut position,tx_context::sender(ctx));
         if (position.type == 1) {
             let pfk = account::new_PFK<T>(position.market_id,position.account_id,position.direction);
             account::remove_pfk_id(account,&pfk);

@@ -123,21 +123,22 @@ module scale::market{
         }
     }
 
-    public fun get_real_price(price:&Price) : u64{
+    public fun get_real_price(price: &Price) : u64{
         price.real_price
     }
 
-    public fun get_buy_price(price:&Price) : u64{
+    public fun get_buy_price(price: &Price) : u64{
         price.buy_price
     }
 
-    public fun get_sell_price(price:&Price) : u64{
+    public fun get_sell_price(price: &Price) : u64{
         price.sell_price
     }
-    public fun get_spread(price:&Price) : u64{
+    public fun get_spread(price: &Price) : u64{
         price.spread
     }
-    fun get_price_<P,T>(market: &Market<P,T>,real_price: u64):Price{
+
+    fun get_price_<P,T>(market: &Market<P,T>, real_price: u64):Price{
         let spread = get_spread_fee(market,real_price) * real_price / DENOMINATOR;
         // To increase the calculation accuracy
         let half_spread = spread * DENOMINATOR / 2;
@@ -149,14 +150,14 @@ module scale::market{
         }
     }
 
-    public fun get_pyth_price(id: &ID):u64 {
+    public fun get_pyth_price(root: &oracle::Root,id: ID):u64 {
         // todo: get real price from pyth
-        let (price , _timestamp) = oracle::get_price(id);
+        let (price , _timestamp) = oracle::get_price(root,id);
         price
     }
 
-    public fun get_price<P,T>(market: &Market<P,T>): Price {
-        let real_price = get_pyth_price(&market.pyth_id);
+    public fun get_price<P,T>(market: &Market<P,T>,root: &oracle::Root): Price {
+        let real_price = get_pyth_price(root, market.pyth_id);
         get_price_(market, real_price)
     }
 
@@ -451,9 +452,10 @@ module scale::market{
     /// The robot triggers at 0:00 every day to update the price of the day
     public fun trigger_update_opening_price<P,T>(
         market: &mut Market<P,T>,
+        root: &oracle::Root,
         _ctx: &mut TxContext
     ){
-        let real_price = get_pyth_price(&market.pyth_id);
+        let real_price = get_pyth_price(root, market.pyth_id);
         // todo check price time and openg price must gt 0
         market.opening_price = real_price;
     }

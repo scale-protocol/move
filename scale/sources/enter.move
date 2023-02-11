@@ -9,6 +9,7 @@ module scale::enter {
     use std::option;
     use sui::object::ID;
     use sui::dynamic_object_field as dof;
+    use oracle::oracle;
 
     public entry fun create_account<T>(
         token: &Coin<T>,
@@ -29,10 +30,11 @@ module scale::enter {
     public entry fun withdrawal<P,T>(
         list: &MarketList,
         account: &mut Account<T>,
+        root: &oracle::Root,
         amount: u64,
         ctx: &mut TxContext
     ){
-        account::withdrawal<P,T>(position::get_equity<P,T>(list, account),account,amount,ctx);
+        account::withdrawal<P,T>(position::get_equity<P,T>(list, account,root),account,amount,ctx);
     }
 
     public entry fun add_admin_member(
@@ -169,10 +171,11 @@ module scale::enter {
     public entry fun trigger_update_opening_price<P,T>(
         list: &mut MarketList,
         market_id: ID,
+        root: &oracle::Root,
         ctx: &mut TxContext
     ){
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        market::trigger_update_opening_price(market,ctx);
+        market::trigger_update_opening_price(market, root, ctx);
     }
     /// Project side add NFT style
     public entry fun add_factory_mould(
@@ -245,32 +248,35 @@ module scale::enter {
         list: &mut MarketList,
         market_id: ID,
         account: &mut Account<T>,
+        root: &oracle::Root,
         lot: u64,
         leverage: u8,
         position_type: u8,
         direction: u8,
         ctx: &mut TxContext
     ){
-        position::open_position<P,T>(list,market_id,account,lot,leverage,position_type,direction,ctx);
+        position::open_position<P,T>(list,market_id,account,root,lot,leverage,position_type,direction,ctx);
     }
 
     public entry fun close_position<P,T>(
         list: &mut MarketList,
         market_id: ID,
         account: &mut Account<T>,
+        root: &oracle::Root,
         position_id: ID,
         ctx: &mut TxContext,
     ){
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        position::close_position(market,account,position_id,ctx);
+        position::close_position(market,account,root,position_id,ctx);
     }
 
     public entry fun burst_position<P,T>(
         list: &mut MarketList,
         account: &mut Account<T>,
+        root: &oracle::Root,
         position_id: ID,
         ctx: &mut TxContext,
     ){
-        position::burst_position<P,T>(list,account,position_id,ctx);
+        position::burst_position<P,T>(list,account,root,position_id,ctx);
     }
 }
