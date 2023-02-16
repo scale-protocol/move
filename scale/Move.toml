@@ -3,12 +3,12 @@ name = "Scale"
 version = "0.0.1"
 
 [dependencies]
-# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet" }
-Sui = { local = "../../sui/crates/sui-framework" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet" }
+# Sui = { local = "../../sui/crates/sui-framework" }
 SuiCoin = { local = "../coin" }
 Oracle = { local = "../oracle" }
 [addresses]
 scale =  "0x0"
 sui =  "0x2"
-# oracle = "0xd5789c5f3a5588d3e513b8baa99d89e4f6543cb2"
+# oracle = "0xe7b19a3218cc146dd6d81edce00da986ff543607"
 # sui_coin = "0x3"
