@@ -1,5 +1,5 @@
 [package]
-name = "oracle"
+name = "Oracle"
 version = "0.0.1"
 
 [dependencies]

@@ -1,12 +1,12 @@
 [package]
-name = "scale"
+name = "Scale"
 version = "0.0.1"
 
 [dependencies]
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet" }
 Sui = { local = "../../sui/crates/sui-framework" }
-sui_coin = { local = "../coin" }
-oracle = { local = "../oracle" }
+SuiCoin = { local = "../coin" }
+Oracle = { local = "../oracle" }
 [addresses]
 scale =  "0x0"
 sui =  "0x2"
