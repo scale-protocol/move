@@ -7,8 +7,8 @@ module sui_coin::scale {
     use sui::sui::SUI;
 
     const DECIMALS:u64 = 6;
-    // Default One SUI for 100000 SCALE
-    const SUBSCRIPTION_RATIO:u64 = 100;
+    // Default One SUI for 1000000000 SCALE
+    const SUBSCRIPTION_RATIO:u64 = 100000000;
 
     const EInsufficientBalanceOfSui:u64=1;
 
