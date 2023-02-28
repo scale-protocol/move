@@ -9,9 +9,6 @@ module scale::pool_tests {
     use std::debug;
 
     struct P has drop{}
-    struct MK<phantom P,phantom T> has key{
-        pool: pool::Pool<P,T>,
-    }
     #[test]
     fun test_create_pool(){
         let owner = @0x1;

@@ -14,26 +14,27 @@ module scale::position {
     // use sui::dynamic_field as df;/
 
     
-    const EInvalidLot:u64 = 2;
-    const EInvalidLeverage:u64 = 3;
-    const EInvalidPositionType:u64 = 4;
-    const EInvalidDirection:u64 = 5;
-    const ENoPermission:u64 = 6;
-    const EInvalidPositionStatus:u64 = 7;
-    const ENumericOverflow:u64 = 8;
-    const EInvalidMarketStatus:u64 = 9;
-    const ERiskControlBlockingExposure:u64 = 10;
-    const ERiskControlBurstRate:u64 = 11;
-    const RiskControlBlockingFundSize:u64 = 12;
-    const RiskControlBlockingFundPool:u64 = 13;
-    const EInvalidMarketId:u64 = 14;
-    const EInvalidAccountId:u64 = 15;
-    const ERiskControlNegativeEquity:u64 = 16;
-    const EBurstConditionsNotMet:u64 = 17;
+    const EInvalidLot:u64 = 602;
+    const EInvalidLeverage:u64 = 603;
+    const EInvalidPositionType:u64 = 604;
+    const EInvalidDirection:u64 = 605;
+    const ENoPermission:u64 = 606;
+    const EInvalidPositionStatus:u64 = 607;
+    const ENumericOverflow:u64 = 608;
+    const EInvalidMarketStatus:u64 = 609;
+    const ERiskControlBlockingExposure:u64 = 610;
+    const ERiskControlBurstRate:u64 = 611;
+    const RiskControlBlockingFundSize:u64 = 612;
+    const RiskControlBlockingFundPool:u64 = 613;
+    const EInvalidMarketId:u64 = 614;
+    const EInvalidAccountId:u64 = 615;
+    const ERiskControlNegativeEquity:u64 = 616;
+    const EBurstConditionsNotMet:u64 = 617;
 
     const MAX_U64_VALUE: u128 = 18446744073709551615;
 
     const DENOMINATOR: u64 = 10000;
+    const DENOMINATOR128: u128 = 10000;
     /// The exposure ratio should not exceed 70% of the current pool,
     /// so as to avoid the risk that the platform's current pool is empty.
     const POSITION_DIFF_PROPORTION: u64 = 7000;
@@ -106,7 +107,7 @@ module scale::position {
     fun fund_size(size:u64, lot:u64, price:u64) :u64 {
         let r = (size as u128) * (lot as u128) * (price as u128);
         assert!(r <= MAX_U64_VALUE ,ENumericOverflow);
-        (r as u64)
+        (r / DENOMINATOR128 as u64)
     }
 
     fun get_size<T>(position: &Position<T>) :u64{
@@ -116,7 +117,7 @@ module scale::position {
     fun size(lot:u64, size:u64) :u64 {
         let r = (size as u128) * (lot as u128);
         assert!(r <= MAX_U64_VALUE ,ENumericOverflow);
-        (r as u64)
+        (r / DENOMINATOR128 as u64)
     }
 
     public fun get_margin_size<P,T>(market: &Market<P,T>,position: &Position<T>) :u64 {

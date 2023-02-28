@@ -6,8 +6,8 @@ module scale::admin {
     /// Up to 5 administrators can be set
     const MAX_ADMIN_NUM:u8 = 5;
 
-    const EAdminNumberOverflow:u64 = 1;
-    const ENoPermission:u64 = 2;
+    const EAdminNumberOverflow:u64 = 101;
+    const ENoPermission:u64 = 102;
     /// Management voucher, used to achieve certain management capabilities
     /// There is only one super administrator
     struct AdminCap has key {

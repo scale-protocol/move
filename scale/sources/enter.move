@@ -10,6 +10,8 @@ module scale::enter {
     use sui::object::ID;
     use sui::dynamic_object_field as dof;
     use oracle::oracle;
+    use std::vector;
+    use sui::pay;
 
     public entry fun create_account<T>(
         token: &Coin<T>,
@@ -20,10 +22,12 @@ module scale::enter {
     /// If amount is 0, the whole coin will be consumed
     public entry fun deposit<T>(
         account: &mut Account<T>,
-        token: Coin<T>,
+        coins: vector<Coin<T>>,
         amount: u64,
         ctx: &mut TxContext
     ){
+        let token = vector::pop_back(&mut coins);
+        pay::join_vec(&mut token, coins);
         account::deposit(account, token, amount, ctx);
     }
 
@@ -201,13 +205,16 @@ module scale::enter {
     public entry fun investment<P,T>(
         list: &mut MarketList,
         market_id: ID,
-        token: Coin<T>,
+        coins: vector<Coin<T>>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
+        amount: u64,
         ctx: &mut TxContext
     ){
+        let token = vector::pop_back(&mut coins);
+        pay::join_vec(&mut token, coins);
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        nft::investment(market,token,factory,name,ctx);
+        nft::investment(market,token,factory,name,amount,ctx);
     }
     /// Normal withdrawal of investment
     public entry fun divestment<P,T>(

@@ -13,13 +13,13 @@ module scale::i64_tests {
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_808 && i64::is_negative(&i), 3);
     }
     #[test]
-    #[expected_failure(abort_code = 1, location = i64)]
+    #[expected_failure(abort_code = 201, location = i64)]
     fun test_positive_overflow() {
         let i = i64::new(9_223_372_036_854_775_809, false);
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_808 && !i64::is_negative(&i), 2);
     }
     #[test]
-    #[expected_failure(abort_code = 1, location = i64)]
+    #[expected_failure(abort_code = 201, location = i64)]
     fun test_negative_overflow() {
         let i = i64::new(9_223_372_036_854_775_809, true);
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_809 && !i64::is_negative(&i), 2);
@@ -62,7 +62,7 @@ module scale::i64_tests {
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_711 && !i64::is_negative(&i), 7);
     }
     #[test]
-    #[expected_failure(abort_code = 1, location = i64)]
+    #[expected_failure(abort_code = 201, location = i64)]
     fun test_inc_u64_overflow(){
         let i = i64::new(9_223_372_036_854_775_807, false);
         i64::inc_u64(&mut i, 1);
@@ -94,14 +94,14 @@ module scale::i64_tests {
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_808 && i64::is_negative(&i), 7);
     }
     #[test]
-    #[expected_failure(abort_code = 1, location = i64)]
+    #[expected_failure(abort_code = 201, location = i64)]
     fun test_dec_u64_overflow(){
         let i = i64::new(9_223_372_036_854_775_808, true);
         i64::dec_u64(&mut i, 1);
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_809 && i64::is_negative(&i), 1);
     }
     #[test]
-    #[expected_failure(abort_code = 1, location = i64)]
+    #[expected_failure(abort_code = 201, location = i64)]
     fun test_dec_u64_overflow1(){
         let i = i64::new(9_223_372_036_854_775_808, false);
         i64::dec_u64(&mut i, 1);

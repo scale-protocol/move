@@ -8,7 +8,7 @@ module scale::pool {
     friend scale::market;
     // friend scale::account;
 
-    const EZeroAmount: u64 = 1;
+    const EZeroAmount: u64 = 501;
 
     struct Tag has drop {}
     /// Original reserves of current pool funds

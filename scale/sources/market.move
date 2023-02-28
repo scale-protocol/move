@@ -13,23 +13,23 @@ module scale::market{
 
     friend scale::position;
     
-    const ELSPCreatorPermissionRequired:u64 = 1;
-    const EInvalidLeverage:u64 = 2;
-    const EInvalidSpread:u64 = 3;
-    const EInvalidInsuranceRate:u64 = 4;
-    const EInvalidMarginRate:u64 = 5;
-    const EInvalidStatus:u64 = 6;
-    const ENameRequired:u64 = 7;
-    const EDescriptionRequired:u64 = 8;
-    const ENoPermission:u64 = 9;
-    const EInvalidSellPrice:u64 = 10;
-    const EInvalidSize:u64 = 11;
-    const EInvalidFundRate:u64 = 12;
-    const EInvalidOpingPrice:u64 = 13;
-    const EInvalidOfficer:u64 = 14;
-    const ENameTooLong:u64 = 15;
-    const EDescriptionTooLong:u64 = 16;
-    const EInvalidOpeningPrice:u64 = 17;
+    const ELSPCreatorPermissionRequired:u64 = 301;
+    const EInvalidLeverage:u64 = 302;
+    const EInvalidSpread:u64 = 303;
+    const EInvalidInsuranceRate:u64 = 304;
+    const EInvalidMarginRate:u64 = 305;
+    const EInvalidStatus:u64 = 306;
+    const ENameRequired:u64 = 307;
+    const EDescriptionRequired:u64 = 308;
+    const ENoPermission:u64 = 309;
+    const EInvalidSellPrice:u64 = 310;
+    const EInvalidSize:u64 = 311;
+    const EInvalidFundRate:u64 = 312;
+    const EInvalidOpingPrice:u64 = 313;
+    const EInvalidOfficer:u64 = 314;
+    const ENameTooLong:u64 = 315;
+    const EDescriptionTooLong:u64 = 316;
+    const EInvalidOpeningPrice:u64 = 317;
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
@@ -414,7 +414,7 @@ module scale::market{
     }
 
     public fun update_spread_fee<P,T>(
-        pac:&mut ScaleAdminCap,
+        pac: &mut ScaleAdminCap,
         market:&mut Market<P,T>,
         spread_fee: u64,
         manual: bool,

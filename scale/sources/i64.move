@@ -5,9 +5,9 @@ module scale::i64 {
     const MAX_NEGATIVE: u64 = (1 << 63);
 
     // const MAX_U64_VALUE: u128 = 18446744073709551615;
-    const ENumericOverflow: u64 = 1;
-    const ENegative: u64 = 2;
-    const EPositive: u64 = 3;
+    const ENumericOverflow: u64 = 201;
+    const ENegative: u64 = 202;
+    const EPositive: u64 = 203;
     #[test_only]
     public fun get_max_positive(): u64 {
         MAX_POSITIVE

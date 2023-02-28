@@ -15,11 +15,12 @@ module scale::nft {
     use std::option::{Self,Option};
     // use scale_v1::nft;
 
-    const ENameRequired:u64 = 1;
-    const EDescriptionRequired:u64 = 2;
-    const EUrlRequired:u64 = 3;
-    const EInvalidNFTID:u64 = 4;
-    const EInvalidMarketID:u64 = 5;
+    const ENameRequired:u64 = 401;
+    const EDescriptionRequired:u64 = 402;
+    const EUrlRequired:u64 = 403;
+    const EInvalidNFTID:u64 = 404;
+    const EInvalidMarketID:u64 = 405;
+    const EInsufficientCoins:u64 = 406;
     /// scale nft
     struct ScaleNFT<phantom P, phantom T> has key ,store {
         id: UID,
@@ -139,8 +140,17 @@ module scale::nft {
         token: Coin<T>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
+        amount: u64,
         ctx: &mut TxContext
     ){
+        let coins = coin::zero<T>(ctx);
+        if (amount == 0){
+            coin::join(&mut coins,token);
+        }else{
+            assert!(amount < coin::value(&token), EInsufficientCoins);
+            coin::join(&mut coins,coin::split(&mut token, amount, ctx));
+            transfer::transfer(token,tx_context::sender(ctx));
+        };
         // assert!(!vector::is_empty(&name), ENameRequired);
         let mould = table::borrow(&factory.mould,string::utf8(name));
         let uid = object::new(ctx);
@@ -153,7 +163,7 @@ module scale::nft {
             description: mould.description,
             url: mould.url,
             mint_time: 0,
-            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(market),token,ctx)),
+            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(market),coins,ctx)),
             issue_expiration_time: 0,
             market_id: object::id(market),
         },tx_context::sender(ctx));
