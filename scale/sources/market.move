@@ -315,7 +315,7 @@ module scale::market{
         opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
-    ){
+    ): ID {
         assert!(!vector::is_empty(&symbol), ENameRequired);
         assert!(vector::length(&symbol) < 20, ENameTooLong);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
@@ -323,8 +323,9 @@ module scale::market{
         assert!(size > 0,EInvalidSize);
         assert!(opening_price > 0,EInvalidOpeningPrice);
         let uid = object::new(ctx);
-        admin::create_scale_admin(object::uid_to_inner(&uid),ctx);
-        dof::add(&mut list.id,object::uid_to_inner(&uid),Market{
+        let id = object::uid_to_inner(&uid);
+        admin::create_scale_admin(id,ctx);
+        dof::add(&mut list.id, id, Market{
             id: uid,
             max_leverage: 125,
             insurance_fee: 5,
@@ -345,6 +346,7 @@ module scale::market{
             pyth_id,
         });
         list.total = list.total + 1;
+        id
     }
 
     public fun update_max_leverage<P,T>(

@@ -10,7 +10,7 @@ module oracle::oracle {
     const ENameTooLong:u64 = 2;
     const EInvalidTimestamp:u64 = 3;
     const EInvalidOwner:u64 = 4;
-
+    const EPriceFeedNotExist:u64 = 5;
     struct AdminCap has key {
         id: UID
     }
@@ -55,7 +55,7 @@ module oracle::oracle {
         root: &mut Root,
         symbol: vector<u8>,
         ctx: &mut TxContext,
-        ){
+    ){
         let price_feed = new_price_feed(symbol,ctx);
         let id = object::uid_to_inner(&price_feed.id);
         dof::add(&mut root.id,id,price_feed);
@@ -67,7 +67,7 @@ module oracle::oracle {
         root: &mut Root,
         symbol: vector<u8>,
         ctx: &mut TxContext,
-        ): ID {
+    ): ID {
         let price_feed = new_price_feed(symbol, ctx);
         let id = object::uid_to_inner(&price_feed.id);
         dof::add(&mut root.id, id, price_feed);
@@ -100,6 +100,7 @@ module oracle::oracle {
     }
 
     public fun get_price(root: &Root,feed_id: ID): (u64, u64){
+        assert!(dof::exists_(&root.id,feed_id),EPriceFeedNotExist);
         let feed: &PriceFeed = dof::borrow(&root.id, feed_id);
         (feed.price, feed.timestamp)
     }

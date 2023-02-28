@@ -258,7 +258,7 @@ module scale::account {
             balance::join(&mut account.balance, coin::into_balance(token));
             return
         };
-        assert!(amount < coin::value(&token), EInsufficientCoins);
+        assert!(amount <= coin::value(&token), EInsufficientCoins);
         balance::join(&mut account.balance, coin::into_balance(coin::split(&mut token, amount,ctx)));
         transfer::transfer(token,tx_context::sender(ctx))
     }

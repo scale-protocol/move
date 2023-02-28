@@ -11,6 +11,8 @@ module scale::position {
     use std::vector;
     use scale::i64::{Self, I64};
     use oracle::oracle;
+    use std::option::{Self, Option};
+    // use std::debug;
     // use sui::dynamic_field as df;/
 
     
@@ -338,7 +340,7 @@ module scale::position {
         leverage: u8,
         direction: u8,
         lot: u64,
-    ) :bool {
+    ) :Option<ID> {
         // Check if the full position already exists
         if ( account::contains_pfk(account,pfk) ){
             let id = account::get_pfk_id(account,pfk);
@@ -381,9 +383,9 @@ module scale::position {
             );
             collect_insurance<P,T>(market,account,margin_new);
             collect_spread<P,T>(market,open_spread,size(lot,size));
-            true
+            option::some(id)
         } else {
-            false
+            option::none()
         }
     }
 
@@ -395,8 +397,13 @@ module scale::position {
     ){
         let exposure = market::get_exposure<P,T>(market);
         let total_liquidity = market::get_total_liquidity<P,T>(market);
+        // debug::print(&exposure);
+        // debug::print(&total_liquidity);
+        // debug::print(&pre_exposure);
+        // let i =exposure <= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR) && exposure <= pre_exposure;
+        // debug::print(&i);
         assert!(
-            exposure <= total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR && exposure > pre_exposure,
+            exposure <= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR) && exposure <= pre_exposure,
             ERiskControlBlockingExposure
         );
         assert!(
@@ -436,7 +443,7 @@ module scale::position {
         position_type: u8,
         direction: u8,
         ctx: &mut TxContext
-    ) {
+    ) :ID {
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         assert!(market::get_status(market) == 1, EInvalidMarketStatus);
         assert!(lot > 0, EInvalidLot);
@@ -448,10 +455,11 @@ module scale::position {
         let price = market::get_price(market, root);
         let size = market::get_size(market);
         let pfk = account::new_PFK<T>(object::id(market),object::id(account),direction);
-
+        let position_option_id = option::none<ID>();
         let is_marge = {
             if ( position_type == 1 ){
-                merge_position<P,T>(market, account, &mut price, &pfk,size, leverage, direction,lot)
+                position_option_id = merge_position<P,T>(market, account, &mut price, &pfk,size, leverage, direction,lot);
+                option::is_some(&position_option_id)
             } else {
                 false
             }
@@ -475,8 +483,10 @@ module scale::position {
             }else{
                 account::add_independent_position_id(account,id);
             };
+            position_option_id = option::some(id);
         };
         check_margin<P,T>(list,account,root);
+        option::extract(&mut position_option_id)
     }
 
     public fun close_position<P,T>(

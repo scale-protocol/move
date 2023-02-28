@@ -147,7 +147,7 @@ module scale::nft {
         if (amount == 0){
             coin::join(&mut coins,token);
         }else{
-            assert!(amount < coin::value(&token), EInsufficientCoins);
+            assert!(amount <= coin::value(&token), EInsufficientCoins);
             coin::join(&mut coins,coin::split(&mut token, amount, ctx));
             transfer::transfer(token,tx_context::sender(ctx));
         };
