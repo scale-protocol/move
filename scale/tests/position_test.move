@@ -71,7 +71,7 @@ module scale::position_tests {
             let list = test_scenario::take_shared<MarketList>(tx);
             let account = test_scenario::take_shared<Account<SCALE>>(tx);
             let root = test_scenario::take_shared<oracle::Root>(tx);
-            let _position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1,2,1,2,test_scenario::ctx(tx));
+            let _position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
             debug::print_stack_trace();
             // let position: &mut Position<SCALE> = dof::borrow_mut(account::get_uid_mut<SCALE>(&mut account),position_id);
             test_scenario::return_shared(account);

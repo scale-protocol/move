@@ -402,16 +402,18 @@ module scale::position {
         // debug::print(&pre_exposure);
         // let i =exposure <= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR) && exposure <= pre_exposure;
         // debug::print(&i);
+        if (exposure >= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR)){
+            assert!(
+                exposure < pre_exposure,
+                ERiskControlBlockingExposure
+            );
+        };
         assert!(
-            exposure <= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR) && exposure <= pre_exposure,
-            ERiskControlBlockingExposure
-        );
-        assert!(
-            fund_size < total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR,
+            fund_size < (total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR),
             RiskControlBlockingFundSize
         );
         assert!(
-            market::get_curr_position_total(market,direction) < total_liquidity * POSITION_PROPORTION / DENOMINATOR,
+            market::get_curr_position_total(market,direction) < (total_liquidity * POSITION_PROPORTION / DENOMINATOR),
             RiskControlBlockingFundPool
         );
     }

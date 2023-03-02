@@ -8,6 +8,7 @@ module sui_coin::scale {
     use std::option;
     use std::vector;
     use sui::pay;
+    use sui::url;
 
     const DECIMALS:u8 = 6;
     // Default One SUI for 1000000000 SCALE
@@ -38,9 +39,9 @@ module sui_coin::scale {
             DECIMALS,
             b"SCALE",
             b"Scale",
+            b"The Scale token is a test token used for development network and test network. see https://scale.exchange",
             // icon url
-            b"https://bafybeibzo7s6gmeqybbecqhr2qaedjwxeprumg5kft5rvwicg2lpqzmo7y.ipfs.w3s.link/scale.png",
-            option::none(),
+            option::some(url::new_unsafe_from_bytes(b"https://bafybeibzo7s6gmeqybbecqhr2qaedjwxeprumg5kft5rvwicg2lpqzmo7y.ipfs.w3s.link/scale.png")),
             ctx
         );
         transfer::freeze_object(metadata);
