@@ -541,7 +541,10 @@ module scale::position {
             pool::join_profit_balance(market::get_pool_mut(market),loss);
         };
         let margin_balance_value = balance::value(&position.margin_balance);
-        account::join_balance(account,balance::split(&mut position.margin_balance,margin_balance_value));
+        if (margin_balance_value > 0){
+            account::join_balance(account,balance::split(&mut position.margin_balance,margin_balance_value));
+        };
+        
         if (i64::is_negative(&pl)){
             account::dec_profit(account,i64::get_value(&pl));
         }else{
