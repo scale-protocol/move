@@ -223,9 +223,11 @@ module scale::account {
     public fun create_account<T>(
         _token: &Coin<T>,
         ctx: &mut TxContext
-    ) {
+    ):ID {
+        let uid = object::new(ctx);
+        let id = object::uid_to_inner(&uid);
         let account = Account {
-            id: object::new(ctx),
+            id: uid,
             owner: tx_context::sender(ctx),
             offset: 0,
             balance: balance::zero<T>(),
@@ -246,6 +248,7 @@ module scale::account {
             account_id: typed_id::new(&account),
         }, tx_context::sender(ctx));
         transfer::share_object(account);
+        id
     }
     /// If amount is 0, the whole coin will be consumed
     public fun deposit<T>(

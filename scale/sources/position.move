@@ -12,7 +12,7 @@ module scale::position {
     use scale::i64::{Self, I64};
     use oracle::oracle;
     use std::option::{Self, Option};
-    // use std::debug;
+    use std::debug;
     // use sui::dynamic_field as df;/
 
     
@@ -101,7 +101,99 @@ module scale::position {
         market_id: ID,
         account_id: ID,
     }
-    
+    public fun get_uid<T>(position: &Position<T>) :&UID {
+        &position.id
+    }
+    public fun get_uid_mut<T>(position: &mut Position<T>) :&mut UID {
+        &mut position.id
+    }
+    public fun get_offset<T>(position: &Position<T>) :u64 {
+        position.offset
+    }
+    public fun get_margin<T>(position: &Position<T>) :u64 {
+        position.margin
+    }
+    public fun get_margin_balance<T>(position: &Position<T>) :u64 {
+        balance::value(&position.margin_balance)
+    }
+    public fun get_leverage<T>(position: &Position<T>) :u8 {
+        position.leverage
+    }
+    public fun get_type<T>(position: &Position<T>) :u8 {
+        position.type
+    }
+    public fun get_status<T>(position: &Position<T>) :u8 {
+        position.status
+    }
+    public fun get_direction<T>(position: &Position<T>) :u8 {
+        position.direction
+    }
+    public fun get_size_value<T>(position: &Position<T>) :u64 {
+        position.size
+    }
+    public fun get_lot<T>(position: &Position<T>) :u64 {
+        position.lot
+    }
+    public fun get_open_price<T>(position: &Position<T>) :u64 {
+        position.open_price
+    }
+    public fun get_open_spread<T>(position: &Position<T>) :u64 {
+        position.open_spread
+    }
+    public fun get_open_real_price<T>(position: &Position<T>) :u64 {
+        position.open_real_price
+    }
+    public fun get_close_price<T>(position: &Position<T>) :u64 {
+        position.close_price
+    }
+    public fun get_close_spread<T>(position: &Position<T>) :u64 {
+        position.close_spread
+    }
+    public fun get_close_real_price<T>(position: &Position<T>) :u64 {
+        position.close_real_price
+    }
+    public fun get_profit<T>(position: &Position<T>) :&I64 {
+        &position.profit
+    }
+    public fun get_profit_mut<T>(position: &mut Position<T>) :&mut I64 {
+        &mut position.profit
+    }
+    public fun get_stop_surplus_price<T>(position: &Position<T>) :u64 {
+        position.stop_surplus_price
+    }
+    public fun get_stop_loss_price<T>(position: &Position<T>) :u64 {
+        position.stop_loss_price
+    }
+    public fun get_create_time<T>(position: &Position<T>) :u64 {
+        position.create_time
+    }
+    public fun get_open_time<T>(position: &Position<T>) :u64 {
+        position.open_time
+    }
+    public fun get_close_time<T>(position: &Position<T>) :u64 {
+        position.close_time
+    }
+    public fun get_validity_time<T>(position: &Position<T>) :u64 {
+        position.validity_time
+    }
+    public fun get_open_operator<T>(position: &Position<T>) :&address {
+        &position.open_operator
+    }
+    public fun get_close_operator<T>(position: &Position<T>) :&address {
+        &position.close_operator
+    }
+    public fun get_market_id<T>(position: &Position<T>) :&ID {
+        &position.market_id
+    }
+    public fun get_account_id<T>(position: &Position<T>) :&ID {
+        &position.account_id
+    }
+    public fun get_denominator128<T>() :u64 {
+        (DENOMINATOR128 as u64)
+    }
+    public fun get_denominator<T>() :u64 {
+        DENOMINATOR
+    }
     public fun get_fund_size<T>(position: &Position<T>) :u64 {
         fund_size(position.size , position.lot , position.open_price)
     }
@@ -397,12 +489,12 @@ module scale::position {
     ){
         let exposure = market::get_exposure<P,T>(market);
         let total_liquidity = market::get_total_liquidity<P,T>(market);
-        // debug::print(&exposure);
-        // debug::print(&total_liquidity);
-        // debug::print(&pre_exposure);
-        // let i =exposure <= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR) && exposure <= pre_exposure;
-        // debug::print(&i);
-        if (exposure >= (total_liquidity * POSITION_DIFF_PROPORTION / DENOMINATOR)){
+        debug::print(&exposure);
+        debug::print(&total_liquidity);
+        debug::print(&pre_exposure);
+        let i = exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION;
+        debug::print(&i);
+        if (exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION){
             assert!(
                 exposure < pre_exposure,
                 ERiskControlBlockingExposure
@@ -580,10 +672,14 @@ module scale::position {
                     account,
                     root,
                 );
+                debug::print(&equity);
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
+                    debug::print(&margin_used);
+                    let x = (i64::get_value(&equity) * DENOMINATOR / margin_used);
+                    debug::print(&x);
                     if (margin_used > 0) {
-                        assert!(i64::get_value(&equity) * DENOMINATOR / margin_used <= BURST_RATE, EBurstConditionsNotMet);
+                        assert!((i64::get_value(&equity) * DENOMINATOR / margin_used) <= BURST_RATE, EBurstConditionsNotMet);
                     }
                 }
             } else {
@@ -591,8 +687,11 @@ module scale::position {
                 let pl = i64::i64_add(&get_position_fund_fee(market,position),&get_pl<T>(position,&price));
                 // equity = pl + margin
                 i64::inc_u64(&mut pl,position.margin);
+                debug::print(&price);
+                debug::print(&pl);
+                debug::print(&position.margin);
                 if (!i64::is_negative(&pl)){
-                    assert!(i64::get_value(&pl) * DENOMINATOR / position.margin <= BURST_RATE, EBurstConditionsNotMet);
+                    assert!((i64::get_value(&pl) * DENOMINATOR / position.margin) <= BURST_RATE, EBurstConditionsNotMet);
                 }
             }
         };
