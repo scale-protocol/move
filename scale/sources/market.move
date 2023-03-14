@@ -239,18 +239,23 @@ module scale::market{
     public fun get_uid<P,T>(market:&Market<P,T>) : &UID{
         &market.id
     }
+
     public fun get_uid_mut<P,T>(market:&mut Market<P,T>) : &mut UID{
         &mut market.id
     }
+
     public fun get_max_leverage<P,T>(market: &Market<P,T>) : u8{
         market.max_leverage
     }
+
     public fun get_insurance_fee<P,T>(market: &Market<P,T>) : u64{
         market.insurance_fee
     }
+
     public fun get_margin_fee<P,T>(market: &Market<P,T>) : u64{
         market.margin_fee
     }
+    
     public fun get_status<P,T>(market: &Market<P,T>) : u8{
         market.status
     }

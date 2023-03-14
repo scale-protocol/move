@@ -9,5 +9,5 @@ Oracle = { local = "../oracle" }
 [addresses]
 scale =  "0x0"
 sui =  "0x2"
-# oracle = "0xd97b9ed0254f42f34e5637c15d64753c968d9123"
+# oracle = "0x6185a80cb5bbc719105a7a9caf35399c1ffbd329"
 # sui_coin = "0x3"

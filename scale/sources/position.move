@@ -675,9 +675,9 @@ module scale::position {
                 debug::print(&equity);
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
-                    debug::print(&margin_used);
-                    let x = (i64::get_value(&equity) * DENOMINATOR / margin_used);
-                    debug::print(&x);
+                    // debug::print(&margin_used);
+                    // let x = (i64::get_value(&equity) * DENOMINATOR / margin_used);
+                    // debug::print(&x);
                     if (margin_used > 0) {
                         assert!((i64::get_value(&equity) * DENOMINATOR / margin_used) <= BURST_RATE, EBurstConditionsNotMet);
                     }
@@ -687,9 +687,9 @@ module scale::position {
                 let pl = i64::i64_add(&get_position_fund_fee(market,position),&get_pl<T>(position,&price));
                 // equity = pl + margin
                 i64::inc_u64(&mut pl,position.margin);
-                debug::print(&price);
-                debug::print(&pl);
-                debug::print(&position.margin);
+                // debug::print(&price);
+                // debug::print(&pl);
+                // debug::print(&position.margin);
                 if (!i64::is_negative(&pl)){
                     assert!((i64::get_value(&pl) * DENOMINATOR / position.margin) <= BURST_RATE, EBurstConditionsNotMet);
                 }
@@ -700,12 +700,6 @@ module scale::position {
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         position.status = 3;
         settlement_pl<P,T>(market,account, root, &mut position,tx_context::sender(ctx));
-        if (position.type == 1) {
-            let pfk = account::new_PFK<T>(position.market_id,position.account_id,position.direction);
-            account::remove_pfk_id(account,&pfk);
-        }else{
-            account::remove_independent_position_id(account,object::uid_to_inner(&position.id));
-        };
         transfer::transfer(position,tx_context::sender(ctx));
     }
 

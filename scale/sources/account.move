@@ -123,6 +123,9 @@ module scale::account {
         vec_map::insert(&mut account.full_position_idx, pfk, id);
     }
     public(friend) fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
+        // if (!vec_map::contains(&account.full_position_idx, pfk)) {
+        //     return
+        // };
         vec_map::remove(&mut account.full_position_idx, pfk);
     }
     public(friend) fun add_independent_position_id<T>(account: &mut Account<T>,id: ID) {
@@ -283,5 +286,15 @@ module scale::account {
         let balance = balance::split(&mut account.balance, amount);
         let coin = coin::from_balance(balance,ctx);
         transfer::transfer(coin,tx_context::sender(ctx))
+    }
+    #[test_only]
+    public fun set_balance_for_testing<T>(account: &mut Account<T>,expected_balance:u64,ctx: &mut TxContext) {
+        let balance_coin = coin::mint_for_testing<T>(expected_balance,ctx);
+        // take all
+        let v = balance::value(&account.balance);
+        let c = coin::take(&mut account.balance, v ,ctx);
+        // join all
+        balance::join(&mut account.balance, coin::into_balance(balance_coin));
+        coin::destroy_for_testing(c);
     }
 }
