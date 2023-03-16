@@ -67,7 +67,7 @@ module scale::position {
         size: u64,
         /// lot size
         lot: u64,
-        /// Opening quotation (expected opening price under the listing mode)
+        /// Opening quotation (expected opening price under the listing mode),scale 10000
         open_price: u64,
         /// Point difference data on which the quotation is based
         open_spread: u64,
@@ -75,7 +75,7 @@ module scale::position {
         open_real_price: u64,
         /// Closing quotation
         close_price: u64,
-        /// Point difference data on which the quotation is based
+        /// Point difference data on which the quotation is based,scale 10000
         close_spread: u64,
         // Actual quotation currently obtained
         close_real_price: u64,

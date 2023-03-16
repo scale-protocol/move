@@ -139,7 +139,7 @@ module scale::position_tests {
             assert!(position::get_direction(position) == 1,109);
             assert!(position::get_lot(position) == 1000,110);
             assert!(position::get_open_price(position) == 1007,111);
-            assert!(position::get_open_spread(position) == 15,112);
+            assert!(position::get_open_spread(position) == 150000,112);
             assert!(position::get_open_real_price(position) == 1000,113);
             assert!(position::get_close_price(position) == 0,114);
             assert!(position::get_close_spread(position) == 0,115);
