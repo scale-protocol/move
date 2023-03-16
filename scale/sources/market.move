@@ -12,6 +12,9 @@ module scale::market{
     use oracle::oracle;
 
     friend scale::position;
+    friend scale::nft;
+    friend scale::market_tests;
+    friend scale::position_tests;
     
     const ELSPCreatorPermissionRequired:u64 = 301;
     const EInvalidLeverage:u64 = 302;
@@ -139,9 +142,9 @@ module scale::market{
     }
 
     fun get_price_<P,T>(market: &Market<P,T>, real_price: u64):Price{
-        let spread = get_spread_fee(market,real_price) * real_price / DENOMINATOR;
+        let spread = get_spread_fee(market,real_price) * real_price;
         // To increase the calculation accuracy
-        let half_spread = spread * DENOMINATOR / 2;
+        let half_spread = spread / 2;
         Price{
             buy_price: (real_price * DENOMINATOR + half_spread) / DENOMINATOR,
             sell_price: (real_price * DENOMINATOR - half_spread) / DENOMINATOR,
@@ -185,6 +188,7 @@ module scale::market{
             2
         }
     }
+
     public fun get_curr_position_total<P,T>(market:&Market<P,T>,direction:u8):u64{
         if (direction==1){
             market.long_position_total
@@ -228,7 +232,7 @@ module scale::market{
         };
         assert!(market.opening_price > 0, EInvalidOpeningPrice);
         let change_price = math::max(real_price, market.opening_price) - math::min(real_price, market.opening_price);
-        let change = change_price / market.opening_price * DENOMINATOR;
+        let change = change_price * DENOMINATOR / market.opening_price;
         if (change <= 300) {return 30};
         if (change > 300 && change <= 1000) {
             return change / 10
@@ -240,7 +244,7 @@ module scale::market{
         &market.id
     }
 
-    public fun get_uid_mut<P,T>(market:&mut Market<P,T>) : &mut UID{
+    public(friend) fun get_uid_mut<P,T>(market:&mut Market<P,T>) : &mut UID{
         &mut market.id
     }
 
@@ -255,15 +259,24 @@ module scale::market{
     public fun get_margin_fee<P,T>(market: &Market<P,T>) : u64{
         market.margin_fee
     }
-    
+
     public fun get_status<P,T>(market: &Market<P,T>) : u8{
         market.status
     }
+
     public fun get_long_position_total<P,T>(market: &Market<P,T>) : u64{
         market.long_position_total
     }
+    #[test_only]
+    public fun set_long_position_total_for_testing<P,T>(market: &mut Market<P,T>, value: u64) {
+        market.long_position_total = value
+    }
     public fun get_short_position_total<P,T>(market: &Market<P,T>) : u64{
         market.short_position_total
+    }
+    #[test_only]
+    public fun set_short_position_total_for_testing<P,T>(market: &mut Market<P,T>, value: u64) {
+        market.short_position_total = value
     }
     public(friend) fun inc_long_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
         self.long_position_total = self.long_position_total + value;
@@ -289,7 +302,10 @@ module scale::market{
     public fun get_pool<P,T>(market: &Market<P,T>) : &Pool<P,T>{
         &market.pool
     }
-    public fun get_pool_mut<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
+    public fun get_opening_price_value<P,T>(market: &Market<P,T>) : u64{
+        market.opening_price
+    }
+    public(friend) fun get_pool_mut<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
         &mut market.pool
     }
     public fun get_size<P,T>(market: &Market<P,T>) : u64{

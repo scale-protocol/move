@@ -155,9 +155,7 @@ module scale::position {
     public fun get_profit<T>(position: &Position<T>) :&I64 {
         &position.profit
     }
-    public fun get_profit_mut<T>(position: &mut Position<T>) :&mut I64 {
-        &mut position.profit
-    }
+
     public fun get_stop_surplus_price<T>(position: &Position<T>) :u64 {
         position.stop_surplus_price
     }
@@ -198,13 +196,13 @@ module scale::position {
         fund_size(position.size , position.lot , position.open_price)
     }
 
-    fun fund_size(size:u64, lot:u64, price:u64) :u64 {
+    public fun fund_size(size:u64, lot:u64, price:u64) :u64 {
         let r = (size as u128) * (lot as u128) * (price as u128);
         assert!(r <= MAX_U64_VALUE ,ENumericOverflow);
         (r / DENOMINATOR128 as u64)
     }
 
-    fun get_size<T>(position: &Position<T>) :u64{
+    public fun get_size<T>(position: &Position<T>) :u64{
         size(position.lot,position.size)
     }
 
@@ -547,6 +545,7 @@ module scale::position {
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
 
         let price = market::get_price(market, root);
+        debug::print(&price);
         let size = market::get_size(market);
         let pfk = account::new_PFK<T>(object::id(market),object::id(account),direction);
         let position_option_id = option::none<ID>();

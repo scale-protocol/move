@@ -12,6 +12,7 @@ module scale::position_tests {
     use scale::pool;
     use oracle::oracle;
     use sui::test_utils;
+    use scale::i64;
     // use sui::transfer;
     // use sui::tx_context;
     use sui_coin::scale::{SCALE};
@@ -130,6 +131,31 @@ module scale::position_tests {
             // margin = buy_price * size * (lot / DENOMINATOR128) / leverage => 1007.5 * 1 * 1000/10000 / 2 => 50.375
             assert!(position::get_margin<SCALE>(position) == 50,103);
             assert!(position::get_size_value<SCALE>(position) == 1,103);
+            assert!(position::get_offset(position) == 1,104);
+            assert!(position::get_leverage(position) == 2,105);
+            assert!(position::get_margin_balance(position) == 0,106);
+            assert!(position::get_type(position) == 1,107);
+            assert!(position::get_status(position) == 1,108);
+            assert!(position::get_direction(position) == 1,109);
+            assert!(position::get_lot(position) == 1000,110);
+            assert!(position::get_open_price(position) == 1007,111);
+            assert!(position::get_open_spread(position) == 15,112);
+            assert!(position::get_open_real_price(position) == 1000,113);
+            assert!(position::get_close_price(position) == 0,114);
+            assert!(position::get_close_spread(position) == 0,115);
+            assert!(position::get_close_real_price(position) == 0,116);
+            let profit = position::get_profit(position);
+            assert!(i64::get_value(profit) == 0,117);
+            assert!(i64::is_negative(profit) == false,117);
+            assert!(position::get_stop_surplus_price(position) == 0,118);
+            assert!(position::get_stop_loss_price(position) == 0,119);
+            assert!(position::get_create_time(position) == 0,120);
+            assert!(position::get_close_time(position) == 0,121);
+            assert!(position::get_validity_time(position) == 0,122);
+            assert!(*position::get_open_operator(position) == owner,123);
+            assert!(*position::get_close_operator(position) == @0x0,124);
+            assert!(*position::get_market_id(position) == market_id,125);
+            assert!(*position::get_account_id(position) == object::id(&account),126);
         };
         drop_test_ctx(TestContext {
             owner,

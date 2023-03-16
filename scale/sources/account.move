@@ -67,7 +67,7 @@ module scale::account {
         &account.id
     }
 
-    public fun get_uid_mut<T>(account: &mut Account<T>): &mut UID {
+    public(friend) fun get_uid_mut<T>(account: &mut Account<T>): &mut UID {
         &mut account.id
     }
 
