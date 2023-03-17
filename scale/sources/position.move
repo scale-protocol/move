@@ -67,7 +67,7 @@ module scale::position {
         size: u64,
         /// lot size
         lot: u64,
-        /// Opening quotation (expected opening price under the listing mode),scale 10000
+        /// Opening quotation (expected opening price under the listing mode)
         open_price: u64,
         /// Point difference data on which the quotation is based
         open_spread: u64,
@@ -75,7 +75,7 @@ module scale::position {
         open_real_price: u64,
         /// Closing quotation
         close_price: u64,
-        /// Point difference data on which the quotation is based,scale 10000
+        /// Point difference data on which the quotation is based
         close_spread: u64,
         // Actual quotation currently obtained
         close_real_price: u64,
@@ -193,7 +193,7 @@ module scale::position {
         DENOMINATOR
     }
     public fun get_fund_size<T>(position: &Position<T>) :u64 {
-        fund_size(position.size , position.lot , position.open_price)
+        fund_size(position.size , position.lot , position.open_real_price)
     }
 
     public fun fund_size(size:u64, lot:u64, price:u64) :u64 {
@@ -355,7 +355,6 @@ module scale::position {
         account::inc_margin_total(account,margin);
         if ( position_type == 1 ){
             account::inc_margin_full_total(account,margin);
-            // market::
             if ( direction == 1 ){
                 account::inc_margin_full_buy_total(account,margin);
                 market::inc_long_position_total(market,fund_size);
@@ -415,7 +414,7 @@ module scale::position {
     fun collect_spread<P,T>(market: &mut Market<P,T>,spread: u64, size: u64){
         // let spread_size = (position_fund_size as u128) * (market::get_spread_fee(market) as u128) / (market::get_denominator() as u128);
         let pool = market::get_pool_mut<P,T>(market);
-        let spread_balance = pool::split_profit_balance(pool,(size * spread / 2));
+        let spread_balance = pool::split_profit_balance(pool,(size * (spread / 2)));
         // let balance_value = balance::value(&spread_balance);
         pool::join_spread_profit<P,T>(pool,spread_balance);
         // balance_value
@@ -487,19 +486,20 @@ module scale::position {
     ){
         let exposure = market::get_exposure<P,T>(market);
         let total_liquidity = market::get_total_liquidity<P,T>(market);
-        debug::print(&exposure);
-        debug::print(&total_liquidity);
-        debug::print(&pre_exposure);
-        let i = exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION;
-        debug::print(&i);
+        // debug::print(&exposure);
+        // debug::print(&total_liquidity);
+        // debug::print(&pre_exposure);
+        // let i = exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION;
+        // debug::print(&i);
         if (exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION){
             assert!(
                 exposure < pre_exposure,
                 ERiskControlBlockingExposure
             );
         };
+        // debug::print(&fund_size);
         assert!(
-            fund_size < (total_liquidity * POSITION_PROPORTION_ONE / DENOMINATOR),
+            fund_size * DENOMINATOR < total_liquidity * POSITION_PROPORTION_ONE,
             RiskControlBlockingFundSize
         );
         assert!(
@@ -547,7 +547,7 @@ module scale::position {
         let price = market::get_price(market, root);
         debug::print(&price);
         let size = market::get_size(market);
-        let pfk = account::new_PFK<T>(object::id(market),object::id(account),direction);
+        let pfk = account::new_PFK(object::id(market),object::id(account),direction);
         let position_option_id = option::none<ID>();
         let is_marge = {
             if ( position_type == 1 ){
@@ -644,7 +644,7 @@ module scale::position {
         position.profit = pl;
         dec_margin<P,T>(market,account,position.type,position.direction,position.margin,get_fund_size(position));
         if (position.type == 1) {
-            let pfk = account::new_PFK<T>(position.market_id,position.account_id,position.direction);
+            let pfk = account::new_PFK(position.market_id,position.account_id,position.direction);
             account::remove_pfk_id(account,&pfk);
         }else{
             account::remove_independent_position_id(account,object::uid_to_inner(&position.id));
