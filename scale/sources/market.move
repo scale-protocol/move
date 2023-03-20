@@ -149,7 +149,7 @@ module scale::market{
             buy_price: (real_price * DENOMINATOR + half_spread) / DENOMINATOR,
             sell_price: (real_price * DENOMINATOR - half_spread) / DENOMINATOR,
             real_price,
-            spread: spread / DENOMINATOR,
+            spread: spread,
         }
     }
 

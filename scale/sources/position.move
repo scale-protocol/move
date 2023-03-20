@@ -12,7 +12,7 @@ module scale::position {
     use scale::i64::{Self, I64};
     use oracle::oracle;
     use std::option::{Self, Option};
-    use std::debug;
+    // use std::debug;
     // use sui::dynamic_field as df;/
 
     
@@ -69,13 +69,13 @@ module scale::position {
         lot: u64,
         /// Opening quotation (expected opening price under the listing mode)
         open_price: u64,
-        /// Point difference data on which the quotation is based
+        /// Point difference data on which the quotation is based, scale 10000
         open_spread: u64,
         // Actual quotation currently obtained
         open_real_price: u64,
         /// Closing quotation
         close_price: u64,
-        /// Point difference data on which the quotation is based
+        /// Point difference data on which the quotation is based , scale 10000
         close_spread: u64,
         // Actual quotation currently obtained
         close_real_price: u64,
@@ -414,7 +414,7 @@ module scale::position {
     fun collect_spread<P,T>(market: &mut Market<P,T>,spread: u64, size: u64){
         // let spread_size = (position_fund_size as u128) * (market::get_spread_fee(market) as u128) / (market::get_denominator() as u128);
         let pool = market::get_pool_mut<P,T>(market);
-        let spread_balance = pool::split_profit_balance(pool,(size * (spread / 2)));
+        let spread_balance = pool::split_profit_balance(pool,size * (spread / market::get_denominator() / 2));
         // let balance_value = balance::value(&spread_balance);
         pool::join_spread_profit<P,T>(pool,spread_balance);
         // balance_value
@@ -545,7 +545,7 @@ module scale::position {
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
 
         let price = market::get_price(market, root);
-        debug::print(&price);
+        // debug::print(&price);
         let size = market::get_size(market);
         let pfk = account::new_PFK(object::id(market),object::id(account),direction);
         let position_option_id = option::none<ID>();
@@ -671,7 +671,7 @@ module scale::position {
                     account,
                     root,
                 );
-                debug::print(&equity);
+                // debug::print(&equity);
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
                     // debug::print(&margin_used);
