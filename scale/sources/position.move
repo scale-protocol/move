@@ -229,7 +229,7 @@ module scale::position {
     /// get Floating P/L
     public fun get_pl<T>(position: &Position<T>,price: &Price) :I64 {
         if (position.direction == 1) {
-            i64::u64_sub(fund_size(position.size,position.lot,market::get_sell_price(price)) , get_fund_size<T>(position))
+            i64::u64_sub(fund_size(position.size,position.lot,market::get_sell_price(price)), get_fund_size<T>(position))
         } else {
             i64::u64_sub(get_fund_size<T>(position) , fund_size(position.size,position.lot,market::get_buy_price(price)))
         }
@@ -507,7 +507,16 @@ module scale::position {
             RiskControlBlockingFundPool
         );
     }
-
+    #[test_only]
+    public fun risk_assertion_for_testing<P,T>(
+        market: &Market<P,T>,
+        fund_size: u64,
+        direction: u8,
+        pre_exposure: u64,
+    ){
+        risk_assertion(market,fund_size,direction,pre_exposure);
+    }
+    
     fun check_margin<P,T>(
         list: &MarketList,
         account: &Account<T>,
@@ -525,6 +534,14 @@ module scale::position {
         }
     }
     
+    #[test_only]
+    public fun check_margin_for_testing<P,T>(
+        list: &MarketList,
+        account: &Account<T>,
+        root: &oracle::Root,
+    ){
+        check_margin<P,T>(list,account,root);
+    }    
     public fun open_position<P,T>(
         list: &mut MarketList,
         market_id: ID,
@@ -620,7 +637,6 @@ module scale::position {
 
         collect_spread<P,T>(market,position.close_spread,size);
         let pl = get_pl(position,&price);
-
         if (!i64::is_negative(&pl)){
             account::join_balance(account,pool::split_profit_balance(market::get_pool_mut(market),i64::get_value(&pl)));
         }else{
