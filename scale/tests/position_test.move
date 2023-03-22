@@ -113,7 +113,7 @@ module scale::position_tests {
         } = test_ctx;
         let tx = &mut scenario;
         let position_id :ID;
-        // test open full position
+        // test open cross position
         test_scenario::next_tx(tx,owner);
         {
             position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
@@ -156,19 +156,19 @@ module scale::position_tests {
             // check account
             assert!(account::get_offset(&account) == 1,127);
             // deposit 1000 scale coin , balance = 10000
-            // becouse  full position so balance = 10000
+            // becouse  cross position so balance = 10000
             assert!(account::get_balance(&account) == 10000,128);
             let p = account::get_profit(&account);
             assert!(i64::get_value(p) == 0,129);
             assert!(i64::is_negative(p) == false,130);
             assert!(account::get_margin_total(&account) == 50,131);
-            assert!(account::get_margin_full_total(&account) == 50,132);
+            assert!(account::get_margin_cross_total(&account) == 50,132);
             assert!(account::get_margin_used(&account) == 50,133);
-            assert!(account::get_margin_independent_total(&account) == 0,134);
-            assert!(account::get_margin_full_buy_total(&account) == 50,135);
-            assert!(account::get_margin_full_sell_total(&account) == 0,136);
-            assert!(account::get_margin_independent_buy_total(&account) == 0,137);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,138);
+            assert!(account::get_margin_isolated_total(&account) == 0,134);
+            assert!(account::get_margin_cross_buy_total(&account) == 50,135);
+            assert!(account::get_margin_cross_sell_total(&account) == 0,136);
+            assert!(account::get_margin_isolated_buy_total(&account) == 0,137);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,138);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(account::contains_pfk(&account,&pfk) == true ,139);
             // check market
@@ -185,7 +185,7 @@ module scale::position_tests {
             assert!(pool::get_insurance_balance(pool) == 0,145);
             assert!(pool::get_spread_profit(pool) == 0,146);
         };
-        // test open independent position
+        // test open isolated position
         test_scenario::next_tx(tx,owner);
         {
             position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
@@ -230,20 +230,20 @@ module scale::position_tests {
             assert!(account::get_offset(&account) == 2,227);
             // deposit 10000 scale coin , balance = 10000
             // insurance = margin * 5/10000 = 2000 * 5/10000 => 1
-            // becouse independent position so balance = 10000 - 2000 - 1  => 7999
+            // becouse isolated position so balance = 10000 - 2000 - 1  => 7999
             assert!(account::get_balance(&account) == 7999,228);
             let p = account::get_profit(&account);
             assert!(i64::get_value(p) == 0,229);
             assert!(i64::is_negative(p) == false,230);
             // total = 50 + 2000 => 2050
             assert!(account::get_margin_total(&account) == 2050,231);
-            assert!(account::get_margin_full_total(&account) == 50,232);
+            assert!(account::get_margin_cross_total(&account) == 50,232);
             assert!(account::get_margin_used(&account) == 50,133);
-            assert!(account::get_margin_independent_total(&account) == 2000,234);
-            assert!(account::get_margin_full_buy_total(&account) == 50,235);
-            assert!(account::get_margin_full_sell_total(&account) == 0,236);
-            assert!(account::get_margin_independent_buy_total(&account) == 2000,237);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,238);
+            assert!(account::get_margin_isolated_total(&account) == 2000,234);
+            assert!(account::get_margin_cross_buy_total(&account) == 50,235);
+            assert!(account::get_margin_cross_sell_total(&account) == 0,236);
+            assert!(account::get_margin_isolated_buy_total(&account) == 2000,237);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,238);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(account::contains_pfk(&account,&pfk) == true ,239);
             // check market
@@ -262,7 +262,7 @@ module scale::position_tests {
             assert!(pool::get_insurance_balance(pool) == 1,245);
             assert!(pool::get_spread_profit(pool) == 70,246);
         };
-        // test open full position sell
+        // test open cross position sell
         test_scenario::next_tx(tx,owner);
         {
             position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
@@ -305,19 +305,19 @@ module scale::position_tests {
             // check account
             assert!(account::get_offset(&account) == 3,327);
             // deposit 1000 scale coin , balance = 7999
-            // becouse  full position so balance = 7999
+            // becouse  cross position so balance = 7999
             assert!(account::get_balance(&account) == 7999,328);
             let p = account::get_profit(&account);
             assert!(i64::get_value(p) == 0,329);
             assert!(i64::is_negative(p) == false,330);
             assert!(account::get_margin_total(&account) == 2100,331);
-            assert!(account::get_margin_full_total(&account) == 100,332);
+            assert!(account::get_margin_cross_total(&account) == 100,332);
             assert!(account::get_margin_used(&account) == 50,133);
-            assert!(account::get_margin_independent_total(&account) == 2000,334);
-            assert!(account::get_margin_full_buy_total(&account) == 50,335);
-            assert!(account::get_margin_full_sell_total(&account) == 50,336);
-            assert!(account::get_margin_independent_buy_total(&account) == 2000,337);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,338);
+            assert!(account::get_margin_isolated_total(&account) == 2000,334);
+            assert!(account::get_margin_cross_buy_total(&account) == 50,335);
+            assert!(account::get_margin_cross_sell_total(&account) == 50,336);
+            assert!(account::get_margin_isolated_buy_total(&account) == 2000,337);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,338);
             let pfk = account::new_PFK(market_id,object::id(&account),2);
             assert!(account::contains_pfk(&account,&pfk) == true ,339);
             // check market
@@ -335,7 +335,7 @@ module scale::position_tests {
             assert!(pool::get_insurance_balance(pool) == 1,345);
             assert!(pool::get_spread_profit(pool) == 70,346);
         };
-        // test open independent position sell
+        // test open isolated position sell
         test_scenario::next_tx(tx,owner);
         {
             position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
@@ -380,20 +380,20 @@ module scale::position_tests {
             assert!(account::get_offset(&account) == 4,427);
             // deposit 10000 scale coin , balance = 7999
             // insurance = margin * 5/10000 = 2000 * 5/10000 => 1
-            // becouse independent position so balance = 7999 - 2000 - 1  => 5998
+            // becouse isolated position so balance = 7999 - 2000 - 1  => 5998
             assert!(account::get_balance(&account) == 5998,428);
             let p = account::get_profit(&account);
             assert!(i64::get_value(p) == 0,429);
             assert!(i64::is_negative(p) == false,430);
             // total = 2100 + 2000 => 4100
             assert!(account::get_margin_total(&account) == 4100,431);
-            assert!(account::get_margin_full_total(&account) == 100,432);
+            assert!(account::get_margin_cross_total(&account) == 100,432);
             assert!(account::get_margin_used(&account) == 50,133);
-            assert!(account::get_margin_independent_total(&account) == 4000,434);
-            assert!(account::get_margin_full_buy_total(&account) == 50,435);
-            assert!(account::get_margin_full_sell_total(&account) == 50,436);
-            assert!(account::get_margin_independent_buy_total(&account) == 2000,437);
-            assert!(account::get_margin_independent_sell_total(&account) == 2000,438);
+            assert!(account::get_margin_isolated_total(&account) == 4000,434);
+            assert!(account::get_margin_cross_buy_total(&account) == 50,435);
+            assert!(account::get_margin_cross_sell_total(&account) == 50,436);
+            assert!(account::get_margin_isolated_buy_total(&account) == 2000,437);
+            assert!(account::get_margin_isolated_sell_total(&account) == 2000,438);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(account::contains_pfk(&account,&pfk) == true ,439);
             // check market
@@ -510,13 +510,13 @@ module scale::position_tests {
             assert!(i64::is_negative(p) == false,530);
 
             assert!(account::get_margin_total(&account) == 4050,531);
-            assert!(account::get_margin_full_total(&account) == 50,532);
+            assert!(account::get_margin_cross_total(&account) == 50,532);
             assert!(account::get_margin_used(&account) == 50,533);
-            assert!(account::get_margin_independent_total(&account) == 4000,534);
-            assert!(account::get_margin_full_buy_total(&account) == 0,535);
-            assert!(account::get_margin_full_sell_total(&account) == 50,536);
-            assert!(account::get_margin_independent_buy_total(&account) == 2000,537);
-            assert!(account::get_margin_independent_sell_total(&account) == 2000,538);
+            assert!(account::get_margin_isolated_total(&account) == 4000,534);
+            assert!(account::get_margin_cross_buy_total(&account) == 0,535);
+            assert!(account::get_margin_cross_sell_total(&account) == 50,536);
+            assert!(account::get_margin_isolated_buy_total(&account) == 2000,537);
+            assert!(account::get_margin_isolated_sell_total(&account) == 2000,538);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(!account::contains_pfk(&account,&pfk) == true ,539);
             // check market
@@ -593,13 +593,13 @@ module scale::position_tests {
             assert!(i64::is_negative(p) == true,630);
 
             assert!(account::get_margin_total(&account) == 2050,631);
-            assert!(account::get_margin_full_total(&account) == 50,632);
+            assert!(account::get_margin_cross_total(&account) == 50,632);
             assert!(account::get_margin_used(&account) == 50,533);
-            assert!(account::get_margin_independent_total(&account) == 2000,634);
-            assert!(account::get_margin_full_buy_total(&account) == 0,635);
-            assert!(account::get_margin_full_sell_total(&account) == 50,636);
-            assert!(account::get_margin_independent_buy_total(&account) == 2000,637);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,638);
+            assert!(account::get_margin_isolated_total(&account) == 2000,634);
+            assert!(account::get_margin_cross_buy_total(&account) == 0,635);
+            assert!(account::get_margin_cross_sell_total(&account) == 50,636);
+            assert!(account::get_margin_isolated_buy_total(&account) == 2000,637);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,638);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(!account::contains_pfk(&account,&pfk) == true ,639);
             // check market
@@ -682,13 +682,13 @@ module scale::position_tests {
             assert!(i64::is_negative(p) == true,730);
 
             assert!(account::get_margin_total(&account) == 50,731);
-            assert!(account::get_margin_full_total(&account) == 50,732);
+            assert!(account::get_margin_cross_total(&account) == 50,732);
             assert!(account::get_margin_used(&account) == 50,733);
-            assert!(account::get_margin_independent_total(&account) == 0,734);
-            assert!(account::get_margin_full_buy_total(&account) == 0,735);
-            assert!(account::get_margin_full_sell_total(&account) == 50,736);
-            assert!(account::get_margin_independent_buy_total(&account) == 0,737);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,738);
+            assert!(account::get_margin_isolated_total(&account) == 0,734);
+            assert!(account::get_margin_cross_buy_total(&account) == 0,735);
+            assert!(account::get_margin_cross_sell_total(&account) == 50,736);
+            assert!(account::get_margin_isolated_buy_total(&account) == 0,737);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,738);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(!account::contains_pfk(&account,&pfk) == true ,739);
             // check market
@@ -767,13 +767,13 @@ module scale::position_tests {
             assert!(i64::is_negative(p) == true,830);
 
             assert!(account::get_margin_total(&account) == 0,831);
-            assert!(account::get_margin_full_total(&account) == 0,832);
+            assert!(account::get_margin_cross_total(&account) == 0,832);
             assert!(account::get_margin_used(&account) == 0,833);
-            assert!(account::get_margin_independent_total(&account) == 0,834);
-            assert!(account::get_margin_full_buy_total(&account) == 0,835);
-            assert!(account::get_margin_full_sell_total(&account) == 0,836);
-            assert!(account::get_margin_independent_buy_total(&account) == 0,837);
-            assert!(account::get_margin_independent_sell_total(&account) == 0,838);
+            assert!(account::get_margin_isolated_total(&account) == 0,834);
+            assert!(account::get_margin_cross_buy_total(&account) == 0,835);
+            assert!(account::get_margin_cross_sell_total(&account) == 0,836);
+            assert!(account::get_margin_isolated_buy_total(&account) == 0,837);
+            assert!(account::get_margin_isolated_sell_total(&account) == 0,838);
             let pfk = account::new_PFK(market_id,object::id(&account),1);
             assert!(!account::contains_pfk(&account,&pfk) == true ,839);
             // check market
@@ -876,6 +876,7 @@ module scale::position_tests {
         });
     }
     #[test]
+    #[expected_failure(abort_code = 610, location = position)]
     fun test_risk_assertion(){
         let test_ctx = get_test_ctx();
         let TestContext {
@@ -893,8 +894,18 @@ module scale::position_tests {
         test_scenario::next_tx(tx,owner);
         {
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-            let _market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-            position::risk_assertion_for_testing(market,1000,1,1,1,test_scenario::ctx(tx));
+            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            // pre_exposure = 0
+            // exposure = 0
+            // liquidity_total = 100000
+            position::risk_assertion_for_testing(market,1000,1,0);
+            market::set_long_position_total_for_testing(market,80000);
+            market::set_short_position_total_for_testing(market,1000);
+            // pre_exposure = 0
+            // exposure = 80000 - 1000 = 79000
+            position::risk_assertion_for_testing(market,1000,1,80000);
+            position::risk_assertion_for_testing(market,1000,1,79001);
+            position::risk_assertion_for_testing(market,1000,1,78999);
         };
         drop_test_ctx(TestContext {
             owner,
@@ -908,4 +919,115 @@ module scale::position_tests {
             root,
         });
     }
+    #[test]
+    #[expected_failure(abort_code = 612, location = position)]
+    fun test_risk_assertion_fund_size(){
+        let test_ctx = get_test_ctx();
+        let TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        } = test_ctx;
+        let tx = &mut scenario;
+        test_scenario::next_tx(tx,owner);
+        {
+            assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
+            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            // pre_exposure = 0
+            // exposure = 0
+            // liquidity_total = 100000
+            position::risk_assertion_for_testing(market,1000,1,0);
+            market::set_long_position_total_for_testing(market,80000);
+            market::set_short_position_total_for_testing(market,1000);
+            // pre_exposure = 0
+            // exposure = 80000 - 1000 = 79000
+            position::risk_assertion_for_testing(market,1000,1,80000);
+            position::risk_assertion_for_testing(market,1000,1,90000);
+            position::risk_assertion_for_testing(market,19999,1,90000);
+            position::risk_assertion_for_testing(market,0,1,90000);
+            position::risk_assertion_for_testing(market,20000,1,90000);
+        };
+        drop_test_ctx(TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        });
+    }
+    #[test]
+    #[expected_failure(abort_code = 613, location = position)]
+    fun test_risk_assertion_direction(){
+        let test_ctx = get_test_ctx();
+        let TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        } = test_ctx;
+        let tx = &mut scenario;
+        test_scenario::next_tx(tx,owner);
+        {
+            assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
+            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            // pre_exposure = 0
+            // exposure = 0
+            // liquidity_total = 100000
+            market::set_long_position_total_for_testing(market,0);
+            position::risk_assertion_for_testing(market,1000,1,80000);
+
+            market::set_short_position_total_for_testing(market,100);
+            position::risk_assertion_for_testing(market,1000,2,80000);
+
+            market::set_long_position_total_for_testing(market,2000);
+            position::risk_assertion_for_testing(market,1000,1,80000);
+
+            market::set_short_position_total_for_testing(market,3000);
+            position::risk_assertion_for_testing(market,1000,2,80000);
+
+            market::set_long_position_total_for_testing(market,140000);
+            market::set_short_position_total_for_testing(market,130000);
+            position::risk_assertion_for_testing(market,1000,1,80000);
+            position::risk_assertion_for_testing(market,1000,2,80000);
+
+            market::set_long_position_total_for_testing(market,149999);
+            position::risk_assertion_for_testing(market,1000,1,80000);
+
+            market::set_short_position_total_for_testing(market,149999);
+            position::risk_assertion_for_testing(market,1000,2,80000);
+
+            market::set_long_position_total_for_testing(market,150000);
+            position::risk_assertion_for_testing(market,1000,1,80000);
+
+            market::set_short_position_total_for_testing(market,150000);
+            position::risk_assertion_for_testing(market,1000,2,80000);
+        };
+        drop_test_ctx(TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        });
+    }
+    // Value overflow test
 }

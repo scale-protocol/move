@@ -31,22 +31,22 @@ module scale::account {
         /// like order id
         offset: u64,
         /// Balance of user account (maintain the deposit,
-        /// and the balance here will be deducted when the deposit used in the full position mode is deducted)
+        /// and the balance here will be deducted when the deposit used in the cross position mode is deducted)
         balance: Balance<T>,
         /// User settled profit
         profit: I64,
         /// Total amount of margin used.
         margin_total: u64,
-        /// Total amount of used margin in full warehouse mode.
-        margin_full_total: u64,
-        /// Total amount of used margin in independent position mode.
-        margin_independent_total: u64,
-        margin_full_buy_total: u64,
-        margin_full_sell_total: u64,
-        margin_independent_buy_total: u64,
-        margin_independent_sell_total: u64,
-        full_position_idx: VecMap<PFK,ID>,
-        independent_position_idx: vector<ID>,
+        /// Total amount of used margin in cross warehouse mode.
+        margin_cross_total: u64,
+        /// Total amount of used margin in isolated position mode.
+        margin_isolated_total: u64,
+        margin_cross_buy_total: u64,
+        margin_cross_sell_total: u64,
+        margin_isolated_buy_total: u64,
+        margin_isolated_sell_total: u64,
+        cross_position_idx: VecMap<PFK,ID>,
+        isolated_position_idx: vector<ID>,
     }
 
     struct PFK has store,copy,drop {
@@ -91,64 +91,64 @@ module scale::account {
         account.margin_total
     }
 
-    public fun get_margin_full_total<T>(account: &Account<T>): u64 {
-        account.margin_full_total
+    public fun get_margin_cross_total<T>(account: &Account<T>): u64 {
+        account.margin_cross_total
     }
 
     public fun get_margin_used<T>(account: &Account<T>): u64 {
-        math::max(account.margin_full_buy_total, account.margin_full_sell_total)
+        math::max(account.margin_cross_buy_total, account.margin_cross_sell_total)
     }
-    public fun get_margin_independent_total<T>(account: &Account<T>): u64 {
-        account.margin_independent_total
+    public fun get_margin_isolated_total<T>(account: &Account<T>): u64 {
+        account.margin_isolated_total
     }
-    public fun get_margin_full_buy_total<T>(account: &Account<T>): u64 {
-        account.margin_full_buy_total
+    public fun get_margin_cross_buy_total<T>(account: &Account<T>): u64 {
+        account.margin_cross_buy_total
     }
-    public fun get_margin_full_sell_total<T>(account: &Account<T>): u64 {
-        account.margin_full_sell_total
+    public fun get_margin_cross_sell_total<T>(account: &Account<T>): u64 {
+        account.margin_cross_sell_total
     }
-    public fun get_margin_independent_buy_total<T>(account: &Account<T>): u64 {
-        account.margin_independent_buy_total
+    public fun get_margin_isolated_buy_total<T>(account: &Account<T>): u64 {
+        account.margin_isolated_buy_total
     }
-    public fun get_margin_independent_sell_total<T>(account: &Account<T>): u64 {
-        account.margin_independent_sell_total
+    public fun get_margin_isolated_sell_total<T>(account: &Account<T>): u64 {
+        account.margin_isolated_sell_total
     }
     public fun contains_pfk<T>(account: &Account<T>,pfk: &PFK): bool {
-        vec_map::contains(&account.full_position_idx, pfk)
+        vec_map::contains(&account.cross_position_idx, pfk)
     }
     public fun get_pfk_id<T>(account: &Account<T>,pfk: &PFK): ID {
-        *vec_map::get(&account.full_position_idx, pfk)
+        *vec_map::get(&account.cross_position_idx, pfk)
     }
     public(friend) fun add_pfk_id<T>(account: &mut Account<T>,pfk: PFK,id: ID) {
-        vec_map::insert(&mut account.full_position_idx, pfk, id);
+        vec_map::insert(&mut account.cross_position_idx, pfk, id);
     }
     public(friend) fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
-        // if (!vec_map::contains(&account.full_position_idx, pfk)) {
+        // if (!vec_map::contains(&account.cross_position_idx, pfk)) {
         //     return
         // };
-        vec_map::remove(&mut account.full_position_idx, pfk);
+        vec_map::remove(&mut account.cross_position_idx, pfk);
     }
-    public(friend) fun add_independent_position_id<T>(account: &mut Account<T>,id: ID) {
-        vector::push_back(&mut account.independent_position_idx, id);
+    public(friend) fun add_isolated_position_id<T>(account: &mut Account<T>,id: ID) {
+        vector::push_back(&mut account.isolated_position_idx, id);
     }
-    public(friend) fun remove_independent_position_id<T>(account: &mut Account<T>,id: ID) {
+    public(friend) fun remove_isolated_position_id<T>(account: &mut Account<T>,id: ID) {
         let i = 0;
-        let n = vector::length(&account.independent_position_idx);
+        let n = vector::length(&account.isolated_position_idx);
         while (i < n) {
-            let v = vector::borrow(&account.independent_position_idx, i);
+            let v = vector::borrow(&account.isolated_position_idx, i);
             if (*v == id) {
-                vector::swap_remove(&mut account.independent_position_idx, i);
+                vector::swap_remove(&mut account.isolated_position_idx, i);
                 return
             };
             i = i + 1;
         };
     }
     public fun get_all_position_ids<T>(account: &Account<T>):vector<ID> {
-        let idx = account.independent_position_idx;
+        let idx = account.isolated_position_idx;
         let i = 0;
-        let n = vec_map::size(&account.full_position_idx);
+        let n = vec_map::size(&account.cross_position_idx);
         while (i < n) {
-            let (_,v) = vec_map::get_entry_by_idx(&account.full_position_idx, i);
+            let (_,v) = vec_map::get_entry_by_idx(&account.cross_position_idx, i);
             vector::push_back(&mut idx, *v);
             i = i + 1;
         };
@@ -156,10 +156,10 @@ module scale::account {
     }
     public fun get_pfk_ids<T>(account: &Account<T>):vector<ID> {
         let i = 0;
-        let n = vec_map::size(&account.full_position_idx);
+        let n = vec_map::size(&account.cross_position_idx);
         let r = vector::empty<ID>();
         while (i < n) {
-            let (_,v) = vec_map::get_entry_by_idx(&account.full_position_idx, i);
+            let (_,v) = vec_map::get_entry_by_idx(&account.cross_position_idx, i);
             vector::push_back(&mut r, *v);
             i = i + 1;
         };
@@ -186,41 +186,41 @@ module scale::account {
     public(friend) fun dec_margin_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_total = account.margin_total - margin;
     }
-    public(friend) fun inc_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_total = account.margin_full_total + margin;
+    public(friend) fun inc_margin_cross_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_total = account.margin_cross_total + margin;
     }
-    public(friend) fun dec_margin_full_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_total = account.margin_full_total - margin;
+    public(friend) fun dec_margin_cross_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_total = account.margin_cross_total - margin;
     }
-    public(friend) fun inc_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_total = account.margin_independent_total + margin;
+    public(friend) fun inc_margin_isolated_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_total = account.margin_isolated_total + margin;
     }
-    public(friend) fun dec_margin_independent_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_total = account.margin_independent_total - margin;
+    public(friend) fun dec_margin_isolated_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_total = account.margin_isolated_total - margin;
     }
-    public(friend) fun inc_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_buy_total = account.margin_full_buy_total + margin;
+    public(friend) fun inc_margin_cross_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_buy_total = account.margin_cross_buy_total + margin;
     }
-    public(friend) fun dec_margin_full_buy_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_buy_total = account.margin_full_buy_total - margin;
+    public(friend) fun dec_margin_cross_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_buy_total = account.margin_cross_buy_total - margin;
     }
-    public(friend) fun inc_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_sell_total = account.margin_full_sell_total + margin;
+    public(friend) fun inc_margin_cross_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_sell_total = account.margin_cross_sell_total + margin;
     }
-    public(friend) fun dec_margin_full_sell_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_full_sell_total = account.margin_full_sell_total - margin;
+    public(friend) fun dec_margin_cross_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_cross_sell_total = account.margin_cross_sell_total - margin;
     }
-    public(friend) fun inc_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_buy_total = account.margin_independent_buy_total + margin;
+    public(friend) fun inc_margin_isolated_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_buy_total = account.margin_isolated_buy_total + margin;
     }
-    public(friend) fun dec_margin_independent_buy_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_buy_total = account.margin_independent_buy_total - margin;
+    public(friend) fun dec_margin_isolated_buy_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_buy_total = account.margin_isolated_buy_total - margin;
     }
-    public(friend) fun inc_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_sell_total = account.margin_independent_sell_total + margin;
+    public(friend) fun inc_margin_isolated_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_sell_total = account.margin_isolated_sell_total + margin;
     }
-    public(friend) fun dec_margin_independent_sell_total<T>(account: &mut Account<T>, margin: u64) {
-        account.margin_independent_sell_total = account.margin_independent_sell_total - margin;
+    public(friend) fun dec_margin_isolated_sell_total<T>(account: &mut Account<T>, margin: u64) {
+        account.margin_isolated_sell_total = account.margin_isolated_sell_total - margin;
     }
 
     public fun create_account<T>(
@@ -236,14 +236,14 @@ module scale::account {
             balance: balance::zero<T>(),
             profit: i64::new(0,false),
             margin_total: 0,
-            margin_full_total: 0,
-            margin_independent_total: 0,
-            margin_full_buy_total: 0,
-            margin_full_sell_total: 0,
-            margin_independent_buy_total: 0,
-            margin_independent_sell_total: 0,
-            full_position_idx: vec_map::empty<PFK,ID>(),
-            independent_position_idx: vector::empty<ID>(),
+            margin_cross_total: 0,
+            margin_isolated_total: 0,
+            margin_cross_buy_total: 0,
+            margin_cross_sell_total: 0,
+            margin_isolated_buy_total: 0,
+            margin_isolated_sell_total: 0,
+            cross_position_idx: vec_map::empty<PFK,ID>(),
+            isolated_position_idx: vector::empty<ID>(),
         };
         transfer::transfer(UserAccount{
             id: object::new(ctx),
@@ -281,7 +281,7 @@ module scale::account {
         let margin_used = get_margin_used(account);
         // assert!(margin_used <= i64::get_value(&equity), EInsufficientEquity);
         if (margin_used > 0) {
-            assert!(i64::get_value(&equity) * 10000 / margin_used > 10000, EInsufficientEquity);
+            assert!(i64::get_value(&equity) / margin_used >= 1, EInsufficientEquity);
         };
         let balance = balance::split(&mut account.balance, amount);
         let coin = coin::from_balance(balance,ctx);

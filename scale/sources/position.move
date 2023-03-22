@@ -53,11 +53,11 @@ module scale::position {
         offset: u64,
         /// Initial position margin
         margin: u64,
-        /// Current actual margin balance of independent
+        /// Current actual margin balance of isolated
         margin_balance: Balance<T>,
         /// leverage size
         leverage: u8,
-        /// 1 full position mode, 2 independent position modes.
+        /// 1 cross position mode, 2 isolated position modes.
         type: u8,
         /// Position status: 1 normal, 2 normal closing, 3 Forced closing, 4 pending.
         status: u8,
@@ -90,7 +90,7 @@ module scale::position {
         open_time: u64,
         close_time: u64,
         /// The effective time of the order.
-        /// If the position is not opened successfully after this time in the order listing mode,
+        /// If the position is not opened successcrossy after this time in the order listing mode,
         /// the order will be closed directly
         validity_time: u64,
         /// Opening operator (the user manually, or the clearing robot in the listing mode)
@@ -354,21 +354,21 @@ module scale::position {
     ) {
         account::inc_margin_total(account,margin);
         if ( position_type == 1 ){
-            account::inc_margin_full_total(account,margin);
+            account::inc_margin_cross_total(account,margin);
             if ( direction == 1 ){
-                account::inc_margin_full_buy_total(account,margin);
+                account::inc_margin_cross_buy_total(account,margin);
                 market::inc_long_position_total(market,fund_size);
             } else {
-                account::inc_margin_full_sell_total(account,margin);
+                account::inc_margin_cross_sell_total(account,margin);
                 market::inc_short_position_total(market,fund_size);
             };
         } else {
-            account::inc_margin_independent_total(account,margin);
+            account::inc_margin_isolated_total(account,margin);
             if ( direction == 1 ){
-                account::inc_margin_independent_buy_total(account,margin);
+                account::inc_margin_isolated_buy_total(account,margin);
                 market::inc_long_position_total(market,fund_size);
             } else {
-                account::inc_margin_independent_sell_total(account,margin);
+                account::inc_margin_isolated_sell_total(account,margin);
                 market::inc_short_position_total(market,fund_size);
             };
         };
@@ -384,21 +384,21 @@ module scale::position {
     ) {
         account::dec_margin_total(account,margin);
         if ( position_type == 1 ){
-            account::dec_margin_full_total(account,margin);
+            account::dec_margin_cross_total(account,margin);
             if ( direction == 1 ){
-                account::dec_margin_full_buy_total(account,margin);
+                account::dec_margin_cross_buy_total(account,margin);
                 market::dec_long_position_total(market,fund_size);
             } else {
-                account::dec_margin_full_sell_total(account,margin);
+                account::dec_margin_cross_sell_total(account,margin);
                 market::dec_short_position_total(market,fund_size);
             };
         } else {
-            account::dec_margin_independent_total(account,margin);
+            account::dec_margin_isolated_total(account,margin);
             if ( direction == 1 ){
-                account::dec_margin_independent_buy_total(account,margin);
+                account::dec_margin_isolated_buy_total(account,margin);
                 market::dec_long_position_total(market,fund_size);
             } else {
-                account::dec_margin_independent_sell_total(account,margin);
+                account::dec_margin_isolated_sell_total(account,margin);
                 market::dec_short_position_total(market,fund_size);
             };
         };
@@ -430,7 +430,7 @@ module scale::position {
         direction: u8,
         lot: u64,
     ) :Option<ID> {
-        // Check if the full position already exists
+        // Check if the cross position already exists
         if ( account::contains_pfk(account,pfk) ){
             let id = account::get_pfk_id(account,pfk);
             let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),id);
@@ -440,7 +440,9 @@ module scale::position {
             let fund_size_add = fund_size(size, lot, market::get_direction_price(price,direction));
             let open_spread = market::get_spread(price);
             // Reset average price
-            market::set_direction_price(price,direction, (fund_size_old + fund_size_add) / (size * lot + position.size * position.lot));
+            let new_price = ((fund_size_old as u128) + (fund_size_add as u128)) / ((size * lot + position.size * position.lot) as u128);
+            assert!(new_price <= MAX_U64_VALUE ,ENumericOverflow);
+            market::set_direction_price(price,direction, (new_price as u64));
             position.open_price = market::get_direction_price(price,direction);
             position.open_spread = open_spread;
             position.open_real_price = market::get_real_price(price);
@@ -486,27 +488,22 @@ module scale::position {
     ){
         let exposure = market::get_exposure<P,T>(market);
         let total_liquidity = market::get_total_liquidity<P,T>(market);
-        // debug::print(&exposure);
-        // debug::print(&total_liquidity);
-        // debug::print(&pre_exposure);
-        // let i = exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION;
-        // debug::print(&i);
-        if (exposure * DENOMINATOR >= total_liquidity * POSITION_DIFF_PROPORTION){
+        if (exposure * DENOMINATOR > total_liquidity * POSITION_DIFF_PROPORTION){
             assert!(
                 exposure < pre_exposure,
                 ERiskControlBlockingExposure
             );
         };
-        // debug::print(&fund_size);
         assert!(
             fund_size * DENOMINATOR < total_liquidity * POSITION_PROPORTION_ONE,
             RiskControlBlockingFundSize
         );
         assert!(
-            market::get_curr_position_total(market,direction) < (total_liquidity * POSITION_PROPORTION / DENOMINATOR),
+            market::get_curr_position_total(market,direction) * DENOMINATOR < total_liquidity * POSITION_PROPORTION,
             RiskControlBlockingFundPool
         );
     }
+
     #[test_only]
     public fun risk_assertion_for_testing<P,T>(
         market: &Market<P,T>,
@@ -541,7 +538,8 @@ module scale::position {
         root: &oracle::Root,
     ){
         check_margin<P,T>(list,account,root);
-    }    
+    }
+
     public fun open_position<P,T>(
         list: &mut MarketList,
         market_id: ID,
@@ -591,7 +589,7 @@ module scale::position {
             if ( position_type == 1 ){
                 account::add_pfk_id(account,pfk,id);
             }else{
-                account::add_independent_position_id(account,id);
+                account::add_isolated_position_id(account,id);
             };
             position_option_id = option::some(id);
         };
@@ -663,7 +661,7 @@ module scale::position {
             let pfk = account::new_PFK(position.market_id,position.account_id,position.direction);
             account::remove_pfk_id(account,&pfk);
         }else{
-            account::remove_independent_position_id(account,object::uid_to_inner(&position.id));
+            account::remove_isolated_position_id(account,object::uid_to_inner(&position.id));
         };
     }
 
