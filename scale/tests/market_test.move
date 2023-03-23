@@ -273,7 +273,7 @@ module scale::market_tests {
         // spread = real_price * fee = 1000 * 0.015 = 15
         // buy_price = real_price + spread/2 = 1000 + 15/2 = 1007.5
         // sell_price = real_price - spread/2 = 1000 - 15/2 = 992.5
-        let price = market::get_price_for_testing(market,1000u64);
+        let price = market::get_price_by_real(market,1000u64);
         assert!(market::get_real_price(&price) == 1000u64,2);
         assert!(market::get_buy_price(&price) == 1007u64,3);
         assert!(market::get_sell_price(&price) == 992u64,4);
@@ -283,7 +283,7 @@ module scale::market_tests {
         // spread = real_price * fee = 790 * 0.003 = 2.37
         // buy_price = real_price + spread/2 = 790 + 2.37/2 = 790.5
         // sell_price = real_price - spread/2 = 790 - 2.37/2 = 788.5
-        let price = market::get_price_for_testing(market,790u64);
+        let price = market::get_price_by_real(market,790u64);
         assert!(market::get_real_price(&price) == 790u64,6);
         assert!(market::get_buy_price(&price) == 791u64,7);
         assert!(market::get_sell_price(&price) == 788u64,8);
@@ -293,7 +293,7 @@ module scale::market_tests {
         // spread = real_price * fee = 750 * 0.0062 = 4.65
         // buy_price = real_price + spread/2 = 750 + 4.65/2 = 752.325
         // sell_price = real_price - spread/2 = 750 - 4.65/2 = 747.675
-        let price = market::get_price_for_testing(market,750u64);
+        let price = market::get_price_by_real(market,750u64);
         debug::print(&price);
         assert!(market::get_real_price(&price) == 750u64,10);
         assert!(market::get_buy_price(&price) == 752u64,11);

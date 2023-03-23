@@ -117,14 +117,6 @@ module scale::market{
             price.sell_price
         }
     }
-    
-    public fun set_direction_price(price:&mut Price, direction: u8, price_value: u64) {
-        if (direction == 1) {
-            price.buy_price = price_value;
-        }else{
-            price.sell_price = price_value;
-        }
-    }
 
     public fun get_real_price(price: &Price) : u64{
         price.real_price
@@ -164,10 +156,10 @@ module scale::market{
         get_price_(market, real_price)
     }
 
-    #[test_only]
-    public fun get_price_for_testing<P,T>(market: &Market<P,T>,real_price: u64):Price {
+    public fun get_price_by_real<P,T>(market: &Market<P,T>, real_price: u64):Price {
         get_price_(market, real_price)
     }
+    
     #[test_only]
     public fun set_opening_price_for_testing<P,T>(market: &mut Market<P,T>, opening_price: u64) {
         assert!(opening_price > 0 ,EInvalidOpingPrice);

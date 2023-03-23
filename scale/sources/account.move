@@ -128,9 +128,11 @@ module scale::account {
         // };
         vec_map::remove(&mut account.cross_position_idx, pfk);
     }
+
     public(friend) fun add_isolated_position_id<T>(account: &mut Account<T>,id: ID) {
         vector::push_back(&mut account.isolated_position_idx, id);
     }
+
     public(friend) fun remove_isolated_position_id<T>(account: &mut Account<T>,id: ID) {
         let i = 0;
         let n = vector::length(&account.isolated_position_idx);
@@ -143,6 +145,11 @@ module scale::account {
             i = i + 1;
         };
     }
+
+    public fun contains_isolated_position_id<T>(account: &Account<T>,id: &ID): bool {
+        vector::contains(&account.isolated_position_idx, id)
+    }
+
     public fun get_all_position_ids<T>(account: &Account<T>):vector<ID> {
         let idx = account.isolated_position_idx;
         let i = 0;

@@ -221,7 +221,7 @@ module scale::position {
         )
     }
 
-    fun margin_size(fund_size:u64,leverage:u64, margin_fee: u64,denominator: u64) :u64{
+    fun margin_size(fund_size:u64, leverage:u64, margin_fee: u64, denominator: u64) :u64{
         let r = (fund_size as u128) / (leverage as u128) * (margin_fee as u128) / (denominator as u128);
         (r as u64)
     }
@@ -438,31 +438,27 @@ module scale::position {
 
             let fund_size_old = get_fund_size<T>(position);
             let fund_size_add = fund_size(size, lot, market::get_direction_price(price,direction));
-            let open_spread = market::get_spread(price);
             // Reset average price
-            let new_price = ((fund_size_old as u128) + (fund_size_add as u128)) / ((size * lot + position.size * position.lot) as u128);
-            assert!(new_price <= MAX_U64_VALUE ,ENumericOverflow);
-            market::set_direction_price(price,direction, (new_price as u64));
-            position.open_price = market::get_direction_price(price,direction);
-            position.open_spread = open_spread;
-            position.open_real_price = market::get_real_price(price);
+            let new_real_price = ((fund_size_old as u128) + (fund_size_add as u128)) / ((size * lot + position.size * position.lot) as u128);
+            assert!(new_real_price <= MAX_U64_VALUE ,ENumericOverflow);
+            
+            let new_price = market::get_price_by_real(market, (new_real_price as u64));
+            position.open_price = market::get_direction_price(&new_price,direction);
+            position.open_spread = market::get_spread(&new_price);
+            position.open_real_price = market::get_real_price(&new_price);
             position.lot = position.lot + lot;
             position.leverage = leverage;
             // todo : set open time
             position.open_time = 0;
-
+            
+            let margin_fee = market::get_margin_fee(market);
+            let dr = market::get_denominator();
             let margin_old = position.margin;
             let position_type = position.type;
-
-            let margin_new = margin_size(
-                get_fund_size(position),
-                (leverage as u64),
-                market::get_margin_fee(market),
-                market::get_denominator(),
-            );
+            let fund_size =  get_fund_size(position);
+            let margin_new = margin_size(fund_size,(leverage as u64),margin_fee,dr);
             position.margin = margin_new;
             let pre_exposure = market::get_exposure(market);
-            let fund_size = get_fund_size<T>(position);
             let size = position.size;
             dec_margin<P,T>(market,account,position_type,direction,margin_old,fund_size_old);
             inc_margin<P,T>(market,account,position_type,direction,margin_new,fund_size);
@@ -472,8 +468,8 @@ module scale::position {
                 direction,
                 pre_exposure,
             );
-            collect_insurance<P,T>(market,account,margin_new);
-            collect_spread<P,T>(market,open_spread,size(lot,size));
+            collect_insurance<P,T>(market,account,margin_size(fund_size_add,(leverage as u64),margin_fee,dr));
+            collect_spread<P,T>(market,market::get_spread(price),size(lot,size));
             option::some(id)
         } else {
             option::none()
@@ -685,12 +681,8 @@ module scale::position {
                     account,
                     root,
                 );
-                // debug::print(&equity);
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
-                    // debug::print(&margin_used);
-                    // let x = (i64::get_value(&equity) * DENOMINATOR / margin_used);
-                    // debug::print(&x);
                     if (margin_used > 0) {
                         assert!((i64::get_value(&equity) * DENOMINATOR / margin_used) <= BURST_RATE, EBurstConditionsNotMet);
                     }
@@ -698,11 +690,7 @@ module scale::position {
             } else {
                 let price = market::get_price(market,root);
                 let pl = i64::i64_add(&get_position_fund_fee(market,position),&get_pl<T>(position,&price));
-                // equity = pl + margin
                 i64::inc_u64(&mut pl,position.margin);
-                // debug::print(&price);
-                // debug::print(&pl);
-                // debug::print(&position.margin);
                 if (!i64::is_negative(&pl)){
                     assert!((i64::get_value(&pl) * DENOMINATOR / position.margin) <= BURST_RATE, EBurstConditionsNotMet);
                 }
