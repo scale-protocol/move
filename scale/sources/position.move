@@ -244,14 +244,14 @@ module scale::position {
             return i64::new(0,false)
         };
         if (position.direction == dominant_direction) {
-            i64::new(get_fund_size(position) * market::get_fund_fee(market),true)
+            i64::new(get_fund_size(position) * market::get_fund_fee(market) / market::get_denominator(),true)
         } else {
             let max = market::get_max_position_total(market);
             let min = market::get_min_position_total(market);
             if (min == 0){
                 return i64::new(0,false)
             };
-            i64::new(max * market::get_fund_fee(market) * get_fund_size(position) / min,false)
+            i64::new(max * market::get_fund_fee(market) / market::get_denominator() * get_fund_size(position) / min,false)
         }
     }
 
@@ -267,11 +267,10 @@ module scale::position {
         while ( i < n ){
             let id = vector::borrow(&ids,i);
             let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
-
             if ( ps.status == 1 ){
                 let market: &Market<P,T> = dof::borrow(market::get_list_uid(list),ps.market_id);
                 let price = market::get_price(market,root);
-                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(market,ps),&get_pl<T>(ps,&price)));
+                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(market, ps), &get_pl<T>(ps, &price)));
             };
             i = i + 1;
         };
@@ -437,9 +436,9 @@ module scale::position {
             assert!(position.status == 1,EInvalidPositionStatus);
 
             let fund_size_old = get_fund_size<T>(position);
-            let fund_size_add = fund_size(size, lot, market::get_direction_price(price,direction));
+            let fund_size_add = fund_size(size, lot, market::get_real_price(price));
             // Reset average price
-            let new_real_price = ((fund_size_old as u128) + (fund_size_add as u128)) / ((size * lot + position.size * position.lot) as u128);
+            let new_real_price = ((fund_size_old as u128) + (fund_size_add as u128)) * DENOMINATOR128 / ((size * lot + position.size * position.lot) as u128);
             assert!(new_real_price <= MAX_U64_VALUE ,ENumericOverflow);
             
             let new_price = market::get_price_by_real(market, (new_real_price as u64));
