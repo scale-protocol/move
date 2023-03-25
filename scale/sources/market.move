@@ -10,6 +10,7 @@ module scale::market{
     use sui::math;
     use sui::dynamic_object_field as dof;
     use oracle::oracle;
+    use sui::url::{Self, Url};
 
     friend scale::position;
     friend scale::nft;
@@ -33,6 +34,8 @@ module scale::market{
     const ENameTooLong:u64 = 315;
     const EDescriptionTooLong:u64 = 316;
     const EInvalidOpeningPrice:u64 = 317;
+    const EIconRequired:u64 = 318;
+    const EIconTooLong:u64 = 319;
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
@@ -75,6 +78,7 @@ module scale::market{
         /// Transaction pair (token type, such as BTC, ETH)
         /// len: 4+20
         symbol: String,
+        icon: Url,
         /// market description
         description: String,
         /// Market operator, 
@@ -323,6 +327,7 @@ module scale::market{
         list: &mut MarketList,
         token: &Coin<T>,
         symbol: vector<u8>,
+        icon: vector<u8>,
         description: vector<u8>,
         size: u64,
         opening_price: u64,
@@ -331,8 +336,10 @@ module scale::market{
     ): ID {
         assert!(!vector::is_empty(&symbol), ENameRequired);
         assert!(vector::length(&symbol) < 20, ENameTooLong);
-        assert!(!vector::is_empty(&description), EDescriptionRequired);
+        assert!(!vector::is_empty(&icon), EIconRequired);
+        assert!(vector::length(&icon) < 280, EIconTooLong);
         assert!(vector::length(&description) < 180, EDescriptionTooLong);
+        assert!(!vector::is_empty(&description), EDescriptionRequired);
         assert!(size > 0,EInvalidSize);
         assert!(opening_price > 0,EInvalidOpeningPrice);
         let uid = object::new(ctx);
@@ -349,6 +356,7 @@ module scale::market{
             long_position_total: 0,
             short_position_total: 0,
             symbol: string::utf8(symbol),
+            icon: url::new_unsafe_from_bytes(icon),
             description: string::utf8(description),
             spread_fee: 1000,
             spread_fee_manual: false,
@@ -426,6 +434,18 @@ module scale::market{
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         market.description = string::utf8(description);
+    }
+
+    public fun update_icon<P,T>(
+        pac:&mut ScaleAdminCap,
+        market:&mut Market<P,T>,
+        icon: vector<u8>,
+        ctx: &mut TxContext
+    ){
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(!vector::is_empty(&icon), EIconRequired);
+        assert!(vector::length(&icon) < 280, EIconTooLong);
+        market.icon = url::new_unsafe_from_bytes(icon);
     }
 
     public fun update_spread_fee<P,T>(

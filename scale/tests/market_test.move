@@ -41,7 +41,8 @@ module scale::market_tests {
         scale_coin =  coin::mint_for_testing<SCALE>(100_0000,ctx);
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
-        market_id = market::create_market(&mut list,&scale_coin,n,d,1u64,800u64,object::id_from_address(@0x0),ctx);
+        let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
+        market_id = market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,object::id_from_address(@0x0),ctx);
 
         test_scenario::next_tx(tx,owner);
         // add liquidity
@@ -82,7 +83,8 @@ module scale::market_tests {
         } = get_test_ctx();
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
-        let new_market_id = market::create_market(&mut list,&scale_coin,n,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
+        let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
+        let new_market_id = market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),new_market_id),1);
         let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),new_market_id);
         assert!(*string::bytes(market::get_symbol(market)) == b"BTC/USD",2);
@@ -113,7 +115,8 @@ module scale::market_tests {
         } = get_test_ctx();
         let n = b"";
         let d = b"BTC/USD testing";
-        market::create_market(&mut list,&scale_coin,n,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
+        let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
+        market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
         drop_test_ctx(TestContext {
             owner,
             scenario,
@@ -134,7 +137,8 @@ module scale::market_tests {
         } = get_test_ctx();
         let n = b"abcdefghijkabcdefghij";
         let d = b"BTC/USD testing";
-        market::create_market(&mut list,&scale_coin,n,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
+        let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
+        market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
         drop_test_ctx(TestContext {
             owner,
             scenario,

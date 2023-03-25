@@ -52,7 +52,8 @@ module scale::position_tests {
         oracle::update_price(&mut root,feed_id,1000,11234567,ctx);
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
-        market_id = market::create_market(&mut list,&scale_coin,n,d,1u64,800u64,feed_id,ctx);
+        let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
+        market_id = market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,feed_id,ctx);
         account::create_account(&scale_coin,ctx);
 
         test_scenario::next_tx(tx,owner);

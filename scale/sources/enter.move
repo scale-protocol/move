@@ -61,13 +61,14 @@ module scale::enter {
         list: &mut MarketList,
         token: &Coin<T>,
         symbol: vector<u8>,
+        icon: vector<u8>,
         description: vector<u8>,
         size: u64,
         opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
     ){
-        market::create_market<T>(list,token,symbol,description,size,opening_price,pyth_id,ctx);
+        market::create_market<T>(list,token,symbol,icon,description,size,opening_price,pyth_id,ctx);
     }
 
     public entry fun update_max_leverage<P,T>(
@@ -135,6 +136,17 @@ module scale::enter {
     ){
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_description(pac,market,description,ctx);
+    }
+
+    public entry fun update_icon<P,T>(
+        pac:&mut ScaleAdminCap,
+        list: &mut MarketList,
+        market_id: ID,
+        icon: vector<u8>,
+        ctx: &mut TxContext
+    ){
+        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        market::update_icon(pac,market,icon,ctx);
     }
 
     public entry fun update_spread_fee<P,T>(
