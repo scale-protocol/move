@@ -49,7 +49,7 @@ module scale::market_tests {
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
         let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         assert!(market::get_total_liquidity(market) == 0u64,4);
-        let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
+        let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
         coin::destroy_for_testing(lsp_coin);
         TestContext {
             owner: owner,
@@ -160,7 +160,7 @@ module scale::market_tests {
         let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         assert!(market::get_exposure(market) == 0u64,2);
         assert!(market::get_fund_fee(market) == 0u64,3);
-        // let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(&mut scenario)),test_scenario::ctx(&mut scenario));
+        // let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(&mut scenario)),test_scenario::ctx(&mut scenario));
         assert!(market::get_exposure(market) == 0u64,4);
         assert!(market::get_fund_fee(market) == 0u64,5);
         assert!(market::get_total_liquidity(market) == 10000u64,4);

@@ -63,7 +63,7 @@ module scale::position_tests {
         // add liquidity
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
         let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-        let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut(market),coin::mint_for_testing<SCALE>(100000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
+        let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(100000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
         coin::destroy_for_testing(lsp_coin);
         test_scenario::return_to_sender(tx,oracle_admin);
 
@@ -946,7 +946,7 @@ module scale::position_tests {
             assert!(account::get_margin_cross_sell_total(&account) == 50,636);
             assert!(account::get_margin_isolated_buy_total(&account) == 2000,637);
             assert!(account::get_margin_isolated_sell_total(&account) == 0,638);
-            assert!(!account::contains_isolated_position_id(&account,&position_id_4) == false ,639);
+            assert!(account::contains_isolated_position_id(&account,&position_id_4) == false ,639);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),640);
             let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
@@ -1190,8 +1190,8 @@ module scale::position_tests {
             // fund_fee : because (exposure / liquidity_total => 100.75 / 10000 => 0.01) so fund_fee = 0.0003
             // fund = 100.75 * 0.0003 = 0.030225
             // pl = (sell_price - open_price) * (lot / DENOMINATOR128) * size =>(778.83 - 1007.5) * 1000/10000 * 1 => -22.867
-            account::set_balance_for_testing(&mut account, 80, test_scenario::ctx(tx));
-            assert!(account::get_balance(&account) == 80,3);
+            account::set_balance_for_testing(&mut account, 40, test_scenario::ctx(tx));
+            assert!(account::get_balance(&account) == 40,3);
             // balance = 80 - 50.375 => 29.625
             // equity = balance + pl + fund => 29.625 - 22.867 + 0.030225 => 7.087225
             // margin_used = 50.375

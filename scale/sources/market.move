@@ -14,8 +14,6 @@ module scale::market{
 
     friend scale::position;
     friend scale::nft;
-    friend scale::market_tests;
-    friend scale::position_tests;
     
     const ELSPCreatorPermissionRequired:u64 = 301;
     const EInvalidLeverage:u64 = 302;
@@ -302,6 +300,10 @@ module scale::market{
         market.opening_price
     }
     public(friend) fun get_pool_mut<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
+        &mut market.pool
+    }
+    #[test_only]
+    public fun get_pool_mut_for_testing<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
         &mut market.pool
     }
     public fun get_size<P,T>(market: &Market<P,T>) : u64{
