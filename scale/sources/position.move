@@ -496,7 +496,7 @@ module scale::position {
             RiskControlBlockingFundSize
         );
         assert!(
-            market::get_curr_position_total(market,direction) < total_liquidity / DENOMINATOR * POSITION_PROPORTION,
+            market::get_curr_position_total(market,direction) / POSITION_PROPORTION < total_liquidity / DENOMINATOR,
             RiskControlBlockingFundPool
         );
     }

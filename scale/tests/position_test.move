@@ -1562,7 +1562,9 @@ module scale::position_tests {
             // add liquidity
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
             let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-            let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>((9_223_372_036_854_775_807 - 100000 -1 ),test_scenario::ctx(tx)),test_scenario::ctx(tx));
+            // 18446744073709551615
+            // 9223372036854775807
+            let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>((18446744073709551615 - 100000 -1 ),test_scenario::ctx(tx)),test_scenario::ctx(tx));
             coin::destroy_for_testing(lsp_coin);
             let _position_id_new_2 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,20000,5,1,2,test_scenario::ctx(tx));
         };
