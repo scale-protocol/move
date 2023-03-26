@@ -254,7 +254,7 @@ module scale::position_tests {
             assert!(market::get_long_position_total(market) == 10100,241);
             assert!(market::get_short_position_total(market) == 0,242);
             let pool = market::get_pool(market);
-            debug::print(pool);
+            // debug::print(pool);
             // spread_fee = (lot/DENOMINATOR128 * size * 15/2) => (100000/10000 * 1 * (15/2))
             // 100000 - spread_fee => 100000 - 70 => 99930
             assert!(pool::get_vault_balance(pool) == 99930,243);
@@ -648,7 +648,7 @@ module scale::position_tests {
             // balance = 310000
             // insurance = margin * 5/10000 = 5000 * 5/10000 => 2.5
             // becouse cross position so balance = 309999 - 2  => 309997
-            debug::print(&account);
+            // debug::print(&account);
             assert!(account::get_balance(&account) == 309997,428);
             let p = account::get_profit(&account);
             assert!(i64::get_value(p) == 0,429);
@@ -1169,37 +1169,33 @@ module scale::position_tests {
         let position_id :ID;
         test_scenario::next_tx(tx,owner);
         {
+            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let _price = market::get_price(market,&root);
+            // debug::print(&price);
+
+            let _fund_fee = market::get_fund_fee(market);
+            // debug::print(&fund_fee);
+            
+            let _price_new = market::get_price_by_real(market,780);
+            // debug::print(&price_new);
+
             position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),1);
-            // change = |opening_price-price|/opening_price => |800-1000|/800 => 0.25
-            // spread_fee => because change > 10% so spread_fee is 1.5%
-            // spread = 1000 * 1.5% => 15
-            // buy_price: real_price+(spread/2)=> 1000 + 15/2 => 1007.5
-            // sell_price: real_price - (spread/2)=> 1000 - 15/2 => 992.5
             assert!(dof::exists_(oracle::get_uid(&root),feed_id),2);
             oracle::update_price(&mut root,feed_id,780,112345678,test_scenario::ctx(tx));
 
-            // // change = |opening_price-price|/opening_price => |800-780|/800 => 0.025
-            // spread_fee => because change < 3% so spread_fee is 3/1000
-            // spread = 780 * 3/1000 => 2.34
-            // buy_price: real_price+(spread/2)=> 780 + 2.34/2 => 781.17
-            // sell_price: real_price - (spread/2)=> 780 - 2.34/2 => 778.83
-
-
-            // exposure = |buy_total-sell_total| = buy_price * size * (lot / DENOMINATOR128) = 1007.5 * 1 * 1000/10000 => 100.75
-            // fund_fee : because (exposure / liquidity_total => 100.75 / 10000 => 0.01) so fund_fee = 0.0003
-            // fund = 100.75 * 0.0003 = 0.030225
-            // pl = (sell_price - open_price) * (lot / DENOMINATOR128) * size =>(778.83 - 1007.5) * 1000/10000 * 1 => -22.867
+            // pl = (sell_price - open_real_price) * (lot / DENOMINATOR128) * size =>(778 - 1000) * 1000/10000 * 1 => -22.2
             account::set_balance_for_testing(&mut account, 40, test_scenario::ctx(tx));
-            assert!(account::get_balance(&account) == 40,3);
-            // balance = 80 - 50.375 => 29.625
-            // equity = balance + pl + fund => 29.625 - 22.867 + 0.030225 => 7.087225
-            // margin_used = 50.375
-            // equity / margin_used < 50% then close position => 7.087225 / 50.375 < 0.5 => true
             test_utils::print(b"print account info");
-            debug::print(&account);
+            // debug::print(&account);
+            let _equity = position::get_equity<Tag,SCALE>(&list,&account,&root);
+            // debug::print(&equity);
+            assert!(account::get_balance(&account) == 40,3);
+            // balance = 40 - 0 = 0
+            // equity = balance + pl + fund => 40 - 22 + 0 = 18
+            // margin_used = 50
+            // equity / margin_used < 50% then close position => 18 / 50 < 0.5 => true
             position::burst_position<Tag,SCALE>(&mut list, &mut account, &root,position_id,test_scenario::ctx(tx));
-            debug::print(&account);
         };
         test_scenario::next_tx(tx,owner);
         {
@@ -1465,12 +1461,121 @@ module scale::position_tests {
         });
     }
     #[test]
+    #[expected_failure(abort_code = 616, location = position)]
+    fun test_check_margin_negative(){
+        let test_ctx = get_test_ctx();
+        let TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        } = test_ctx;
+        let tx = &mut scenario;
+        test_scenario::next_tx(tx,owner);
+        {
+            let e = i64::new(100000,true);
+            position::check_margin<SCALE>(&account,&e);
+        };
+        drop_test_ctx(TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        });
+    }
+    #[test]
+    #[expected_failure(abort_code = 611, location = position)]
     fun test_check_margin(){
-        
+        let test_ctx = get_test_ctx();
+        let TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        } = test_ctx;
+        let tx = &mut scenario;
+        test_scenario::next_tx(tx,owner);
+        {
+            let e = i64::new(100000,false);
+            account::inc_margin_cross_sell_total_for_testing(&mut account,1);
+            // balance = 10000
+            position::check_margin<SCALE>(&account,&e);
+
+            let e = i64::new(300,false);
+            account::inc_margin_cross_buy_total_for_testing(&mut account,500);
+            account::inc_margin_cross_sell_total_for_testing(&mut account,234);
+            position::check_margin<SCALE>(&account,&e);
+
+            let e = i64::new(250,false);
+            position::check_margin<SCALE>(&account,&e);
+
+            let e = i64::new(249,false);
+            position::check_margin<SCALE>(&account,&e);
+        };
+        drop_test_ctx(TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        });
     }
     // Value overflow test
     #[test]
     fun test_value_overflow(){
-
+        let test_ctx = get_test_ctx();
+        let TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        } = test_ctx;
+        let tx = &mut scenario;
+        test_scenario::next_tx(tx,owner);
+        {
+            oracle::update_price(&mut root,feed_id,9_223_372_036_854_775_807/20000,222222222222,test_scenario::ctx(tx));
+            account::deposit(&mut account,coin::mint_for_testing<SCALE>((9_223_372_036_854_775_807 - 10000),test_scenario::ctx(tx)),0,test_scenario::ctx(tx));
+            // add liquidity
+            assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
+            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>((9_223_372_036_854_775_807 - 100000 -1 ),test_scenario::ctx(tx)),test_scenario::ctx(tx));
+            coin::destroy_for_testing(lsp_coin);
+            let _position_id_new_2 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,20000,5,1,2,test_scenario::ctx(tx));
+        };
+        drop_test_ctx(TestContext {
+            owner,
+            scenario,
+            market_id,
+            position_id,
+            feed_id,
+            account,
+            scale_coin,
+            list,
+            root,
+        });
     }
 }

@@ -37,6 +37,7 @@ module scale::market{
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
+    const DENOMINATORU128: u128 = 10000;
     const MAX_VALUE: u64 = {
         18446744073709551615 / 10000
     };
@@ -242,7 +243,7 @@ module scale::market{
         &mut market.id
     }
 
-    public fun get_max_leverage<P,T>(market: &Market<P,T>) : u8{
+    public fun get_max_leverage<P,T>(market: &Market<P,T>) : u8 {
         market.max_leverage
     }
 

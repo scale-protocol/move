@@ -208,11 +208,19 @@ module scale::account {
     public(friend) fun inc_margin_cross_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_cross_buy_total = account.margin_cross_buy_total + margin;
     }
+    #[test_only]
+    public fun inc_margin_cross_buy_total_for_testing<T>(account: &mut Account<T>, margin: u64) {
+        inc_margin_cross_buy_total(account, margin);
+    }
     public(friend) fun dec_margin_cross_buy_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_cross_buy_total = account.margin_cross_buy_total - margin;
     }
     public(friend) fun inc_margin_cross_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_cross_sell_total = account.margin_cross_sell_total + margin;
+    }
+    #[test_only]
+    public fun inc_margin_cross_sell_total_for_testing<T>(account: &mut Account<T>, margin: u64) {
+        inc_margin_cross_sell_total(account, margin);
     }
     public(friend) fun dec_margin_cross_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_cross_sell_total = account.margin_cross_sell_total - margin;
@@ -286,7 +294,8 @@ module scale::account {
         i64::dec_u64(&mut equity, amount);
         assert!(!i64::is_negative(&equity), EInsufficientEquity);
         let margin_used = get_margin_used(account);
-        // assert!(margin_used <= i64::get_value(&equity), EInsufficientEquity);
+        // expect equity
+        i64::dec_u64(&mut equity, amount);
         if (margin_used > 0) {
             assert!(i64::get_value(&equity) / margin_used >= 1, EInsufficientEquity);
         };

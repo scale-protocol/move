@@ -33,13 +33,15 @@ module scale::position {
     const ERiskControlNegativeEquity:u64 = 616;
     const EBurstConditionsNotMet:u64 = 617;
 
-    const MAX_U64_VALUE: u128 = 18446744073709551615;
+    const MAX_U64_VALUEU64: u64 = 18446744073709551615;
+    const MAX_U64_VALUEU128: u128 = 18446744073709551615;
 
     const DENOMINATOR: u64 = 10000;
-    const DENOMINATOR128: u128 = 10000;
+    const DENOMINATORU128: u128 = 10000;
     /// The exposure ratio should not exceed 70% of the current pool,
     /// so as to avoid the risk that the platform's current pool is empty.
     const POSITION_DIFF_PROPORTION: u64 = 7000;
+    const POSITION_DIFF_PROPORTIONU128: u128 = 7000;
     /// The liquidation line ratio means that if the user's margin loss exceeds this ratio in one quotation,
     /// the system will be liquidated and the position will be forced to close.
     const BURST_RATE: u64 = 5000;
@@ -187,7 +189,7 @@ module scale::position {
         &position.account_id
     }
     public fun get_denominator128<T>() :u64 {
-        (DENOMINATOR128 as u64)
+        (DENOMINATORU128 as u64)
     }
     public fun get_denominator<T>() :u64 {
         DENOMINATOR
@@ -197,9 +199,9 @@ module scale::position {
     }
 
     public fun fund_size(size:u64, lot:u64, price:u64) :u64 {
-        let r = (size as u128) * (lot as u128) * (price as u128);
-        assert!(r <= MAX_U64_VALUE ,ENumericOverflow);
-        (r / DENOMINATOR128 as u64)
+        let r = (size as u128) * (lot as u128) * (price as u128) / DENOMINATORU128;
+        assert!(r <= MAX_U64_VALUEU128 ,ENumericOverflow);
+        (r as u64)
     }
 
     public fun get_size<T>(position: &Position<T>) :u64{
@@ -207,9 +209,9 @@ module scale::position {
     }
 
     fun size(lot:u64, size:u64) :u64 {
-        let r = (size as u128) * (lot as u128);
-        assert!(r <= MAX_U64_VALUE ,ENumericOverflow);
-        (r / DENOMINATOR128 as u64)
+        let r = (size as u128) * (lot as u128) / DENOMINATORU128;
+        assert!(r <= MAX_U64_VALUEU128 ,ENumericOverflow);
+        (r as u64)
     }
 
     public fun get_margin_size<P,T>(market: &Market<P,T>,position: &Position<T>) :u64 {
@@ -438,8 +440,8 @@ module scale::position {
             let fund_size_old = get_fund_size<T>(position);
             let fund_size_add = fund_size(size, lot, market::get_real_price(price));
             // Reset average price
-            let new_real_price = ((fund_size_old as u128) + (fund_size_add as u128)) * DENOMINATOR128 / ((size * lot + position.size * position.lot) as u128);
-            assert!(new_real_price <= MAX_U64_VALUE ,ENumericOverflow);
+            let new_real_price = ((fund_size_old as u128) + (fund_size_add as u128)) * DENOMINATORU128 / ((size * lot + position.size * position.lot) as u128);
+            assert!(new_real_price <= MAX_U64_VALUEU128 ,ENumericOverflow);
             
             let new_price = market::get_price_by_real(market, (new_real_price as u64));
             position.open_price = market::get_direction_price(&new_price,direction);
@@ -483,18 +485,18 @@ module scale::position {
     ){
         let exposure = market::get_exposure<P,T>(market);
         let total_liquidity = market::get_total_liquidity<P,T>(market);
-        if (exposure * DENOMINATOR > total_liquidity * POSITION_DIFF_PROPORTION){
+        if (exposure > total_liquidity / DENOMINATOR * POSITION_DIFF_PROPORTION){
             assert!(
                 exposure < pre_exposure,
                 ERiskControlBlockingExposure
             );
         };
         assert!(
-            fund_size * DENOMINATOR < total_liquidity * POSITION_PROPORTION_ONE,
+            fund_size < total_liquidity / DENOMINATOR * POSITION_PROPORTION_ONE,
             RiskControlBlockingFundSize
         );
         assert!(
-            market::get_curr_position_total(market,direction) * DENOMINATOR < total_liquidity * POSITION_PROPORTION,
+            market::get_curr_position_total(market,direction) < total_liquidity / DENOMINATOR * POSITION_PROPORTION,
             RiskControlBlockingFundPool
         );
     }
@@ -509,30 +511,15 @@ module scale::position {
         risk_assertion(market,fund_size,direction,pre_exposure);
     }
     
-    fun check_margin<P,T>(
-        list: &MarketList,
+    public fun check_margin<T>(
         account: &Account<T>,
-        root: &oracle::Root,
+        equity: &I64
     ){
-        let equity = get_equity<P,T>(
-            list,
-            account,
-            root,
-        );
-        assert!(!i64::is_negative(&equity), ERiskControlNegativeEquity);
+        assert!(!i64::is_negative(equity), ERiskControlNegativeEquity);
         let margin_used = account::get_margin_used(account);
         if (margin_used > 0) {
-            assert!(i64::get_value(&equity) * DENOMINATOR / margin_used > BURST_RATE, ERiskControlBurstRate);
+            assert!(i64::get_value(equity) >= BURST_RATE * margin_used / DENOMINATOR, ERiskControlBurstRate);
         }
-    }
-    
-    #[test_only]
-    public fun check_margin_for_testing<P,T>(
-        list: &MarketList,
-        account: &Account<T>,
-        root: &oracle::Root,
-    ){
-        check_margin<P,T>(list,account,root);
     }
 
     public fun open_position<P,T>(
@@ -588,7 +575,12 @@ module scale::position {
             };
             position_option_id = option::some(id);
         };
-        check_margin<P,T>(list,account,root);
+        let equity = get_equity<P,T>(
+            list,
+            account,
+            root,
+        );
+        check_margin<T>(account,&equity);
         option::extract(&mut position_option_id)
     }
 
@@ -683,7 +675,7 @@ module scale::position {
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
                     if (margin_used > 0) {
-                        assert!((i64::get_value(&equity) * DENOMINATOR / margin_used) <= BURST_RATE, EBurstConditionsNotMet);
+                        assert!(i64::get_value(&equity) <= BURST_RATE * margin_used / DENOMINATOR, EBurstConditionsNotMet);
                     }
                 }
             } else {
@@ -691,7 +683,7 @@ module scale::position {
                 let pl = i64::i64_add(&get_position_fund_fee(market,position),&get_pl<T>(position,&price));
                 i64::inc_u64(&mut pl,position.margin);
                 if (!i64::is_negative(&pl)){
-                    assert!((i64::get_value(&pl) * DENOMINATOR / position.margin) <= BURST_RATE, EBurstConditionsNotMet);
+                    assert!(i64::get_value(&pl) <= BURST_RATE * position.margin / DENOMINATOR, EBurstConditionsNotMet);
                 }
             }
         };
