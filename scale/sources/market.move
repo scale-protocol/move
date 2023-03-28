@@ -495,6 +495,7 @@ module scale::market{
     ){
         let real_price = get_pyth_price(root, market.pyth_id);
         // todo check price time and openg price must gt 0
+        assert!(real_price > 0,EInvalidOpingPrice);
         market.opening_price = real_price;
     }
     #[test_only]
