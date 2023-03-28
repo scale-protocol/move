@@ -50,7 +50,7 @@ module scale::market_tests {
         let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         assert!(market::get_total_liquidity(market) == 0u64,4);
         let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
-        coin::destroy_for_testing(lsp_coin);
+        coin::burn_for_testing(lsp_coin);
         TestContext {
             owner: owner,
             scenario: test_tx,
@@ -69,7 +69,7 @@ module scale::market_tests {
             list,
         } = ctx;
         test_scenario::return_shared(list);
-        coin::destroy_for_testing(scale_coin);
+        coin::burn_for_testing(scale_coin);
         test_scenario::end(scenario);
     }
     #[test]

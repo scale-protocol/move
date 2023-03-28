@@ -159,13 +159,13 @@ module scale::pool {
     public fun get_spread_profit<P,T>(pool: &Pool<P, T>):u64 {
         balance::value(&pool.spread_profit)
     }
-    #[test_only]
-    public fun destroy_for_testing<P,T>(pool: Pool<P, T>){
-        let Pool{vault_supply, vault_balance, profit_balance, insurance_balance,spread_profit} = pool;
-        balance::destroy_supply_for_testing<LSP<P,T>>(vault_supply);
-        balance::destroy_for_testing<T>(vault_balance);
-        balance::destroy_for_testing<T>(profit_balance);
-        balance::destroy_for_testing<T>(insurance_balance);
-        balance::destroy_for_testing<T>(spread_profit);
-    }
+    // #[test_only]
+    // public fun destroy_for_testing<P,T>(pool: Pool<P, T>){
+    //     let Pool{vault_supply, vault_balance, profit_balance, insurance_balance,spread_profit} = pool;
+    //     test_utils::destroy(vault_supply);
+    //     balance::destroy_for_testing<T>(vault_balance);
+    //     balance::destroy_for_testing<T>(profit_balance);
+    //     balance::destroy_for_testing<T>(insurance_balance);
+    //     balance::destroy_for_testing<T>(spread_profit);
+    // }
 }

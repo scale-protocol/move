@@ -8,7 +8,6 @@ module scale::account {
     use std::vector;
     use scale::i64::{Self,I64};
     use sui::math;
-    use sui::typed_id::{Self,TypedID};
 
     friend scale::position;
     friend scale::enter;
@@ -17,10 +16,10 @@ module scale::account {
     const ENotOwner: u64 = 2;
     const EInsufficientEquity: u64 = 3;
 
-    struct UserAccount<phantom T> has key {
+    struct UserAccount has key {
         id: UID,
         owner: address,
-        account_id: TypedID<Account<T>>
+        account_id: ID,
     }
 
     /// User transaction account
@@ -263,7 +262,7 @@ module scale::account {
         transfer::transfer(UserAccount{
             id: object::new(ctx),
             owner: tx_context::sender(ctx),
-            account_id: typed_id::new(&account),
+            account_id: id,
         }, tx_context::sender(ctx));
         transfer::share_object(account);
         id
@@ -281,7 +280,7 @@ module scale::account {
         };
         assert!(amount <= coin::value(&token), EInsufficientCoins);
         balance::join(&mut account.balance, coin::into_balance(coin::split(&mut token, amount,ctx)));
-        transfer::transfer(token,tx_context::sender(ctx))
+        transfer::public_transfer(token,tx_context::sender(ctx))
     }
 
     public(friend) fun withdrawal<P,T>(
@@ -301,7 +300,7 @@ module scale::account {
         };
         let balance = balance::split(&mut account.balance, amount);
         let coin = coin::from_balance(balance,ctx);
-        transfer::transfer(coin,tx_context::sender(ctx))
+        transfer::public_transfer(coin,tx_context::sender(ctx))
     }
     #[test_only]
     public fun set_balance_for_testing<T>(account: &mut Account<T>,expected_balance:u64,ctx: &mut TxContext) {
@@ -311,6 +310,6 @@ module scale::account {
         let c = coin::take(&mut account.balance, v ,ctx);
         // join all
         balance::join(&mut account.balance, coin::into_balance(balance_coin));
-        coin::destroy_for_testing(c);
+        coin::burn_for_testing(c);
     }
 }

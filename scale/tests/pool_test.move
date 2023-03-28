@@ -4,7 +4,7 @@ module scale::pool_tests {
     use sui_coin::scale::{SCALE};
     use sui::test_scenario;
     use sui::coin;
-    // use sui::transfer;
+    use sui::test_utils;
     use sui::balance;
     use std::debug;
 
@@ -24,8 +24,8 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&pool) == 0,3);
             assert!(pool::get_insurance_balance(&pool) == 0,4);
         };
-        coin::destroy_for_testing(s_token);
-        pool::destroy_for_testing(pool);
+        coin::burn_for_testing(s_token);
+        test_utils::destroy(pool);
         test_scenario::end(test_tx);
     }
     #[test]
@@ -55,10 +55,10 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&pool) == 0,3);
             assert!(pool::get_insurance_balance(&pool) == 0,4);
             assert!(coin::value(&s_token) == 1000,5);
-            coin::destroy_for_testing(s_token);
+            coin::burn_for_testing(s_token);
         };
-        coin::destroy_for_testing(lsp_coin);
-        pool::destroy_for_testing(pool);
+        coin::burn_for_testing(lsp_coin);
+        test_utils::destroy(pool);
         // coin::destroy_for_testing(token);
         test_scenario::end(test_tx);        
     }
@@ -109,10 +109,10 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&pool) == 5000,19);
             assert!(pool::get_insurance_balance(&pool) == 0,20);
 
-            coin::destroy_for_testing(s_token);
-            coin::destroy_for_testing(lsp_coin);
+            coin::burn_for_testing(s_token);
+            coin::burn_for_testing(lsp_coin);
         };
-        pool::destroy_for_testing(pool);
+        test_utils::destroy(pool);
         test_scenario::end(test_tx);        
     }
     #[test]
@@ -142,12 +142,12 @@ module scale::pool_tests {
             assert!(pool::get_insurance_balance(&pool) == 1000,8);
             assert!(balance::value(&ts_token) == 4000,9);
 
-            coin::destroy_for_testing(s_token);
-            coin::destroy_for_testing(coin::from_balance(ts_token,test_scenario::ctx(tx)));
-            coin::destroy_for_testing(lsp_coin);
+            coin::burn_for_testing(s_token);
+            coin::burn_for_testing(coin::from_balance(ts_token,test_scenario::ctx(tx)));
+            coin::burn_for_testing(lsp_coin);
         };
-        coin::destroy_for_testing(s_token);
-        pool::destroy_for_testing(pool);
+        coin::burn_for_testing(s_token);
+        test_utils::destroy(pool);
         test_scenario::end(test_tx);  
     }
     #[test]
@@ -179,12 +179,12 @@ module scale::pool_tests {
             assert!(pool::get_spread_profit(&pool) == 1000,8);
             assert!(balance::value(&ts_token) == 4000,9);
 
-            coin::destroy_for_testing(s_token);
-            coin::destroy_for_testing(coin::from_balance(ts_token,test_scenario::ctx(tx)));
-            coin::destroy_for_testing(lsp_coin);
+            coin::burn_for_testing(s_token);
+            coin::burn_for_testing(coin::from_balance(ts_token,test_scenario::ctx(tx)));
+            coin::burn_for_testing(lsp_coin);
         };
-        coin::destroy_for_testing(s_token);
-        pool::destroy_for_testing(pool);
+        coin::burn_for_testing(s_token);
+        test_utils::destroy(pool);
         test_scenario::end(test_tx);  
     }    
 }

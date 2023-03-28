@@ -44,7 +44,7 @@ module sui_coin::scale {
             option::some(url::new_unsafe_from_bytes(b"https://bafybeibzo7s6gmeqybbecqhr2qaedjwxeprumg5kft5rvwicg2lpqzmo7y.ipfs.w3s.link/scale.png")),
             ctx
         );
-        transfer::freeze_object(metadata);
+        transfer::public_freeze_object(metadata);
         let total_supply = coin::treasury_into_supply(treasury);
         transfer::share_object(Reserve {
             id: object::new(ctx),
@@ -94,8 +94,8 @@ module sui_coin::scale {
         balance::join(&mut reserve.sui, balance::split(sui_balance, need_sui));
         
         let mint_balance = balance::increase_supply(&mut reserve.total_supply, amount);
-        transfer::transfer(coin::from_balance(mint_balance, ctx),tx_context::sender(ctx));
-        transfer::transfer(sui_coin, tx_context::sender(ctx));
+        transfer::public_transfer(coin::from_balance(mint_balance, ctx),tx_context::sender(ctx));
+        transfer::public_transfer(sui_coin, tx_context::sender(ctx));
     }
     /// Withdraw sui token
     public entry fun burn(
@@ -108,7 +108,7 @@ module sui_coin::scale {
         assert!(coin::value(&scale) > 0, EInvalidAmount);
         let num_scale = balance::decrease_supply(&mut reserve.total_supply, coin::into_balance(scale));
         let sui = coin::take(&mut reserve.sui, num_scale / reserve.subscription_ratio, ctx);
-        transfer::transfer(sui, tx_context::sender(ctx));
+        transfer::public_transfer(sui, tx_context::sender(ctx));
     }
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
@@ -216,7 +216,7 @@ module sui_coin::test_scale{
             let sui = test_scenario::take_from_sender<Coin<SUI>>(scenario);
             debug::print(&sui);
             assert!(coin::value(&sui) == 10_0000/100000000, 5);
-            transfer::transfer(sui, owner);
+            transfer::public_transfer(sui, owner);
         };
         test_scenario::end(scenario_val);
     }
