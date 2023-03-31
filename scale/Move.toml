@@ -4,7 +4,8 @@ version = "0.0.1"
 # published-at = "0x02b7987b58ce8d48f634a5408e95cb137e27886d68a0d4cc041c41dc80865f04"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+Sui = { local = "../../sui/crates/sui-framework/packages/sui-framework"}
 SuiCoin = { local = "../coin" }
 Oracle = { local = "../oracle" }
 [addresses]

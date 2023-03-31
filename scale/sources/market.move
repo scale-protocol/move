@@ -3,7 +3,7 @@ module scale::market{
     use std::string::{Self,String};
     use sui::tx_context::{Self,TxContext};
     use scale::admin::{Self,ScaleAdminCap,AdminCap};
-    use scale::pool::{Self,Pool};
+    use scale::pool::{Self,Pool,Scale};
     use sui::coin::{Coin};
     use sui::transfer;
     use std::vector;
@@ -11,6 +11,7 @@ module scale::market{
     use sui::dynamic_object_field as dof;
     use oracle::oracle;
     use sui::url::{Self, Url};
+    use scale::event;
 
     friend scale::position;
     friend scale::nft;
@@ -370,6 +371,7 @@ module scale::market{
             pyth_id,
         });
         list.total = list.total + 1;
+        event::create<Market<Scale,T>>(id);
         id
     }
 
@@ -382,6 +384,7 @@ module scale::market{
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(max_leverage > 0 && max_leverage < 255,EInvalidLeverage);
         market.max_leverage = max_leverage;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     public fun update_insurance_fee<P,T>(
@@ -393,6 +396,7 @@ module scale::market{
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(insurance_fee > 0 && insurance_fee <= DENOMINATOR, EInvalidInsuranceRate);
         market.insurance_fee = insurance_fee;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     public fun update_margin_fee<P,T>(
@@ -404,6 +408,7 @@ module scale::market{
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(margin_fee > 0 && margin_fee <= DENOMINATOR, EInvalidMarginRate);
         market.margin_fee = margin_fee;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
     public fun update_fund_fee<P,T>(
         pac:&mut ScaleAdminCap,
@@ -416,6 +421,7 @@ module scale::market{
         assert!(fund_fee > 0 && fund_fee <= DENOMINATOR, EInvalidFundRate);
         market.fund_fee = fund_fee;
         market.fund_fee_manual = manual;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
     public fun update_status<P,T>(
         pac:&mut ScaleAdminCap,
@@ -426,6 +432,7 @@ module scale::market{
         assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(status > 0 && status <= 3,EInvalidStatus);
         market.status = status;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     public fun update_description<P,T>(
@@ -437,6 +444,7 @@ module scale::market{
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         market.description = string::utf8(description);
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     public fun update_icon<P,T>(
@@ -449,6 +457,7 @@ module scale::market{
         assert!(!vector::is_empty(&icon), EIconRequired);
         assert!(vector::length(&icon) < 280, EIconTooLong);
         market.icon = url::new_unsafe_from_bytes(icon);
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     public fun update_spread_fee<P,T>(
@@ -462,6 +471,7 @@ module scale::market{
         assert!(spread_fee > 0 && spread_fee <= DENOMINATOR,EInvalidSpread);
         market.spread_fee = spread_fee;
         market.spread_fee_manual = manual;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
@@ -473,6 +483,7 @@ module scale::market{
     ){
         assert!(officer > 0 && officer < 4,EInvalidOfficer);
         market.officer = officer;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
 
     /// When the robot fails to update the price, update manually
@@ -497,6 +508,7 @@ module scale::market{
         // todo check price time and openg price must gt 0
         assert!(real_price > 0,EInvalidOpingPrice);
         market.opening_price = real_price;
+        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
     }
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext){

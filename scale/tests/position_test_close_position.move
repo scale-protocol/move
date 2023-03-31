@@ -3,7 +3,7 @@ module scale::position_close_tests {
     use scale::market::{Self, Market};
     use scale::account::{Self};
     use scale::position::{Self,Position};
-    use scale::pool::{Self,Tag};
+    use scale::pool::{Self,Scale};
     use sui::test_scenario::{Self};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
@@ -33,19 +33,19 @@ module scale::position_close_tests {
         let position_id_4: ID;
         test_scenario::next_tx(tx,owner);
         {
-            position_id_1 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
-            position_id_2 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
-            position_id_3 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
-            position_id_4 = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
+            position_id_1 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
+            position_id_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
+            position_id_3 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
+            position_id_4 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
         };
         test_scenario::next_tx(tx,owner);
         {
             // price increases
             oracle::update_price(&mut root,feed_id,2000,11234569,test_scenario::ctx(tx));
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),500);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             market::set_opening_price_for_testing(market, 900);
-            position::close_position<Tag,SCALE>(market, &mut account, &root,position_id_1,test_scenario::ctx(tx));
+            position::close_position<Scale,SCALE>(market, &mut account, &root,position_id_1,test_scenario::ctx(tx));
             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_1),501);
         };
         test_scenario::next_tx(tx,owner);
@@ -107,7 +107,7 @@ module scale::position_close_tests {
             assert!(!account::contains_pfk(&account,&pfk) == true ,539);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),540);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             assert!(market::get_long_position_total(market) == 10000,541);
             assert!(market::get_short_position_total(market) == 10100,542);
@@ -125,9 +125,9 @@ module scale::position_close_tests {
         {
             oracle::update_price(&mut root,feed_id,1100,11234789,test_scenario::ctx(tx));
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),600);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
 
-            position::close_position<Tag,SCALE>(market, &mut account, &root,position_id_4,test_scenario::ctx(tx));
+            position::close_position<Scale,SCALE>(market, &mut account, &root,position_id_4,test_scenario::ctx(tx));
             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_4),601);
         };
         test_scenario::next_tx(tx,owner);
@@ -189,7 +189,7 @@ module scale::position_close_tests {
             assert!(account::contains_isolated_position_id(&account,&position_id_4) == false ,639);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),640);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             assert!(market::get_long_position_total(market) == 10000,641);
             // fund_size = margin * leverage => 2000 * 5 => 10000
@@ -213,9 +213,9 @@ module scale::position_close_tests {
         {
             oracle::update_price(&mut root,feed_id,900,11235569,test_scenario::ctx(tx));
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),700);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             market::set_opening_price_for_testing(market, 990);
-            position::close_position<Tag,SCALE>(market, &mut account, &root,position_id_2,test_scenario::ctx(tx));
+            position::close_position<Scale,SCALE>(market, &mut account, &root,position_id_2,test_scenario::ctx(tx));
             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_2),701);
         };
         test_scenario::next_tx(tx,owner);
@@ -277,7 +277,7 @@ module scale::position_close_tests {
             assert!(account::contains_isolated_position_id(&account,&position_id_2) == false ,739);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),740);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             assert!(market::get_long_position_total(market) == 0,741);
             assert!(market::get_short_position_total(market) == 100,742);
@@ -297,8 +297,8 @@ module scale::position_close_tests {
         test_scenario::next_tx(tx,owner);
         {
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),800);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-            position::close_position<Tag,SCALE>(market, &mut account, &root,position_id_3,test_scenario::ctx(tx));
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            position::close_position<Scale,SCALE>(market, &mut account, &root,position_id_3,test_scenario::ctx(tx));
             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_3),801);
         };
         test_scenario::next_tx(tx,owner);
@@ -362,7 +362,7 @@ module scale::position_close_tests {
             assert!(!account::contains_pfk(&account,&pfk) == true ,839);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),840);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             assert!(market::get_long_position_total(market) == 0,841);
             assert!(market::get_short_position_total(market) == 0,842);

@@ -12,6 +12,7 @@ module scale::position {
     use scale::i64::{Self, I64};
     use oracle::oracle;
     use std::option::{Self, Option};
+    use scale::event;
     // use std::debug;
     // use sui::dynamic_field as df;/
 
@@ -471,6 +472,7 @@ module scale::position {
             );
             collect_insurance<P,T>(market,account,margin_size(fund_size_add,(leverage as u64),margin_fee,dr));
             collect_spread<P,T>(market,market::get_spread(price),size(lot,size));
+            event::update<Position<T>>(id);
             option::some(id)
         } else {
             option::none()
@@ -573,8 +575,11 @@ module scale::position {
             }else{
                 account::add_isolated_position_id(account,id);
             };
+            event::create<Position<T>>(id);
             position_option_id = option::some(id);
         };
+        event::update<Account<T>>(object::id(account));
+        event::update<Market<P,T>>(object::id(market));
         let equity = get_equity<P,T>(
             list,
             account,
@@ -601,6 +606,9 @@ module scale::position {
         position.status = 2;
         settlement_pl<P,T>(market,account,root, &mut position,owner);
         transfer::transfer(position,owner);
+        event::update<Market<P,T>>(object::id(market));
+        event::update<Account<T>>(object::id(account));
+        event::update<Position<T>>(position_id);
     }
 
     fun settlement_pl<P,T>(
@@ -693,6 +701,9 @@ module scale::position {
         position.status = 3;
         settlement_pl<P,T>(market,account, root, &mut position,tx_context::sender(ctx));
         transfer::transfer(position,tx_context::sender(ctx));
+        event::update<Market<P,T>>(object::id(market));
+        event::update<Account<T>>(object::id(account));
+        event::update<Position<T>>(position_id);
     }
 
     public fun process_fund_fee<P,T>(
@@ -715,5 +726,6 @@ module scale::position {
             };
             i = i + 1;
         };
+        event::update<Account<T>>(object::id(account));
     }
 }

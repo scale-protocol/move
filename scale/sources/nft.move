@@ -13,6 +13,7 @@ module scale::nft {
     use scale::admin::AdminCap;
     use sui::dynamic_field as field;
     use std::option::{Self,Option};
+    use scale::event;
     // use scale_v1::nft;
 
     const ENameRequired:u64 = 401;
@@ -167,6 +168,7 @@ module scale::nft {
             issue_expiration_time: 0,
             market_id: object::id(market),
         },tx_context::sender(ctx));
+        event::update<Market<P,T>>(object::id(market));
     }
 
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 

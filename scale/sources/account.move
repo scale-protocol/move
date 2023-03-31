@@ -8,6 +8,7 @@ module scale::account {
     use std::vector;
     use scale::i64::{Self,I64};
     use sui::math;
+    use scale::event;
 
     friend scale::position;
     friend scale::enter;
@@ -265,6 +266,7 @@ module scale::account {
             account_id: id,
         }, tx_context::sender(ctx));
         transfer::share_object(account);
+        event::create<Account<T>>(id);
         id
     }
     /// If amount is 0, the whole coin will be consumed
@@ -280,7 +282,8 @@ module scale::account {
         };
         assert!(amount <= coin::value(&token), EInsufficientCoins);
         balance::join(&mut account.balance, coin::into_balance(coin::split(&mut token, amount,ctx)));
-        transfer::public_transfer(token,tx_context::sender(ctx))
+        transfer::public_transfer(token,tx_context::sender(ctx));
+        event::update<Account<T>>(object::id(account));
     }
 
     public(friend) fun withdrawal<P,T>(
@@ -300,7 +303,8 @@ module scale::account {
         };
         let balance = balance::split(&mut account.balance, amount);
         let coin = coin::from_balance(balance,ctx);
-        transfer::public_transfer(coin,tx_context::sender(ctx))
+        transfer::public_transfer(coin,tx_context::sender(ctx));
+        event::update<Account<T>>(object::id(account));
     }
     #[test_only]
     public fun set_balance_for_testing<T>(account: &mut Account<T>,expected_balance:u64,ctx: &mut TxContext) {

@@ -1,7 +1,7 @@
 #[test_only]
 module scale::market_tests {
     use scale::market::{Self, MarketList, Market};
-    use scale::pool::Tag;
+    use scale::pool::Scale;
     use sui::test_scenario::{Self,Scenario};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
@@ -47,7 +47,7 @@ module scale::market_tests {
         test_scenario::next_tx(tx,owner);
         // add liquidity
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-        let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+        let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         assert!(market::get_total_liquidity(market) == 0u64,4);
         let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
         coin::burn_for_testing(lsp_coin);
@@ -86,7 +86,7 @@ module scale::market_tests {
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
         let new_market_id = market::create_market(&mut list,&scale_coin,n,i,d,1u64,800u64,object::id_from_address(@0x0),test_scenario::ctx(&mut scenario));
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),new_market_id),1);
-        let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),new_market_id);
+        let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),new_market_id);
         assert!(*string::bytes(market::get_symbol(market)) == b"BTC/USD",2);
         assert!(*string::bytes(market::get_description(market)) == b"BTC/USD testing",3);
         assert!(market::get_max_leverage(market) == 125u8,4);
@@ -157,7 +157,7 @@ module scale::market_tests {
             list,
         } = get_test_ctx();
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-        let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+        let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         assert!(market::get_exposure(market) == 0u64,2);
         assert!(market::get_fund_fee(market) == 0u64,3);
         // let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(market),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(&mut scenario)),test_scenario::ctx(&mut scenario));
@@ -229,7 +229,7 @@ module scale::market_tests {
             list,
         } = get_test_ctx();
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-        let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+        let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         // opening_price = 800
         // change = |real_price - opening_price| / openging_price = |790 - 800| / 800 = 0.0125 = 1.25% so fee = 3/1000 = 0.003
         let fee =  market::get_spread_fee(market,790u64);
@@ -270,7 +270,7 @@ module scale::market_tests {
             list,
         } = get_test_ctx();
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-        let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+        let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
         // opening_price = 800
         // price = 1000
         // change = |real_price - opening_price| / openging_price = |1000 - 800| / 800 = 0.25 = 25% so fee = 1.5/100 = 0.015

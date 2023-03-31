@@ -3,7 +3,7 @@ module scale::position_test_open_tests {
     use scale::market::{Self, Market};
     use scale::account::{Self};
     use scale::position::{Self,Position};
-    use scale::pool::{Self,Tag};
+    use scale::pool::{Self,Scale};
     use sui::test_scenario::{Self};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
@@ -30,7 +30,7 @@ module scale::position_test_open_tests {
         // test open cross position
         test_scenario::next_tx(tx,owner);
         {
-            position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
+            position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
             debug::print_stack_trace();
             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),1);
             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -87,7 +87,7 @@ module scale::position_test_open_tests {
             assert!(account::contains_pfk(&account,&pfk) == true ,139);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),140);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             // long_total = buy_price * size * (lot / DENOMINATOR128) => 1007.5 * 1 * 1000/10000 => 100.75
             assert!(market::get_long_position_total(market) == 100,141);
@@ -102,7 +102,7 @@ module scale::position_test_open_tests {
         // test open isolated position
         test_scenario::next_tx(tx,owner);
         {
-            position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
+            position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
             debug::print_stack_trace();
             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),2);
             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -161,7 +161,7 @@ module scale::position_test_open_tests {
             assert!(account::contains_isolated_position_id(&account,&position_id) == true ,239);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),240);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             // long_total = 50 * 2 + 2000 * 5 => 10100
             assert!(market::get_long_position_total(market) == 10100,241);
@@ -178,7 +178,7 @@ module scale::position_test_open_tests {
         // test open cross position sell
         test_scenario::next_tx(tx,owner);
         {
-            position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
+            position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
             debug::print_stack_trace();
             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),301);
             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -235,7 +235,7 @@ module scale::position_test_open_tests {
             assert!(account::contains_pfk(&account,&pfk) == true ,339);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),340);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             assert!(market::get_long_position_total(market) == 10100,341);
             assert!(market::get_short_position_total(market) == 100,342);
@@ -251,7 +251,7 @@ module scale::position_test_open_tests {
         // test open isolated position sell
         test_scenario::next_tx(tx,owner);
         {
-            position_id = position::open_position<Tag,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
+            position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
             debug::print_stack_trace();
             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),401);
             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -310,7 +310,7 @@ module scale::position_test_open_tests {
             assert!(account::contains_isolated_position_id(&account,&position_id) == true ,439);
             // check market
             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),440);
-            let market: &mut Market<Tag,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
+            let market: &mut Market<Scale,SCALE> = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
             // debug::print(market);
             // long_total = 50 * 2 + 2000 * 5 => 10100
             assert!(market::get_long_position_total(market) == 10100,441);
