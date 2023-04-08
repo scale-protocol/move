@@ -3,7 +3,7 @@ module scale::pool {
     use sui::balance::{Self, Supply, Balance};
     use sui::tx_context::{TxContext};
 
-    friend scale::nft;
+    friend scale::bond;
     friend scale::position;
     friend scale::market;
     // friend scale::account;

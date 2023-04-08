@@ -14,7 +14,7 @@ module scale::market{
     use scale::event;
 
     friend scale::position;
-    friend scale::nft;
+    friend scale::bond;
     
     const ELSPCreatorPermissionRequired:u64 = 301;
     const EInvalidLeverage:u64 = 302;

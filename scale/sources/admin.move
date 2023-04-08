@@ -39,7 +39,7 @@ module scale::admin {
         });
     }
     
-    public fun get_scale_admin_mum(scale_admin_cap:&ScaleAdminCap):u64{
+    public fun get_scale_admin_mum(scale_admin_cap: &ScaleAdminCap):u64{
         vec_set::size(&scale_admin_cap.member)
     }
 

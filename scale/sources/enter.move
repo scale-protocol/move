@@ -3,7 +3,7 @@ module scale::enter {
     use scale::admin::{Self, AdminCap, ScaleAdminCap};
     use scale::position;
     use scale::market::{Self, MarketList, Market};
-    use scale::nft::{Self, ScaleNFTFactory,ScaleNFT,UpgradeMoveToken};
+    use scale::bond::{Self, ScaleNFTFactory,ScaleBond,UpgradeMoveToken};
     use sui::tx_context::{TxContext};
     use sui::coin::Coin;
     use std::option;
@@ -202,7 +202,7 @@ module scale::enter {
         url: vector<u8>,
         ctx: &mut TxContext
     ){
-        nft::add_factory_mould(admin_cap,factory,name,description,url,ctx);
+        bond::add_factory_mould(admin_cap,factory,name,description,url,ctx);
     }
 
     public entry fun remove_factory_mould(
@@ -211,7 +211,7 @@ module scale::enter {
         name: vector<u8>,
         ctx: &mut TxContext
     ){
-        nft::remove_factory_mould(admin_cap,factory,name,ctx);
+        bond::remove_factory_mould(admin_cap,factory,name,ctx);
     }
 
     public entry fun investment<P,T>(
@@ -226,41 +226,41 @@ module scale::enter {
         let token = vector::pop_back(&mut coins);
         pay::join_vec(&mut token, coins);
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        nft::investment(market,token,factory,name,amount,ctx);
+        bond::investment(market,token,factory,name,amount,ctx);
     }
     /// Normal withdrawal of investment
     public entry fun divestment<P,T>(
         list: &mut MarketList,
         market_id: ID,
-        nft: ScaleNFT<P,T>,
+        nft: ScaleBond<P,T>,
         ctx: &mut TxContext
     ){
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        nft::divestment(market,nft,option::none(),ctx);
+        bond::divestment(market,nft,option::none(),ctx);
     }
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
     /// and there will be no liquidated damages
     /// run in v2
     public entry fun generate_upgrade_move_token<P,T>(
         admin_cap: &mut AdminCap,
-        nft: &ScaleNFT<P,T>,
+        nft: &ScaleBond<P,T>,
         expiration_time: u64,
         addr: address,
         ctx: &mut TxContext,
     ){
-        nft::generate_upgrade_move_token(admin_cap,nft,expiration_time,addr,ctx);
+        bond::generate_upgrade_move_token(admin_cap,nft,expiration_time,addr,ctx);
     }
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
     public entry fun divestment_by_upgrade<P,T>(
         list: &mut MarketList,
         market_id: ID,
-        nft: ScaleNFT<P,T>,
+        nft: ScaleBond<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext
     ){
         let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        nft::divestment_by_upgrade(market,nft,move_token,ctx);
+        bond::divestment_by_upgrade(market,nft,move_token,ctx);
     }
 
     public entry fun open_position<P,T>(
