@@ -141,4 +141,14 @@ module scale::nft{
         };
         object::delete(id);
     }
+    
+    public entry fun burn(
+        _cap: &mut AdminCap,
+        nft: ScaleProtocol,
+        _ctx: &mut TxContext,
+    ){
+        event::delete<ScaleProtocol>(object::id(&nft));
+        let ScaleProtocol{id, name:_, description:_, img_url:_} = nft;
+        object::delete(id);
+    }
 }
