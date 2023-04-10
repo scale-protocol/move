@@ -28,7 +28,7 @@ module scale::nft{
         let keys = vector[
             utf8(b"name"),
             utf8(b"link"),
-            utf8(b"img_url"),
+            utf8(b"image_url"),
             utf8(b"description"),
             utf8(b"project_url"),
             utf8(b"creator"),
@@ -38,7 +38,7 @@ module scale::nft{
             utf8(b"{name}"),
             utf8(b"https://clutchy.io/marketplace/item/{id}"),
             utf8(b"{img_url}"),
-            utf8(b"{description}}"),
+            utf8(b"{description}"),
             utf8(b"https://scale.exchange"),
             utf8(b"scale protocol team"),
         ];
