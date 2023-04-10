@@ -1,20 +1,31 @@
-module scale::nft{
+module scale_nft::nft{
     use sui::tx_context::{sender, TxContext};
     use std::string::{Self,utf8, String};
     use sui::transfer;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::package;
     use sui::display;
-    use scale::admin::AdminCap;
     use std::vector;
-    use scale::event;
+    use sui::event;
 
-    const ENameRequired: u64 = 700;
-    const EDescriptionRequired: u64 = 701;
-    const EUrlRequired: u64 = 702;
-    const EDescriptionTooLong: u64 = 703;
-    const EUrlTooLong: u64 = 704;
-    const ENameTooLong: u64 = 705;
+    const ENameRequired: u64 = 1;
+    const EDescriptionRequired: u64 = 2;
+    const EUrlRequired: u64 = 3;
+    const EDescriptionTooLong: u64 = 4;
+    const EUrlTooLong: u64 = 5;
+    const ENameTooLong: u64 = 6;
+
+    struct Created<phantom T> has copy, drop {
+        id: ID,
+    }
+
+    struct Delete<phantom T> has copy, drop {
+        id: ID,
+    }
+
+    struct AdminCap has key {
+        id: UID
+    }
 
     struct ScaleProtocol has key, store {
         id: UID,
@@ -28,7 +39,7 @@ module scale::nft{
         let keys = vector[
             utf8(b"name"),
             utf8(b"link"),
-            utf8(b"img_url"),
+            utf8(b"image_url"),
             utf8(b"description"),
             utf8(b"project_url"),
             utf8(b"creator"),
@@ -38,7 +49,7 @@ module scale::nft{
             utf8(b"{name}"),
             utf8(b"https://clutchy.io/marketplace/item/{id}"),
             utf8(b"{img_url}"),
-            utf8(b"{description}}"),
+            utf8(b"{description}"),
             utf8(b"https://scale.exchange"),
             utf8(b"scale protocol team"),
         ];
@@ -49,6 +60,9 @@ module scale::nft{
         display::update_version(&mut display);
         transfer::public_transfer(publisher, sender(ctx));
         transfer::public_transfer(display, sender(ctx));
+        transfer::transfer(AdminCap{
+            id: object::new(ctx),
+        },sender(ctx));
     }
 
     fun mint_(name:vector<u8>,description:vector<u8>,img_url:vector<u8>,ctx: &mut TxContext): ScaleProtocol {
@@ -74,7 +88,7 @@ module scale::nft{
         ctx: &mut TxContext,
     ){
         let nft = mint_(name,description,img_url,ctx);
-        event::create<ScaleProtocol>(object::id(&nft));
+        event::emit(Created<ScaleProtocol> { id: object::id(&nft) });
         transfer::transfer(nft, sender(ctx));
     }
 
@@ -91,7 +105,7 @@ module scale::nft{
         let ScaleProtocol{id, name, description, img_url} = nft;
         while (i < amount) {
             let uid = object::new(ctx);
-            event::create<ScaleProtocol>(object::uid_to_inner(&uid));
+            event::emit(Created<ScaleProtocol> { id: object::uid_to_inner(&uid) });
             transfer::transfer(ScaleProtocol{
                 id: uid,
                 name: name,
@@ -112,7 +126,7 @@ module scale::nft{
         ctx: &mut TxContext,
     ){
         let nft = mint_(name,description,img_url,ctx);
-        event::create<ScaleProtocol>(object::id(&nft));
+        event::emit(Created<ScaleProtocol> { id: object::id(&nft) });
         transfer::transfer(nft, recipient);
     }
 
@@ -130,7 +144,7 @@ module scale::nft{
         let ScaleProtocol{id, name, description, img_url} = nft;
         while (i < amount) {
             let uid = object::new(ctx);
-            event::create<ScaleProtocol>(object::uid_to_inner(&uid));
+            event::emit(Created<ScaleProtocol> { id: object::uid_to_inner(&uid) });
             transfer::transfer(ScaleProtocol{
                 id: uid,
                 name: name,
@@ -139,6 +153,16 @@ module scale::nft{
             }, recipient);
             i = i + 1;
         };
+        object::delete(id);
+    }
+    
+    public entry fun burn(
+        _cap: &mut AdminCap,
+        nft: ScaleProtocol,
+        _ctx: &mut TxContext,
+    ){
+        event::emit(Delete<ScaleProtocol> { id: object::id(&nft) });
+        let ScaleProtocol{id, name:_, description:_, img_url:_} = nft;
         object::delete(id);
     }
 }

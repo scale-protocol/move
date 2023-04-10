@@ -4,13 +4,19 @@ module scale::event {
     struct Created<phantom T> has copy, drop {
         id: ID,
     }
-    struct UpDated<phantom T> has copy, drop {
+    struct Update<phantom T> has copy, drop {
+        id: ID,
+    }
+    struct Delete<phantom T> has copy, drop {
         id: ID,
     }
     public fun create<T>(id: ID) {
         event::emit(Created<T> { id: id })
     }
     public fun update<T>(id: ID) {
-        event::emit(UpDated<T> { id: id })
+        event::emit(Update<T> { id: id })
+    }
+    public fun delete<T>(id: ID) {
+        event::emit(Delete<T> { id: id })
     }
 }
