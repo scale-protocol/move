@@ -32,7 +32,7 @@ module scale::enter {
     }
 
     public entry fun withdrawal<P,T>(
-        list: &MarketList,
+        list: &MarketList<P,T>,
         account: &mut Account<T>,
         root: &oracle::Root,
         amount: u64,
@@ -57,9 +57,8 @@ module scale::enter {
         admin::remove_admin_member(admin_cap,addr,ctx);
     }
 
-    public entry fun create_market <T>(
-        list: &mut MarketList,
-        token: &Coin<T>,
+    public entry fun create_market <P,T>(
+        list: &mut MarketList<P,T>,
         symbol: vector<u8>,
         icon: vector<u8>,
         description: vector<u8>,
@@ -68,115 +67,115 @@ module scale::enter {
         pyth_id: ID,
         ctx: &mut TxContext
     ){
-        market::create_market<T>(list,token,symbol,icon,description,size,opening_price,pyth_id,ctx);
+        market::create_market<P,T>(list,symbol,icon,description,size,opening_price,pyth_id,ctx);
     }
 
     public entry fun update_max_leverage<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         max_leverage: u8,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_max_leverage(pac,market,max_leverage,ctx);
     }
 
     public entry fun update_insurance_fee<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         insurance_fee: u64,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_insurance_fee(pac,market,insurance_fee,ctx);
     }
 
     public entry fun update_margin_fee<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         margin_fee: u64,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_margin_fee(pac,market,margin_fee,ctx);
     }
 
     public entry fun update_fund_fee<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         fund_fee: u64,
         manual: bool,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_fund_fee(pac,market,fund_fee,manual,ctx);
     }
     
     public entry fun update_status<P,T>(
         pac: &mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         status: u8,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_status(pac,market,status,ctx);
     }
 
     public entry fun update_description<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         description: vector<u8>,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_description(pac,market,description,ctx);
     }
 
     public entry fun update_icon<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         icon: vector<u8>,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_icon(pac,market,icon,ctx);
     }
 
     public entry fun update_spread_fee<P,T>(
         pac:&mut ScaleAdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         spread_fee: u64,
         manual: bool,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_spread_fee(pac,market,spread_fee,manual,ctx);
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
     public entry fun update_officer<P,T>(
         cap:&mut AdminCap,
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         officer: u8,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::update_officer(cap,market,officer,ctx);
     }
 
     /// When the robot fails to update the price, update manually
     // public entry fun update_oping_price<P,T>(
     //     pac:&mut ScaleAdminCap,
-    //     market:&mut Market<P,T>,
+    //     market:&mut Market,
     //     opening_price: u64,
     //     ctx: &mut TxContext
     // ){
@@ -185,12 +184,12 @@ module scale::enter {
 
     /// The robot triggers at 0:00 every day to update the price of the day
     public entry fun trigger_update_opening_price<P,T>(
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         root: &oracle::Root,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
         market::trigger_update_opening_price(market, root, ctx);
     }
     /// Project side add NFT style
@@ -215,8 +214,7 @@ module scale::enter {
     }
 
     public entry fun investment<P,T>(
-        list: &mut MarketList,
-        market_id: ID,
+        list: &mut MarketList<P,T>,
         coins: vector<Coin<T>>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -225,18 +223,15 @@ module scale::enter {
     ){
         let token = vector::pop_back(&mut coins);
         pay::join_vec(&mut token, coins);
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        bond::investment(market,token,factory,name,amount,ctx);
+        bond::investment(list,token,factory,name,amount,ctx);
     }
     /// Normal withdrawal of investment
     public entry fun divestment<P,T>(
-        list: &mut MarketList,
-        market_id: ID,
+        list: &mut MarketList<P,T>,
         nft: ScaleBond<P,T>,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        bond::divestment(market,nft,option::none(),ctx);
+        bond::divestment(list,nft,option::none(),ctx);
     }
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
     /// and there will be no liquidated damages
@@ -253,18 +248,16 @@ module scale::enter {
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
     public entry fun divestment_by_upgrade<P,T>(
-        list: &mut MarketList,
-        market_id: ID,
+        list: &mut MarketList<P,T>,
         nft: ScaleBond<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        bond::divestment_by_upgrade(market,nft,move_token,ctx);
+        bond::divestment_by_upgrade(list,nft,move_token,ctx);
     }
 
     public entry fun open_position<P,T>(
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         account: &mut Account<T>,
         root: &oracle::Root,
@@ -278,19 +271,18 @@ module scale::enter {
     }
 
     public entry fun close_position<P,T>(
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         market_id: ID,
         account: &mut Account<T>,
         root: &oracle::Root,
         position_id: ID,
         ctx: &mut TxContext,
     ){
-        let market: &mut Market<P,T> = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        position::close_position(market,account,root,position_id,ctx);
+        position::close_position(list,market_id,account,root,position_id,ctx);
     }
 
     public entry fun burst_position<P,T>(
-        list: &mut MarketList,
+        list: &mut MarketList<P,T>,
         account: &mut Account<T>,
         root: &oracle::Root,
         position_id: ID,

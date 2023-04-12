@@ -159,6 +159,10 @@ module scale::pool {
     public fun get_spread_profit<P,T>(pool: &Pool<P, T>):u64 {
         balance::value(&pool.spread_profit)
     }
+    public fun get_total_liquidity<P,T>(pool: &Pool<P,T>) :u64{
+         balance::value(&pool.vault_balance) + balance::value(&pool.profit_balance)
+    }
+
     // #[test_only]
     // public fun destroy_for_testing<P,T>(pool: Pool<P, T>){
     //     let Pool{vault_supply, vault_balance, profit_balance, insurance_balance,spread_profit} = pool;

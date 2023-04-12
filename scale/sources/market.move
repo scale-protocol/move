@@ -43,12 +43,19 @@ module scale::market{
         18446744073709551615 / 10000
     };
 
-    struct MarketList has key {
+    struct MarketList<phantom P, phantom T> has key,store {
         id: UID,
         total: u64,
+        /// Market operator, 
+        /// 1 project team
+        /// 2 Certified Third Party
+        /// 3 Community
+        officer: u8,
+        /// coin pool of the market
+        pool: Pool<P,T>,
     }
 
-    struct Market<phantom P, phantom T> has key,store {
+    struct Market has key,store {
         id: UID,
         /// Maximum allowable leverage ratio
         max_leverage: u8,
@@ -76,18 +83,11 @@ module scale::market{
         /// Total amount of short positions in the market
         short_position_total: u64,
         /// Transaction pair (token type, such as BTC, ETH)
-        /// len: 4+20
         symbol: String,
         icon: Url,
+        officer: u8,
         /// market description
         description: String,
-        /// Market operator, 
-        /// 1 project team
-        /// 2 Certified Third Party
-        /// 3 Community
-        officer: u8,
-        /// coin pool of the market
-        pool: Pool<P,T>,
         /// Basic size of transaction pair contract
         /// Constant 1 in the field of encryption
         size: u64,
@@ -103,15 +103,17 @@ module scale::market{
         spread: u64,
     }
 
-    fun new_market_list(ctx: &mut TxContext): MarketList{
-        MarketList{
-            id: object::new(ctx),
+    public fun create_market_list<T>(token: &Coin<T>, ctx: &mut TxContext): ID{
+        let uid = object::new(ctx);
+        let id = object::uid_to_inner(&uid);
+        transfer::share_object( MarketList{
+            id: uid,
             total: 0,
-        }
-    }
-
-    fun init(ctx: &mut TxContext){
-        transfer::share_object(new_market_list(ctx));
+            officer: 2,
+            pool: pool::create_pool_(token),
+        });
+        event::create<MarketList<Scale,T>>(id);
+        id
     }
 
     public fun get_direction_price(price:&Price, direction: u8) : u64{
@@ -137,7 +139,7 @@ module scale::market{
         price.spread
     }
 
-    fun get_price_<P,T>(market: &Market<P,T>, real_price: u64):Price{
+    fun get_price_(market: &Market, real_price: u64):Price{
         let spread = get_spread_fee(market,real_price) * real_price;
         // To increase the calculation accuracy
         let half_spread = spread / 2;
@@ -155,27 +157,27 @@ module scale::market{
         price
     }
 
-    public fun get_price<P,T>(market: &Market<P,T>,root: &oracle::Root): Price {
+    public fun get_price(market: &Market,root: &oracle::Root): Price {
         let real_price = get_pyth_price(root, market.pyth_id);
         get_price_(market, real_price)
     }
 
-    public fun get_price_by_real<P,T>(market: &Market<P,T>, real_price: u64):Price {
+    public fun get_price_by_real(market: &Market, real_price: u64):Price {
         get_price_(market, real_price)
     }
     
     #[test_only]
-    public fun set_opening_price_for_testing<P,T>(market: &mut Market<P,T>, opening_price: u64) {
+    public fun set_opening_price_for_testing(market: &mut Market, opening_price: u64) {
         assert!(opening_price > 0 ,EInvalidOpingPrice);
         market.opening_price = opening_price;
     }
-    public fun get_exposure<P,T>(market: &Market<P,T>):u64{
+    public fun get_exposure(market: &Market):u64{
         math::max(market.long_position_total, market.short_position_total) - math::min(market.long_position_total, market.short_position_total)
     }
     /// 1 buy
     /// 2 sell
     /// 3 Balanced
-    public fun get_dominant_direction<P,T>(market: &Market<P,T>) :u8{
+    public fun get_dominant_direction(market: &Market) :u8{
         if (market.long_position_total == market.short_position_total) {
             3
         } else if (market.long_position_total > market.short_position_total) {
@@ -185,29 +187,24 @@ module scale::market{
         }
     }
 
-    public fun get_curr_position_total<P,T>(market:&Market<P,T>,direction:u8):u64{
+    public fun get_curr_position_total(market: &Market,direction:u8):u64{
         if (direction==1){
             market.long_position_total
         }else{
             market.short_position_total
         }
     }
-    public fun get_max_position_total<P,T>(market:&Market<P,T>):u64{
+    public fun get_max_position_total(market: &Market):u64{
         math::max(market.long_position_total , market.short_position_total)
     }
-    public fun get_min_position_total<P,T>(market:&Market<P,T>):u64{
+    public fun get_min_position_total(market: &Market):u64{
         math::min(market.long_position_total , market.short_position_total)
     }
 
-    public fun get_total_liquidity<P,T>(market: &Market<P,T>) :u64{
-        pool::get_vault_balance(&market.pool) + pool::get_profit_balance(&market.pool)
-    }
-
-    public fun get_fund_fee<P,T>(market: &Market<P,T>) :u64{
+    public fun get_fund_fee(market: &Market,total_liquidity: u64) :u64{
         if (market.fund_fee_manual) {
             return market.fund_fee
         };
-        let total_liquidity = get_total_liquidity(market);
         let exposure = get_exposure(market);
         if (exposure == 0 || total_liquidity == 0) {
             return 0
@@ -222,7 +219,7 @@ module scale::market{
         return 70
     }
 
-    public fun get_spread_fee<P,T>(market: &Market<P,T>,real_price: u64) : u64{
+    public fun get_spread_fee(market: &Market,real_price: u64) : u64{
         if (market.spread_fee_manual) {
             return market.spread_fee
         };
@@ -236,79 +233,79 @@ module scale::market{
         return 150
     }
 
-    public fun get_uid<P,T>(market:&Market<P,T>) : &UID{
+    public fun get_uid(market: &Market ) : &UID{
         &market.id
     }
 
-    public(friend) fun get_uid_mut<P,T>(market:&mut Market<P,T>) : &mut UID{
+    public(friend) fun get_uid_mut(market: &mut Market) : &mut UID{
         &mut market.id
     }
 
-    public fun get_max_leverage<P,T>(market: &Market<P,T>) : u8 {
+    public fun get_max_leverage(market: &Market) : u8 {
         market.max_leverage
     }
 
-    public fun get_insurance_fee<P,T>(market: &Market<P,T>) : u64{
+    public fun get_insurance_fee(market: &Market) : u64{
         market.insurance_fee
     }
 
-    public fun get_margin_fee<P,T>(market: &Market<P,T>) : u64{
+    public fun get_margin_fee(market: &Market) : u64{
         market.margin_fee
     }
 
-    public fun get_status<P,T>(market: &Market<P,T>) : u8{
+    public fun get_status(market: &Market) : u8{
         market.status
     }
 
-    public fun get_long_position_total<P,T>(market: &Market<P,T>) : u64{
+    public fun get_long_position_total(market: &Market) : u64{
         market.long_position_total
     }
     #[test_only]
-    public fun set_long_position_total_for_testing<P,T>(market: &mut Market<P,T>, value: u64) {
+    public fun set_long_position_total_for_testing(market: &mut Market, value: u64) {
         market.long_position_total = value
     }
-    public fun get_short_position_total<P,T>(market: &Market<P,T>) : u64{
+    public fun get_short_position_total(market: &Market) : u64{
         market.short_position_total
     }
     #[test_only]
-    public fun set_short_position_total_for_testing<P,T>(market: &mut Market<P,T>, value: u64) {
+    public fun set_short_position_total_for_testing(market: &mut Market, value: u64) {
         market.short_position_total = value
     }
-    public(friend) fun inc_long_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun inc_long_position_total(self: &mut Market, value: u64) {
         self.long_position_total = self.long_position_total + value;
     }
-    public(friend) fun dec_long_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun dec_long_position_total(self: &mut Market, value: u64) {
         self.long_position_total = self.long_position_total - value;
     }
-    public(friend) fun inc_short_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun inc_short_position_total(self: &mut Market, value: u64) {
         self.short_position_total = self.short_position_total + value;
     }
-    public(friend) fun dec_short_position_total<P,T>(self: &mut Market<P,T>, value: u64) {
+    public(friend) fun dec_short_position_total(self: &mut Market, value: u64) {
         self.short_position_total = self.short_position_total - value;
     }
-    public fun get_symbol<P,T>(market: &Market<P,T>) : &String{
+    public fun get_symbol(market: &Market) : &String{
         &market.symbol
     }
-    public fun get_description<P,T>(market: &Market<P,T>) : &String{
+    public fun get_description(market: &Market) : &String{
         &market.description
     }
-    public fun get_officer<P,T>(market: &Market<P,T>) : u8{
-        market.officer
+    public fun get_officer<P,T>(list: &MarketList<P,T>) : u8{
+        list.officer
     }
-    public fun get_pool<P,T>(market: &Market<P,T>) : &Pool<P,T>{
-        &market.pool
+    public fun get_pool<P,T>(list: &MarketList<P,T>) : &Pool<P,T>{
+        &list.pool
     }
-    public fun get_opening_price_value<P,T>(market: &Market<P,T>) : u64{
+    public fun get_opening_price_value(market: &Market) : u64{
         market.opening_price
     }
-    public(friend) fun get_pool_mut<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
-        &mut market.pool
+    public(friend) fun get_pool_mut<P,T>(list:&mut MarketList<P,T>) : &mut Pool<P,T>{
+        &mut list.pool
     }
     #[test_only]
-    public fun get_pool_mut_for_testing<P,T>(market:&mut Market<P,T>) : &mut Pool<P,T>{
-        &mut market.pool
+    public fun get_pool_mut_for_testing<P,T>(list: &mut MarketList<P,T>) : &mut Pool<P,T>{
+        &mut list.pool
     }
-    public fun get_size<P,T>(market: &Market<P,T>) : u64{
+    public fun get_size(market: &Market) : u64{
         market.size
     }
     public fun get_denominator() : u64{
@@ -317,19 +314,18 @@ module scale::market{
     public fun get_max_value() : u64 {
         MAX_VALUE
     }
-    public fun get_list_uid(list: &MarketList):&UID {
+    public fun get_list_uid<P,T>(list: &MarketList<P,T>):&UID {
         &list.id
     }
-    public fun get_list_uid_mut(list: &mut MarketList):&mut UID {
+    public fun get_list_uid_mut<P,T>(list: &mut MarketList<P,T>):&mut UID {
         &mut list.id
     }
-    public fun get_matket_total(list: &MarketList):u64 {
+    public fun get_matket_total<P,T>(list: &MarketList<P,T>):u64 {
         list.total
     }
     /// Create a market
-    public fun create_market <T>(
-        list: &mut MarketList,
-        token: &Coin<T>,
+    public fun create_market <P,T>(
+        list: &mut MarketList<P,T>,
         symbol: vector<u8>,
         icon: vector<u8>,
         description: vector<u8>,
@@ -349,7 +345,7 @@ module scale::market{
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
         admin::create_scale_admin(id,ctx);
-        dof::add(&mut list.id, id, Market{
+        dof::add(&mut list.id, symbol, Market{
             id: uid,
             max_leverage: 125,
             insurance_fee: 5,
@@ -365,54 +361,53 @@ module scale::market{
             spread_fee: 1000,
             spread_fee_manual: false,
             officer: 2,
-            pool: pool::create_pool_(token),
             size,
             opening_price,
             pyth_id,
         });
         list.total = list.total + 1;
-        event::create<Market<Scale,T>>(id);
+        event::create<Market>(id);
         id
     }
 
-    public fun update_max_leverage<P,T>(
+    public fun update_max_leverage(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         max_leverage: u8,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(max_leverage > 0 && max_leverage < 255,EInvalidLeverage);
         market.max_leverage = max_leverage;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
-    public fun update_insurance_fee<P,T>(
+    public fun update_insurance_fee(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         insurance_fee: u64,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(insurance_fee > 0 && insurance_fee <= DENOMINATOR, EInvalidInsuranceRate);
         market.insurance_fee = insurance_fee;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
-    public fun update_margin_fee<P,T>(
+    public fun update_margin_fee(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         margin_fee: u64,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(margin_fee > 0 && margin_fee <= DENOMINATOR, EInvalidMarginRate);
         market.margin_fee = margin_fee;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
-    public fun update_fund_fee<P,T>(
+    public fun update_fund_fee(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         fund_fee: u64,
         manual: bool,
         ctx: &mut TxContext
@@ -421,35 +416,35 @@ module scale::market{
         assert!(fund_fee > 0 && fund_fee <= DENOMINATOR, EInvalidFundRate);
         market.fund_fee = fund_fee;
         market.fund_fee_manual = manual;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
-    public fun update_status<P,T>(
+    public fun update_status(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         status: u8,
         ctx: &mut TxContext
     ){
         assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(status > 0 && status <= 3,EInvalidStatus);
         market.status = status;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
-    public fun update_description<P,T>(
+    public fun update_description(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         description: vector<u8>,
         ctx: &mut TxContext
     ){
         assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         market.description = string::utf8(description);
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
-    public fun update_icon<P,T>(
+    public fun update_icon(
         pac:&mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         icon: vector<u8>,
         ctx: &mut TxContext
     ){
@@ -457,12 +452,12 @@ module scale::market{
         assert!(!vector::is_empty(&icon), EIconRequired);
         assert!(vector::length(&icon) < 280, EIconTooLong);
         market.icon = url::new_unsafe_from_bytes(icon);
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
-    public fun update_spread_fee<P,T>(
+    public fun update_spread_fee(
         pac: &mut ScaleAdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         spread_fee: u64,
         manual: bool,
         ctx: &mut TxContext
@@ -471,25 +466,25 @@ module scale::market{
         assert!(spread_fee > 0 && spread_fee <= DENOMINATOR,EInvalidSpread);
         market.spread_fee = spread_fee;
         market.spread_fee_manual = manual;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
-    public fun update_officer<P,T>(
+    public fun update_officer(
         _cap:&mut AdminCap,
-        market:&mut Market<P,T>,
+        market:&mut Market,
         officer: u8,
         _ctx: &mut TxContext
     ){
         assert!(officer > 0 && officer < 4,EInvalidOfficer);
         market.officer = officer;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
 
     /// When the robot fails to update the price, update manually
-    // public fun update_oping_price<P,T>(
+    // public fun update_oping_price(
     //     pac:&mut ScaleAdminCap,
-    //     market:&mut Market<P,T>,
+    //     market:&mut Market,
     //     opening_price: u64,
     //     ctx: &mut TxContext
     // ){
@@ -499,8 +494,8 @@ module scale::market{
     // }
 
     /// The robot triggers at 0:00 every day to update the price of the day
-    public fun trigger_update_opening_price<P,T>(
-        market: &mut Market<P,T>,
+    public fun trigger_update_opening_price(
+        market: &mut Market,
         root: &oracle::Root,
         _ctx: &mut TxContext
     ){
@@ -508,10 +503,11 @@ module scale::market{
         // todo check price time and openg price must gt 0
         assert!(real_price > 0,EInvalidOpingPrice);
         market.opening_price = real_price;
-        event::update<Market<P,T>>(object::uid_to_inner(&market.id));
+        event::update<Market>(object::uid_to_inner(&market.id));
     }
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext){
-        init(ctx);
-    }
+
+    // #[test_only]
+    // public fun init_for_testing(ctx: &mut TxContext){
+    //     init(ctx);
+    // }
 }

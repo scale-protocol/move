@@ -4,7 +4,7 @@ module scale::bond {
     use sui::url::{Self, Url};
     use sui::balance::{Balance};
     use scale::pool::{Self,LSP};
-    use scale::market::{Self,Market};
+    use scale::market::{Self,MarketList};
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self,TxContext};
     use std::vector;
@@ -77,7 +77,7 @@ module scale::bond {
     
     /// Withdraw funds from the current pool and destroy NFT bond certificates
     public fun divestment<P,T>(
-        market: &mut Market<P,T>,
+        list: &mut MarketList<P,T>,
         nft: ScaleBond<P,T>,
         move_token: Option<MoveToken>,
         ctx: &mut TxContext
@@ -92,7 +92,7 @@ module scale::bond {
             issue_expiration_time:_,
             market_id,
         } = nft;
-        assert!(market_id == object::id(market), EInvalidMarketID);
+        assert!(market_id == object::id(list), EInvalidMarketID);
         // todo: check the expiration time .....
         if (option::is_some(&move_token)){
             // todo: Exempt from liquidated damages and give certain rewards if possible
@@ -101,7 +101,7 @@ module scale::bond {
         }else{            
             option::destroy_none(move_token);
         };
-        transfer::public_transfer(pool::remove_liquidity(market::get_pool_mut(market),face_value,ctx),tx_context::sender(ctx));
+        transfer::public_transfer(pool::remove_liquidity(market::get_pool_mut(list),face_value,ctx),tx_context::sender(ctx));
         object::delete(id);
     }
     /// Project side add NFT style
@@ -137,7 +137,7 @@ module scale::bond {
 
     /// Provide current pool funds and obtain NFT bond certificates
     public fun investment<P,T>(
-        market: &mut Market<P,T>,
+        list: &mut MarketList<P,T>,
         token: Coin<T>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -164,11 +164,11 @@ module scale::bond {
             description: mould.description,
             url: mould.url,
             mint_time: 0,
-            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(market),coins,ctx)),
+            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(list),coins,ctx)),
             issue_expiration_time: 0,
-            market_id: object::id(market),
+            market_id: object::id(list),
         },tx_context::sender(ctx));
-        event::update<Market<P,T>>(object::id(market));
+        event::update<MarketList<P,T>>(object::id(list));
     }
 
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
@@ -190,7 +190,7 @@ module scale::bond {
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
     public fun divestment_by_upgrade<P,T>(
-        market: &mut Market<P,T>,
+        market: &mut MarketList<P,T>,
         nft: ScaleBond<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext
