@@ -1,12 +1,12 @@
 [package]
 name = "Oracle"
 version = "0.0.1"
-published-at = "0xc7e8da605ccdf533b26cd7aa92fc52a7aadb1a8b950f86214699004fea98a022"
+published-at = "0x95411f388239f12c4b26ab3ba2d8a2656c1e79d97e68b68103de3e0c85404d8b"
 
 [dependencies]
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
 Sui = { local = "../../sui/crates/sui-framework/packages/sui-framework"}
 
 [addresses]
-oracle =  "0xc7e8da605ccdf533b26cd7aa92fc52a7aadb1a8b950f86214699004fea98a022"
+oracle =  "0x95411f388239f12c4b26ab3ba2d8a2656c1e79d97e68b68103de3e0c85404d8b"
 sui =  "0x2"
