@@ -4,7 +4,7 @@ module scale::bond {
     use sui::url::{Self, Url};
     use sui::balance::{Balance};
     use scale::pool::{Self,LSP};
-    use scale::market::{Self,MarketList};
+    use scale::market::{Self,List};
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self,TxContext};
     use std::vector;
@@ -77,7 +77,7 @@ module scale::bond {
     
     /// Withdraw funds from the current pool and destroy NFT bond certificates
     public fun divestment<P,T>(
-        list: &mut MarketList<P,T>,
+        list: &mut List<P,T>,
         nft: ScaleBond<P,T>,
         move_token: Option<MoveToken>,
         ctx: &mut TxContext
@@ -137,7 +137,7 @@ module scale::bond {
 
     /// Provide current pool funds and obtain NFT bond certificates
     public fun investment<P,T>(
-        list: &mut MarketList<P,T>,
+        list: &mut List<P,T>,
         token: Coin<T>,
         factory: &mut ScaleNFTFactory,
         name: vector<u8>,
@@ -168,7 +168,7 @@ module scale::bond {
             issue_expiration_time: 0,
             market_id: object::id(list),
         },tx_context::sender(ctx));
-        event::update<MarketList<P,T>>(object::id(list));
+        event::update<List<P,T>>(object::id(list));
     }
 
     /// Generate transfer vouchers for NFT, transfer funds to new contracts when upgrading contracts, 
@@ -190,7 +190,7 @@ module scale::bond {
     /// This may happen during version upgrade, and no penalty will be incurred
     /// run in v2
     public fun divestment_by_upgrade<P,T>(
-        market: &mut MarketList<P,T>,
+        market: &mut List<P,T>,
         nft: ScaleBond<P,T>,
         move_token: UpgradeMoveToken,
         ctx: &mut TxContext

@@ -11,7 +11,7 @@ module scale::account {
     use scale::event;
 
     friend scale::position;
-    friend scale::enter;
+    // friend scale::enter;
         
     const EInsufficientCoins: u64 = 1;
     const ENotOwner: u64 = 2;

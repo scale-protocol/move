@@ -43,7 +43,7 @@ module scale::market{
         18446744073709551615 / 10000
     };
 
-    struct MarketList<phantom P, phantom T> has key,store {
+    struct List<phantom P, phantom T> has key,store {
         id: UID,
         total: u64,
         /// Market operator, 
@@ -90,7 +90,7 @@ module scale::market{
         description: String,
         /// Basic size of transaction pair contract
         /// Constant 1 in the field of encryption
-        size: u64,
+        unit_size: u64,
         /// The price at 0 o'clock in the utc of the current day, which is used to calculate the spread_fee
         opening_price: u64,
         pyth_id: ID,
@@ -103,16 +103,16 @@ module scale::market{
         spread: u64,
     }
 
-    public fun create_market_list<T>(token: &Coin<T>, ctx: &mut TxContext): ID{
+    public fun create_list<T>(token: &Coin<T>, ctx: &mut TxContext): ID{
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
-        transfer::share_object( MarketList{
+        transfer::share_object( List{
             id: uid,
             total: 0,
             officer: 2,
             pool: pool::create_pool_(token),
         });
-        event::create<MarketList<Scale,T>>(id);
+        event::create<List<Scale,T>>(id);
         id
     }
 
@@ -289,24 +289,24 @@ module scale::market{
     public fun get_description(market: &Market) : &String{
         &market.description
     }
-    public fun get_officer<P,T>(list: &MarketList<P,T>) : u8{
+    public fun get_officer<P,T>(list: &List<P,T>) : u8{
         list.officer
     }
-    public fun get_pool<P,T>(list: &MarketList<P,T>) : &Pool<P,T>{
+    public fun get_pool<P,T>(list: &List<P,T>) : &Pool<P,T>{
         &list.pool
     }
     public fun get_opening_price_value(market: &Market) : u64{
         market.opening_price
     }
-    public(friend) fun get_pool_mut<P,T>(list:&mut MarketList<P,T>) : &mut Pool<P,T>{
+    public(friend) fun get_pool_mut<P,T>(list:&mut List<P,T>) : &mut Pool<P,T>{
         &mut list.pool
     }
     #[test_only]
-    public fun get_pool_mut_for_testing<P,T>(list: &mut MarketList<P,T>) : &mut Pool<P,T>{
+    public fun get_pool_mut_for_testing<P,T>(list: &mut List<P,T>) : &mut Pool<P,T>{
         &mut list.pool
     }
-    public fun get_size(market: &Market) : u64{
-        market.size
+    public fun get_unit_size(market: &Market) : u64{
+        market.unit_size
     }
     public fun get_denominator() : u64{
         DENOMINATOR
@@ -314,22 +314,22 @@ module scale::market{
     public fun get_max_value() : u64 {
         MAX_VALUE
     }
-    public fun get_list_uid<P,T>(list: &MarketList<P,T>):&UID {
+    public fun get_list_uid<P,T>(list: &List<P,T>):&UID {
         &list.id
     }
-    public fun get_list_uid_mut<P,T>(list: &mut MarketList<P,T>):&mut UID {
+    public fun get_list_uid_mut<P,T>(list: &mut List<P,T>):&mut UID {
         &mut list.id
     }
-    public fun get_matket_total<P,T>(list: &MarketList<P,T>):u64 {
+    public fun get_matket_total<P,T>(list: &List<P,T>):u64 {
         list.total
     }
     /// Create a market
     public fun create_market <P,T>(
-        list: &mut MarketList<P,T>,
+        list: &mut List<P,T>,
         symbol: vector<u8>,
         icon: vector<u8>,
         description: vector<u8>,
-        size: u64,
+        unit_size: u64,
         opening_price: u64,
         pyth_id: ID,
         ctx: &mut TxContext
@@ -340,7 +340,7 @@ module scale::market{
         assert!(vector::length(&icon) < 280, EIconTooLong);
         assert!(vector::length(&description) < 180, EDescriptionTooLong);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
-        assert!(size > 0,EInvalidSize);
+        assert!(unit_size > 0,EInvalidSize);
         assert!(opening_price > 0,EInvalidOpeningPrice);
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
@@ -361,7 +361,7 @@ module scale::market{
             spread_fee: 1000,
             spread_fee_manual: false,
             officer: 2,
-            size,
+            unit_size,
             opening_price,
             pyth_id,
         });

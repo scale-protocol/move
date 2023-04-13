@@ -1,6 +1,12 @@
 module scale::event {
     use sui::event;
     use sui::object::ID;
+
+    friend scale::position;
+    friend scale::bond;
+    friend scale::account;
+    friend scale::market;
+
     struct Created<phantom T> has copy, drop {
         id: ID,
     }
@@ -10,13 +16,13 @@ module scale::event {
     struct Delete<phantom T> has copy, drop {
         id: ID,
     }
-    public fun create<T>(id: ID) {
+    public(friend) fun create<T>(id: ID) {
         event::emit(Created<T> { id: id })
     }
-    public fun update<T>(id: ID) {
+    public(friend) fun update<T>(id: ID) {
         event::emit(Update<T> { id: id })
     }
-    public fun delete<T>(id: ID) {
+    public(friend) fun delete<T>(id: ID) {
         event::emit(Delete<T> { id: id })
     }
 }
