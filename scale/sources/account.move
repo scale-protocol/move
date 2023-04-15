@@ -55,7 +55,7 @@ module scale::account {
         direction: u8,
     }
 
-    public fun new_PFK(market_id: ID,account_id: ID, direction: u8):  PFK {
+    public fun new_PFK(market_id: ID, account_id: ID, direction: u8):  PFK {
         PFK {
             market_id,
             account_id,
