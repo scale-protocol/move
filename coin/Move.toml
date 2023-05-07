@@ -1,12 +1,12 @@
 [package]
 name = "SuiCoin"
 version = "0.0.1"
-published-at = "0xc8d5e09170d990d9c0fa4885be0f1fc891b3ad0b886945b46d783cf476425c81"
+# published-at = "0x263bd86d77ea176ae720912c23f3ad42b80eeccaa738fb53f56e92bca268ff0b"
 
 [dependencies]
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
 Sui = { local = "../../sui/crates/sui-framework/packages/sui-framework"}
 
 [addresses]
-sui_coin =  "0xc8d5e09170d990d9c0fa4885be0f1fc891b3ad0b886945b46d783cf476425c81"
+sui_coin =  "0x0"
 sui =  "0x2"
