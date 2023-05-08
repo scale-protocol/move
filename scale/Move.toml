@@ -11,5 +11,5 @@ Oracle = { local = "../oracle" }
 [addresses]
 scale =  "0x0"
 sui =  "0x2"
-# sui_coin = "0x6f6cb10b0fe360a53a81baa38d628d9d4db867ea22219c287fcf764da1423763"
-# oracle = "0x720d632ca74d0fad720e8f17cf23b9730df801e36d117035defaf159a1ecf57d"
+sui_coin = "0xf2e07f814fcd4e37cc1acd7d7b335814cf6fbe4fe7f9d5483c814082c16556af"
+oracle = "0x63f930881f4207460a67846db62bc89a82d87570a3dc2bedb546b30bd4c6ff19"
