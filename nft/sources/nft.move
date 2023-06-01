@@ -51,7 +51,7 @@ module scale_nft::nft{
             utf8(b"{img_url}"),
             utf8(b"{description}"),
             utf8(b"https://scale.exchange"),
-            utf8(b"scale protocol team"),
+            utf8(b"Scale Protocol Team"),
         ];
         let publisher = package::claim(otw, ctx);
         let display = display::new_with_fields<ScaleProtocol>(

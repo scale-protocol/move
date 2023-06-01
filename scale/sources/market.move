@@ -74,9 +74,9 @@ module scale::market{
         /// Take the value of spread_fee when this value is true
         spread_fee_manual: bool,
         /// Market status:
-        /// 1 Normal;
+        /// 1. Normal;
         /// 2. Lock the market, allow closing settlement and not open positions;
-        /// 3 The market is frozen, and opening and closing positions are not allowed.
+        /// 3. The market is frozen, and opening and closing positions are not allowed.
         status: u8,
         /// Total amount of long positions in the market
         long_position_total: u64,

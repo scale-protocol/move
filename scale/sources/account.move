@@ -33,6 +33,7 @@ module scale::account {
         /// Balance of user account (maintain the deposit,
         /// and the balance here will be deducted when the deposit used in the cross position mode is deducted)
         balance: Balance<T>,
+        isolated_balance: Balance<T>,
         /// User settled profit
         profit: I64,
         /// Total amount of margin used.
@@ -123,9 +124,9 @@ module scale::account {
         vec_map::insert(&mut account.cross_position_idx, pfk, id);
     }
     public(friend) fun remove_pfk_id<T>(account: &mut Account<T>,pfk: &PFK) {
-        // if (!vec_map::contains(&account.cross_position_idx, pfk)) {
-        //     return
-        // };
+        if (!vec_map::contains(&account.cross_position_idx, pfk)) {
+            return
+        };
         vec_map::remove(&mut account.cross_position_idx, pfk);
     }
 
@@ -175,11 +176,19 @@ module scale::account {
     public(friend) fun set_offset<T>(account: &mut Account<T>, offset: u64) {
         account.offset = offset;
     }
-    public(friend) fun join_balance<T>(account: &mut Account<T>, balance: Balance<T>) {
-        balance::join(&mut account.balance, balance);
+    public(friend) fun join_balance<T>(account: &mut Account<T>, type:u8, balance: Balance<T>) {
+        if (type == 1){
+            balance::join(&mut account.balance, balance);
+        }else{
+            balance::join(&mut account.isolated_balance, balance);
+        }
     }
-    public(friend) fun split_balance<T>(account: &mut Account<T>, amount: u64): Balance<T> {
-        balance::split(&mut account.balance, amount)
+    public(friend) fun split_balance<T>(account: &mut Account<T>, type: u8, amount: u64): Balance<T> {
+        if ( type == 1){
+            balance::split(&mut account.balance, amount)
+        }else{
+            balance::split(&mut account.isolated_balance, amount)
+        }
     }
     public(friend) fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
         i64::inc_u64(&mut account.profit, profit);
@@ -239,7 +248,6 @@ module scale::account {
     }
 
     public fun create_account<T>(
-        _token: &Coin<T>,
         ctx: &mut TxContext
     ):ID {
         let uid = object::new(ctx);
@@ -249,6 +257,7 @@ module scale::account {
             owner: tx_context::sender(ctx),
             offset: 0,
             balance: balance::zero<T>(),
+            isolated_balance: balance::zero<T>(),
             profit: i64::new(0,false),
             margin_total: 0,
             margin_cross_total: 0,

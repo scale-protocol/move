@@ -1,6 +1,5 @@
 module scale::position {
     use sui::object::{Self,UID,ID};
-    use sui::coin::{Self,Coin};
     use sui::balance::{Self,Balance};
     use scale::market::{Self,Market,Price,List};
     use scale::account::{Self,Account,PFK};
@@ -32,6 +31,7 @@ module scale::position {
     const EInvalidAccountId:u64 = 615;
     const ERiskControlNegativeEquity:u64 = 616;
     const EBurstConditionsNotMet:u64 = 617;
+    const EInvalidAutoOpenPrice:u64 = 618;
 
     const MAX_U64_VALUEU64: u64 = 18446744073709551615;
     const MAX_U64_VALUEU128: u128 = 18446744073709551615;
@@ -52,16 +52,20 @@ module scale::position {
 
     struct Position<phantom T> has key,store {
         id: UID,
+        margin_balance: Balance<T>,
+        info: Info,
+    }
+
+    struct Info has copy,store {
         offset: u64,
         /// Initial position margin
         margin: u64,
         /// Current actual margin balance of isolated
-        margin_balance: Balance<T>,
         /// leverage size
         leverage: u8,
         /// 1 cross position mode, 2 isolated position modes.
         type: u8,
-        /// Position status: 1 normal, 2 normal closing, 3 Forced closing, 4 pending.
+        /// Position status: 1 normal, 2 normal closing, 3 Forced closing, 4 pending , 5 partial closeing , 6 auto closing
         status: u8,
         /// 1 buy long, 2 sell short.
         direction: u8,
@@ -100,6 +104,7 @@ module scale::position {
         open_operator: address,
         /// Account number of warehouse closing operator (user manual, or clearing robot Qiangping)
         close_operator: address,
+        symbol: vector<u8>,
         /// Market account number of the position
         market_id: ID,
         account_id: ID,
@@ -111,83 +116,83 @@ module scale::position {
         &mut position.id
     }
     public fun get_offset<T>(position: &Position<T>) :u64 {
-        position.offset
+        position.info.offset
     }
     public fun get_margin<T>(position: &Position<T>) :u64 {
-        position.margin
+        position.info.margin
     }
     public fun get_margin_balance<T>(position: &Position<T>) :u64 {
         balance::value(&position.margin_balance)
     }
     public fun get_leverage<T>(position: &Position<T>) :u8 {
-        position.leverage
+        position.info.leverage
     }
     public fun get_type<T>(position: &Position<T>) :u8 {
-        position.type
+        position.info.type
     }
     public fun get_status<T>(position: &Position<T>) :u8 {
-        position.status
+        position.info.status
     }
     public fun get_direction<T>(position: &Position<T>) :u8 {
-        position.direction
+        position.info.direction
     }
     public fun get_unit_size_value<T>(position: &Position<T>) :u64 {
-        position.unit_size
+        position.info.unit_size
     }
     public fun get_lot<T>(position: &Position<T>) :u64 {
-        position.lot
+        position.info.lot
     }
     public fun get_open_price<T>(position: &Position<T>) :u64 {
-        position.open_price
+        position.info.open_price
     }
     public fun get_open_spread<T>(position: &Position<T>) :u64 {
-        position.open_spread
+        position.info.open_spread
     }
     public fun get_open_real_price<T>(position: &Position<T>) :u64 {
-        position.open_real_price
+        position.info.open_real_price
     }
     public fun get_close_price<T>(position: &Position<T>) :u64 {
-        position.close_price
+        position.info.close_price
     }
     public fun get_close_spread<T>(position: &Position<T>) :u64 {
-        position.close_spread
+        position.info.close_spread
     }
     public fun get_close_real_price<T>(position: &Position<T>) :u64 {
-        position.close_real_price
+        position.info.close_real_price
     }
     public fun get_profit<T>(position: &Position<T>) :&I64 {
-        &position.profit
+        &position.info.profit
     }
 
     public fun get_stop_surplus_price<T>(position: &Position<T>) :u64 {
-        position.stop_surplus_price
+        position.info.stop_surplus_price
     }
     public fun get_stop_loss_price<T>(position: &Position<T>) :u64 {
-        position.stop_loss_price
+        position.info.stop_loss_price
     }
     public fun get_create_time<T>(position: &Position<T>) :u64 {
-        position.create_time
+        position.info.create_time
     }
     public fun get_open_time<T>(position: &Position<T>) :u64 {
-        position.open_time
+        position.info.open_time
     }
     public fun get_close_time<T>(position: &Position<T>) :u64 {
-        position.close_time
+        position.info.close_time
     }
     public fun get_validity_time<T>(position: &Position<T>) :u64 {
-        position.validity_time
+        position.info.validity_time
     }
     public fun get_open_operator<T>(position: &Position<T>) :&address {
-        &position.open_operator
+        &position.info.open_operator
     }
     public fun get_close_operator<T>(position: &Position<T>) :&address {
-        &position.close_operator
+        &position.info.close_operator
     }
     public fun get_market_id<T>(position: &Position<T>) :&ID {
-        &position.market_id
+        &position.info.market_id
     }
     public fun get_account_id<T>(position: &Position<T>) :&ID {
-        &position.account_id
+        &position.info.account_id
     }
     public fun get_denominator128<T>() :u64 {
         (DENOMINATORU128 as u64)
@@ -196,11 +201,11 @@ module scale::position {
         DENOMINATOR
     }
     public fun get_auto_open_price<T>(position: &Position<T>) :u64 {
-        position.auto_open_price
+        position.info.auto_open_price
     }
 
     public fun get_fund_size<T>(position: &Position<T>) :u64 {
-        fund_size(size(position.unit_size , position.lot) , position.open_real_price)
+        fund_size(size(position.info.unit_size , position.info.lot) , position.info.open_real_price)
     }
 
     public fun fund_size(size :u64, price: u64) :u64 {
@@ -210,7 +215,7 @@ module scale::position {
     }
 
     public fun get_size<T>(position: &Position<T>) :u64{
-        size(position.lot,position.unit_size)
+        size(position.info.lot,position.info.unit_size)
     }
 
     fun size(lot: u64, unit_size:u64) :u64 {
@@ -222,7 +227,7 @@ module scale::position {
     public fun get_margin_size<T>(market: &Market,position: &Position<T>) :u64 {
         margin_size(
             get_fund_size<T>(position),
-            position.leverage,
+            position.info.leverage,
             market::get_margin_fee(market),
         )
     }
@@ -232,7 +237,7 @@ module scale::position {
         (r as u64)
     }
 
-    fun inc_margin<T>(
+    fun inc_margin_fund<T>(
         market: &mut Market,
         account: &mut Account<T>,
         position_type: u8,
@@ -262,7 +267,7 @@ module scale::position {
         };
     }
 
-    fun dec_margin<T>(
+    fun dec_margin_fund<T>(
         market: &mut Market,
         account: &mut Account<T>,
         position_type: u8,
@@ -301,16 +306,17 @@ module scale::position {
         let n = vector::length(&ids);
         let i = 0;
         let pl = i64::new(0,false);
+        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
         while ( i < n ){
             let id = vector::borrow(&ids,i);
             let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
-            if ( ps.status == 1 ){
-                let market: &Market = dof::borrow(market::get_list_uid(list),ps.market_id);
+            if ( ps.info.status == 1 ){
+                let market: &Market = dof::borrow(market::get_list_uid(list),ps.info.market_id);
                 let price = market::get_price(market,root);
                 let unit_size = market::get_unit_size(market);
-                let size = size(ps.lot,unit_size);
+                let size = size(ps.info.lot,unit_size);
                 let fund_size = fund_size(size,market::get_real_price(&price));
-                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(list, market, fund_size, ps.direction), &get_pl<T>(size, fund_size, ps.direction, &price)));
+                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market), &get_pl<T>(size, fund_size, ps.info.direction, &price)));
             };
             i = i + 1;
         };
@@ -326,26 +332,25 @@ module scale::position {
         }
     }
 
-    public fun get_position_fund_fee<P,T>(
-        list: &List<P,T>,
-        market: &Market,
+    public fun get_position_fund_fee(
+        total_liquidity: u64,
         fund_size: u64,
         direction: u8,
+        market: &Market,
     ) :I64 {
         let dominant_direction = market::get_dominant_direction(market);
         if (dominant_direction == 3){
             return i64::new(0,false)
         };
-        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
         if (direction == dominant_direction) {
-            i64::new(fund_size * market::get_fund_fee(market,total_liquidity) / market::get_denominator(),true)
+            i64::new(fund_size * market::get_fund_fee(market,total_liquidity) / DENOMINATOR,true)
         } else {
             let max = market::get_max_position_total(market);
             let min = market::get_min_position_total(market);
             if (min == 0){
                 return i64::new(0,false)
             };
-            i64::new(max * market::get_fund_fee(market,total_liquidity) / market::get_denominator() * fund_size / min,false)
+            i64::new(max * market::get_fund_fee(market,total_liquidity) /DENOMINATOR * fund_size / min,false)
         }
     }
 
@@ -377,25 +382,25 @@ module scale::position {
     ) :(u64,ID) {
         let id = account::get_pfk_id(account,pfk);
         let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),id);
-        assert!(position.status == 1, EInvalidPositionStatus);
-        let size_old = size(position.lot,position.unit_size);
-        let fund_size_old = fund_size(size_old,position.open_real_price);
+        assert!(position.info.status == 1, EInvalidPositionStatus);
+        let size_old = size(position.info.lot,position.info.unit_size);
+        let fund_size_old = fund_size(size_old,position.info.open_real_price);
         let new_real_price = ((fund_size_old as u128) + (fund_size as u128)) * DENOMINATORU128 / ((size + size_old) as u128);
         // assert!(new_real_price <= MAX_U64_VALUEU128 ,ENumericOverflow);
         let new_price = market::get_price_by_real(market, (new_real_price as u64));
-        position.open_price = market::get_direction_price(&new_price, direction);
-        position.open_spread = market::get_spread(&new_price);
-        position.open_real_price = market::get_real_price(&new_price);
-        position.lot = position.lot + lot;
-        position.leverage = leverage;
-        position.open_time = unix_time;
-        let margin_old = position.margin;
-        let position_type = position.type;
+        position.info.open_price = market::get_direction_price(&new_price, direction);
+        position.info.open_spread = market::get_spread(&new_price);
+        position.info.open_real_price = market::get_real_price(&new_price);
+        position.info.lot = position.info.lot + lot;
+        position.info.leverage = leverage;
+        position.info.open_time = unix_time;
+        let margin_old = position.info.margin;
+        let position_type = position.info.type;
         let fund_size_new =  get_fund_size(position);
         let margin_new = margin_size(fund_size,leverage,margin_fee);
-        position.margin = margin_new;
-        dec_margin<T>(market, account, position_type, direction, margin_old, fund_size_old);
-        inc_margin<T>(market, account, position_type, direction, margin_new,fund_size_new);
+        position.info.margin = margin_new;
+        dec_margin_fund<T>(market, account, position_type, direction, margin_old, fund_size_old);
+        inc_margin_fund<T>(market, account, position_type, direction, margin_new,fund_size_new);
         (margin_new,id)
     }
 
@@ -449,91 +454,100 @@ module scale::position {
         auto_open_price: u64,
         stop_surplus_price: u64,
         stop_loss_price: u64,
+        symbol: vector<u8>,
         market: &mut Market,
         account: &mut Account<T>,
         root: &oracle::Root,
         c: &Clock,
         ctx: &mut TxContext
-    ):(u64,u64,u64,u64,ID){
-        assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
-        check_open_position<T>(market,lot,leverage,1,direction);
+    ):(u64,u64,u64,u64,u64,ID){
         let price = market::get_price(market, root);
         let unit_size = market::get_unit_size(market);
-        let pfk = account::new_PFK(object::id(market),object::id(account),direction);
         let size = size(lot,unit_size);
         let real_price = market::get_real_price(&price);
         let fund_size = fund_size(size,real_price);
         let margin_fee = market::get_margin_fee(market);
+        let insurance_fee = market::get_insurance_fee(market);
+        let spread_fee = market::get_spread_fee(market, real_price);
         let unix_time = clock::timestamp_ms(c);
-        if ( type == 1 && account::contains_pfk(account,&pfk) ){
+        let pfk = account::new_PFK(object::id(market),object::id(account),direction);
+        if (type == 1 && auto_open_price == 0){
             let (margin, id) = merge_cross_position<T>(market,account,&pfk,lot,leverage,direction,margin_fee,size,fund_size,unix_time);
             event::update<Position<T>>(id);
             event::update<Account<T>>(object::id(account));
             event::update<Market>(object::id(market));
-            return (margin,size,fund_size,real_price, id)
+            return (margin,size,fund_size,insurance_fee,spread_fee,id)
         };
         let offset = account::get_offset(account) + 1;
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
         let position = Position<T> {
             id: uid,
-            offset,
-            margin: 0,
             margin_balance: balance::zero<T>(),
-            leverage,
-            type,
-            status: 1,
-            direction,
-            unit_size,
-            lot,
-            open_price: market::get_direction_price(&price, direction),
-            open_spread : market::get_spread(&price),
-            open_real_price: real_price,
-            close_price: 0,
-            close_spread: 0,
-            close_real_price: 0,
-            profit: i64::new(0,false),
-            stop_surplus_price,
-            stop_loss_price,
-            auto_open_price,
-            create_time: unix_time,
-            open_time: unix_time,
-            close_time: 0,
-            validity_time: 0,
-            open_operator: tx_context::sender(ctx),
-            close_operator: @0x0,
-            market_id: object::id(market),
-            account_id: object::id(account),
+            info: Info{
+                offset,
+                margin: 0,
+                leverage,
+                type,
+                status: 1,
+                direction,
+                unit_size,
+                lot,
+                open_price: market::get_direction_price(&price, direction),
+                open_spread : market::get_spread(&price),
+                open_real_price: real_price,
+                close_price: 0,
+                close_spread: 0,
+                close_real_price: 0,
+                profit: i64::new(0,false),
+                stop_surplus_price,
+                stop_loss_price,
+                auto_open_price,
+                create_time: unix_time,
+                open_time: unix_time,
+                close_time: 0,
+                validity_time: 0,
+                open_operator: tx_context::sender(ctx),
+                close_operator: @0x0,
+                symbol,
+                market_id: object::id(market),
+                account_id: object::id(account),
+            }
         };
         let offset = account::get_offset(account) + 1;
         if (auto_open_price > 0) {
-            position.status = 4;
-            position.open_time = 0;
+            position.info.status = 4;
+            position.info.open_time = 0;
         };
         let margin = margin_size(
             fund_size,
             leverage,
             margin_fee
         );
-        position.margin = margin;
+        position.info.margin = margin;
         account:: set_offset(account, offset);
-        inc_margin<T>(market, account, type, direction, margin, fund_size);
-        dof::add(account::get_uid_mut(account),id,position);
-        if (type == 1){
-            account::add_pfk_id(account, pfk, id);
-        }else{
-            account::add_isolated_position_id(account,id);
+        if ( auto_open_price == 0 ){
+            inc_margin_fund<T>(market, account, type, direction, margin, fund_size);
         };
+        if (type == 1 ){
+            account::add_pfk_id(account, pfk, id);
+        } else {
+            balance::join(&mut position.margin_balance, account::split_balance(account,type, margin + insurance_fee + spread_fee ));
+            account::add_isolated_position_id(account, id);
+        };
+        dof::add(account::get_uid_mut(account),id,position);
         event::create<Position<T>>(id);
         event::update<Account<T>>(object::id(account));
         event::update<Market>(object::id(market));
-        (margin,size,fund_size,real_price,id)
+        (margin,size,fund_size,insurance_fee,spread_fee,id)
     }
-    public fun open_cross_position<P,T>(
+
+    public fun open_position<P,T>(
         symbol: vector<u8>,
         lot: u64,
         leverage: u8,
         direction: u8,
+        type: u8,
         auto_open_price: u64,
         stop_surplus_price: u64,
         stop_loss_price: u64,
@@ -544,23 +558,27 @@ module scale::position {
         ctx: &mut TxContext
     ): ID {
         let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
+        assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
+        check_open_position<T>(market,lot,leverage,1,direction);
         let pre_exposure = market::get_exposure(market);
-        let (margin,size,fund_size,real_price,id) = create_position<T>(
-            lot,
-            leverage,
-            direction,
-            1u8,
-            auto_open_price,
-            stop_surplus_price,
-            stop_loss_price,
-            market,
-            account,
-            root,
-            c,
-            ctx
-        );
-        let insurance_fee = market::get_insurance_fee(market);
-        let spread_fee = market::get_spread_fee(market, real_price);
+        let (margin,size,fund_size,insurance_fee,spread_fee,id) = create_position<T>(
+                lot,
+                leverage,
+                direction,
+                1u8,
+                auto_open_price,
+                stop_surplus_price,
+                stop_loss_price,
+                symbol,
+                market,
+                account,
+                root,
+                c,
+                ctx
+            );
+        if ( auto_open_price > 0 ){
+            return id
+        };
         let exposure = market::get_exposure(market);
         let position_total = market::get_curr_position_total(market,direction);
         let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
@@ -571,16 +589,18 @@ module scale::position {
             exposure,
             position_total
         );
-        let equity = get_equity<P,T>(
-            list,
-            account,
-            root,
-        );
-        check_margin<T>(account,&equity);
+        if ( type == 1 ){
+            let equity = get_equity<P,T>(
+                list,
+                account,
+                root,
+            );
+            check_margin<T>(account,&equity);
+        };
         event::update<List<P,T>>(object::id(list));
         let p = market::get_pool_mut<P,T>(list);
         // collect insurance
-        let insurance_balance = account::split_balance(account, get_insurance_amount(margin,insurance_fee));
+        let insurance_balance = account::split_balance(account,type, get_insurance_amount(margin,insurance_fee));
         pool::join_insurance_balance<P,T>(p,insurance_balance);
         // collect spread
         let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
@@ -588,88 +608,60 @@ module scale::position {
         id
     }
 
-    public fun open_isolated_position<P,T>(
-        symbol: vector<u8>,
-        lot: u64,
-        leverage: u8,
-        direction: u8,
-        auto_open_price: u64,
-        stop_surplus_price: u64,
-        stop_loss_price: u64,
-        token: &mut Coin<T>,
-        list: &mut List<P,T>,
-        account: &mut Account<T>,
-        root: &oracle::Root,
-        c: &Clock,
-        ctx: &mut TxContext
-    ): ID{
-        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
-        let pre_exposure = market::get_exposure(market);
-        let (margin,size,fund_size,real_price,id) = create_position<T>(
-            lot,
-            leverage,
-            direction,
-            1u8,
-            auto_open_price,
-            stop_surplus_price,
-            stop_loss_price,
-            market,
-            account,
-            root,
-            c,
-            ctx
-        );
-        let insurance_fee = market::get_insurance_fee(market);
-        let spread_fee = market::get_spread_fee(market, real_price);
-        let exposure = market::get_exposure(market);
-        let position_total = market::get_curr_position_total(market,direction);
-        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
-
-        risk_assertion(
-            total_liquidity,
+    fun split_position<T>(ps: &mut Position<T>, lot: u64,margin_fee: u64, ctx: &mut TxContext): Position<T> {
+        let size = size(lot,ps.info.unit_size);
+        let fund_size = fund_size(size,ps.info.open_real_price);
+        let margin = margin_size(
             fund_size,
-            pre_exposure,
-            exposure,
-            position_total
+            ps.info.leverage,
+            margin_fee
         );
-        let equity = i64::new(margin,false);
-        check_margin<T>(account, &equity);
-        event::update<List<P,T>>(object::id(list));
-        let p = market::get_pool_mut<P,T>(list);
-        // collect insurance
-        let insurance_balance = coin::split(token, get_insurance_amount(margin,insurance_fee),ctx);
-        pool::join_insurance_balance<P,T>(p,coin::into_balance(insurance_balance));
-        // collect spread
-        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
-        pool::join_spread_profit<P,T>(p,spread_balance);
-        id
+        let new_position = Position {
+            id: object::new(ctx),
+            margin_balance: balance::zero<T>(),
+            info: ps.info,
+        };
+        ps.info.lot = ps.info.lot - lot;
+        ps.info.margin = ps.info.margin - margin;
+
+        new_position.info.lot = lot;
+        new_position.info.margin = margin;
+        if (ps.info.type == 2u8) {
+            balance::join(&mut new_position.margin_balance,balance::split(&mut ps.margin_balance, margin));
+        };
+        new_position
     }
 
     fun settlement_pl<P,T>(
-        list:&mut List<P,T>,
+        close_operator: address,
+        list: &mut List<P,T>,
         market: &mut Market,
         account: &mut Account<T>,
         root: &oracle::Root,
         position: &mut Position<T>,
-        close_operator: address,
     ){
         let price = market::get_price(market,root);
-        let size = size(position.lot,position.size);
+        let real_price = market::get_real_price(&price);
+        let size = size(position.info.lot,position.info.unit_size);
+        let spread_fee = market::get_spread_fee(market, real_price);
+        let fund_size = fund_size(size,market::get_real_price(&price));
         
-        position.close_spread = market::get_spread(&price);
-        position.close_price = market::get_direction_price(&price,position.direction);
-        position.close_real_price = market::get_real_price(&price);
+        position.info.close_spread = market::get_spread(&price);
+        position.info.close_price = market::get_direction_price(&price,position.info.direction);
+        position.info.close_real_price = market::get_real_price(&price);
         // todo: update close_time
-        position.close_time = 0;
-        position.close_operator = close_operator;
-
-        collect_spread<P,T>(list,position.close_spread,size);
-        let pl = get_pl(position,&price);
+        position.info.close_time = 0;
+        position.info.close_operator = close_operator;
+        let p = market::get_pool_mut<P,T>(list);
+        // collect spread
+        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
+        pool::join_spread_profit<P,T>(p,spread_balance);
+        let pl = get_pl<T>(size, fund_size, position.info.direction, &price);
         if (!i64::is_negative(&pl)){
-            account::join_balance(account,pool::split_profit_balance(market::get_pool_mut(list),i64::get_value(&pl)));
+            account::join_balance(account, position.info.type, pool::split_profit_balance(market::get_pool_mut(list),i64::get_value(&pl)));
         }else{
-            let loss = if (position.type == 1){
-                account::split_balance(account,i64::get_value(&pl))
+            let loss = if (position.info.type == 1){
+                account::split_balance(account,position.info.type,i64::get_value(&pl))
             }else{
                 balance::split(&mut position.margin_balance,i64::get_value(&pl))
             };
@@ -677,18 +669,17 @@ module scale::position {
         };
         let margin_balance_value = balance::value(&position.margin_balance);
         if (margin_balance_value > 0){
-            account::join_balance(account,balance::split(&mut position.margin_balance,margin_balance_value));
+            account::join_balance(account,position.info.type,balance::split(&mut position.margin_balance,margin_balance_value));
         };
-        
         if (i64::is_negative(&pl)){
             account::dec_profit(account,i64::get_value(&pl));
         }else{
             account::inc_profit(account,i64::get_value(&pl));
         };
-        position.profit = pl;
-        dec_margin<P,T>(market,account,position.type,position.direction,position.margin,get_fund_size(position));
-        if (position.type == 1) {
-            let pfk = account::new_PFK(position.market_id,position.account_id,position.direction);
+        position.info.profit = pl;
+        dec_margin_fund<T>(market, account, position.info.type, position.info.direction, position.info.margin, fund_size);
+        if (position.info.type == 1) {
+            let pfk = account::new_PFK(position.info.market_id,position.info.account_id,position.info.direction);
             account::remove_pfk_id(account,&pfk);
         }else{
             account::remove_isolated_position_id(account,object::uid_to_inner(&position.id));
@@ -696,7 +687,6 @@ module scale::position {
     }
 
     public fun close_position<P,T>(
-        symbol: vector<u8>,
         position_id: ID,
         lot: u64,
         root: &oracle::Root,
@@ -707,17 +697,243 @@ module scale::position {
         let owner = tx_context::sender(ctx);
         assert!(owner == account::get_owner(account), ENoPermission);
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
-        assert!(position.status == 1, EInvalidPositionStatus);
-        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
-        assert!(market::get_status(market) != 3, EInvalidMarketStatus);
-        assert!(object::id(market) == position.market_id, EInvalidMarketId);
-        assert!(object::id(account) == position.account_id, EInvalidAccountId);
-        position.status = 2;
-        settlement_pl<P,T>(list,market,account,root, &mut position,owner);
+        assert!(lot >= 0 && lot <= position.info.lot, EInvalidLot);
+        assert!(position.info.status == 1, EInvalidPositionStatus);
+        let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
+        assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
+        // assert!(object::id(&market) == position.info.market_id, EInvalidMarketId);
+        assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
+        // partial close
+        if (lot < position.info.lot && lot > 0){
+            let new_position = split_position<T>(&mut position,lot,market::get_margin_fee(&market),ctx);
+            new_position.info.status = 5;
+            settlement_pl<P,T>(owner,list,&mut market, account, root, &mut new_position);
+            let new_position_id = object::id(&new_position);
+            event::create<Position<T>>(new_position_id);
+            dof::add(account::get_uid_mut(account),new_position_id,new_position);
+        }else{
+            position.info.status = 2;
+            settlement_pl<P,T>(owner,list,&mut market, account, root, &mut position);
+        };
         // transfer::transfer(position,owner);
         event::update<List<P,T>>(object::id(list));
+        event::update<Market>(object::id(&market));
+        event::update<Account<T>>(object::id(account));
+        event::update<Position<T>>(position_id);
+        dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
+        dof::add(account::get_uid_mut(account),position_id,position);
+    }
+    
+    public fun burst_position<P,T>(        
+        position_id: ID,
+        list: &mut List<P,T>,
+        account: &mut Account<T>,
+        root: &oracle::Root,
+        ctx: &mut TxContext,
+    ){
+        let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
+        assert!(position.info.status == 1, EInvalidPositionStatus);
+        assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
+        let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
+        assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
+        // assert!(object::id(&market) == position.info.market_id, EInvalidMarketId);
+        // assert
+        {
+            assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
+            if (position.info.type == 1){
+                let equity = get_equity<P,T>(
+                    list,
+                    account,
+                    root,
+                );
+                if (!i64::is_negative(&equity)){
+                    let margin_used = account::get_margin_used(account);
+                    if (margin_used > 0) {
+                        assert!(i64::get_value(&equity) <= BURST_RATE * margin_used / DENOMINATOR, EBurstConditionsNotMet);
+                    }
+                }
+            } else {
+                let price = market::get_price(&market,root);
+                let size = size(position.info.lot,position.info.unit_size);
+                let fund_size = fund_size(size,market::get_real_price(&price));
+                 let pl = get_pl<T>(size, fund_size, position.info.direction, &price);
+                i64::inc_u64(&mut pl,position.info.margin);
+                if (!i64::is_negative(&pl)){
+                    assert!(i64::get_value(&pl) <= BURST_RATE * position.info.margin / DENOMINATOR, EBurstConditionsNotMet);
+                }
+            }
+        };
+        // settlement
+        position.info.status = 3;
+        settlement_pl<P,T>(tx_context::sender(ctx),list,&mut market,account, root, &mut position);
+        // transfer::transfer(position,tx_context::sender(ctx));
+        event::update<List<P,T>>(object::id(list));
+        event::update<Market>(object::id(&market));
+        event::update<Account<T>>(object::id(account));
+        event::update<Position<T>>(position_id);
+        dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
+        dof::add(account::get_uid_mut(account),position_id,position);
+    }
+
+    public fun process_fund_fee<P,T>(
+        list: &mut List<P,T>,
+        account: &mut Account<T>,
+        _ctx: &TxContext,
+    ){
+        let ids = account::get_all_position_ids(account);
+        let i = 0;
+        let n = vector::length(&ids);
+        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
+        while (i < n) {
+            let id = vector::borrow(&ids, i);
+            let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),*id);
+            let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),position.info.market_id);
+            let size = size(position.info.lot,position.info.unit_size);
+            let fund_size = fund_size(size,position.info.open_real_price);
+            let fund_fee = get_position_fund_fee(total_liquidity, fund_size, position.info.direction, market);
+            if (i64::is_negative(&fund_fee)){
+                let bl = if (position.info.type == 1) {
+                    account::split_balance(account,1,i64::get_value(&fund_fee))
+                }else{
+                    balance::split(&mut position.margin_balance,i64::get_value(&fund_fee))
+                };
+                pool::join_profit_balance(market::get_pool_mut(list),bl);
+            }else{
+                let bl = pool::split_profit_balance(market::get_pool_mut(list),i64::get_value(&fund_fee));
+                if (position.info.type == 1) {
+                    account::join_balance(account,1,bl);
+                }else{
+                    balance::join(&mut position.margin_balance,bl);
+                };
+            };
+            i = i + 1;
+        };
+        event::update<Account<T>>(object::id(account));
+    }
+
+    public fun update_limit_position<P,T>(
+        position_id: ID,
+        lot: u64,
+        leverage: u8,
+        auto_open_price: u64,
+        list: &mut List<P,T>,
+        account: &mut Account<T>,
+        ctx: &mut TxContext,
+    ){
+        let owner = tx_context::sender(ctx);
+        assert!(owner == account::get_owner(account), ENoPermission);
+        let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
+        assert!(lot > 0, EInvalidLot);
+        assert!(position.info.status == 1, EInvalidPositionStatus);
+        assert!(position.info.auto_open_price > 0, EInvalidAutoOpenPrice);
+        assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),position.info.symbol);
+        assert!(leverage > 0 && leverage <= market::get_max_leverage(market), EInvalidLeverage);
+        let unit_size = market::get_unit_size(market);
+        let size = size(lot,unit_size);
+        let fund_size = fund_size(size,position.info.open_real_price);
+        let margin_fee = market::get_margin_fee(market);
+        let margin_new = margin_size(fund_size,leverage,margin_fee);
+        if ( position.info.type == 2 ){
+            if (margin_new > position.info.margin) {
+                let d = margin_new - position.info.margin;
+                balance::join(&mut position.margin_balance,account::split_balance(account,2,d));
+            };
+            if (margin_new < position.info.margin) {
+                let d = position.info.margin - margin_new;
+                account::join_balance(account,2,balance::split(&mut position.margin_balance,d));
+            };
+        };
+        dec_margin_fund<T>(market, account, position.info.type, position.info.direction, position.info.margin, get_fund_size(&position));
+        inc_margin_fund<T>(market, account, position.info.type, position.info.direction, margin_new,fund_size);
+        position.info.lot = lot;
+        position.info.leverage = leverage;
+        position.info.margin = margin_new;
+        position.info.auto_open_price = auto_open_price;
+        dof::add(account::get_uid_mut(account),position_id,position);
         event::update<Market>(object::id(market));
         event::update<Account<T>>(object::id(account));
+        event::update<Position<T>>(position_id);
+    }
+
+    public fun open_limit_position<P,T>(
+        position_id: ID,
+        list: &mut List<P,T>,
+        account: &mut Account<T>,
+        root: &oracle::Root,
+        c: &Clock,
+        _ctx: &mut TxContext,
+    ){
+        let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
+        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
+        let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
+        let price = market::get_price(&market,root);
+        let real_price = market::get_real_price(&price);
+        if (position.info.direction == 1) {
+            assert!(position.info.auto_open_price <= real_price, EInvalidAutoOpenPrice);
+        }else{
+            assert!(position.info.auto_open_price >= real_price, EInvalidAutoOpenPrice);
+        };
+        let insurance_fee = market::get_insurance_fee(&market);
+        let pre_exposure = market::get_exposure(&market);
+        let size = size(position.info.lot,position.info.unit_size);
+        let fund_size = fund_size(size,position.info.open_real_price);
+        inc_margin_fund<T>(&mut market, account, position.info.type, position.info.direction, position.info.margin, fund_size);
+        let position_total = market::get_curr_position_total(&market,position.info.direction);
+        let exposure = market::get_exposure(&market);
+        let spread_fee = market::get_spread_fee(&market, position.info.open_real_price);
+        risk_assertion(
+            total_liquidity,
+            fund_size,
+            pre_exposure,
+            exposure,
+            position_total
+        );
+        if ( position.info.type == 1 ){
+            let equity = get_equity<P,T>(
+                list,
+                account,
+                root,
+            );
+            check_margin<T>(account,&equity);
+        };
+        position.info.status = 1;
+        position.info.open_time = clock::timestamp_ms(c);
+        event::update<List<P,T>>(object::id(list));
+        event::update<Account<T>>(object::id(account));
+        event::update<Market>(object::id(&market));
+        event::update<Position<T>>(position_id);
+        let p = market::get_pool_mut<P,T>(list);
+        let insurance_amount = get_insurance_amount(position.info.margin,insurance_fee);
+        let insurance_balance = if ( position.info.type == 1){
+            account::split_balance(account,position.info.type, insurance_amount)
+        }else{
+            balance::split(&mut position.margin_balance,insurance_amount)
+        };
+        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
+        // collect insurance
+        pool::join_insurance_balance<P,T>(p,insurance_balance);
+        // collect spread
+        pool::join_spread_profit<P,T>(p,spread_balance);
+        dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
+        dof::add(account::get_uid_mut(account),position_id,position);
+    }
+
+    public fun update_automatic_price<T>(
+        position_id: ID,
+        stop_surplus_price: u64,
+        stop_loss_price: u64,
+        account: &mut Account<T>,
+        ctx: &mut TxContext,
+    ){
+        let owner = tx_context::sender(ctx);
+        assert!(owner == account::get_owner(account), ENoPermission);
+        let account_id = object::id(account);
+        let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),position_id);
+        assert!(account_id == position.info.account_id, EInvalidAccountId);
+        assert!(position.info.status == 1 || position.info.status == 4, EInvalidPositionStatus);
+        position.info.stop_surplus_price = stop_surplus_price;
+        position.info.stop_loss_price = stop_loss_price;
         event::update<Position<T>>(position_id);
     }
 }
