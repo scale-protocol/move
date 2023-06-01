@@ -710,16 +710,17 @@ module scale::position {
             settlement_pl<P,T>(owner,list,&mut market, account, root, &mut new_position);
             let new_position_id = object::id(&new_position);
             event::create<Position<T>>(new_position_id);
+            event::update<Position<T>>(position_id);
             dof::add(account::get_uid_mut(account),new_position_id,new_position);
         }else{
             position.info.status = 2;
             settlement_pl<P,T>(owner,list,&mut market, account, root, &mut position);
+            event::delete<Position<T>>(position_id);
         };
         // transfer::transfer(position,owner);
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(object::id(&market));
         event::update<Account<T>>(object::id(account));
-        event::update<Position<T>>(position_id);
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         dof::add(account::get_uid_mut(account),position_id,position);
     }
@@ -770,7 +771,7 @@ module scale::position {
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(object::id(&market));
         event::update<Account<T>>(object::id(account));
-        event::update<Position<T>>(position_id);
+        event::delete<Position<T>>(position_id);
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         dof::add(account::get_uid_mut(account),position_id,position);
     }
