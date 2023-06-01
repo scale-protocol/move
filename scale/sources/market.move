@@ -4,7 +4,6 @@ module scale::market{
     use sui::tx_context::{Self,TxContext};
     use scale::admin::{Self,ScaleAdminCap,AdminCap};
     use scale::pool::{Self,Pool,Scale};
-    use sui::coin::{Coin};
     use sui::transfer;
     use std::vector;
     use sui::math;
@@ -103,19 +102,23 @@ module scale::market{
         spread: u64,
     }
 
-    public fun create_list<T>(token: &Coin<T>, ctx: &mut TxContext): ID{
+    public fun create_list<P: drop,T>(ctx: &mut TxContext): ID{
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
-        transfer::share_object( List{
+        transfer::share_object( List<P,T>{
             id: uid,
             total: 0,
             officer: 2,
-            pool: pool::create_pool_(token),
+            pool: pool::create_pool<P,T>(),
         });
         event::create<List<Scale,T>>(id);
         id
     }
 
+    public fun create_list_<T>(ctx: &mut TxContext): ID{
+       create_list<Scale,T>(ctx)
+    }
+    
     public fun get_direction_price(price:&Price, direction: u8) : u64{
         if (direction == 1) {
             price.buy_price

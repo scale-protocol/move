@@ -16,7 +16,7 @@ module scale::pool_tests {
         let tx = &mut test_tx;
         let ctx = test_scenario::ctx(tx);
         let s_token =  coin::mint_for_testing<SCALE>(100,ctx);
-        let pool = pool::create_pool(P{},&s_token);
+        let pool = pool::create_pool<P,SCALE>();
         test_scenario::next_tx(tx,owner);
         {
             assert!(pool::get_vault_supply(&pool) == 0,1);
@@ -34,7 +34,7 @@ module scale::pool_tests {
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
         let token =  coin::mint_for_testing<SCALE>(1000_000_000,test_scenario::ctx(tx));
-        let pool = pool::create_pool(P{},&token);
+        let pool = pool::create_pool<P,SCALE>();
         let lsp_coin = pool::add_liquidity_for_testing(&mut pool,token,test_scenario::ctx(tx));
 
         test_scenario::next_tx(tx,owner);
@@ -68,7 +68,7 @@ module scale::pool_tests {
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
         let s_token =  coin::mint_for_testing<SCALE>(3000_000_000,test_scenario::ctx(tx));
-        let pool = pool::create_pool(P{},&s_token);
+        let pool = pool::create_pool<P,SCALE>();
         test_scenario::next_tx(tx,owner);
         {
             let t_s_token = coin::split(&mut s_token,1000_000_000,test_scenario::ctx(tx));
@@ -121,7 +121,7 @@ module scale::pool_tests {
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
         let s_token =  coin::mint_for_testing<SCALE>(3000_000_000,test_scenario::ctx(tx));
-        let pool = pool::create_pool(P{},&s_token);
+        let pool = pool::create_pool<P,SCALE>();
         
         test_scenario::next_tx(tx,owner);
         {
@@ -156,7 +156,7 @@ module scale::pool_tests {
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
         let s_token =  coin::mint_for_testing<SCALE>(3000_000_000,test_scenario::ctx(tx));
-        let pool = pool::create_pool(P{},&s_token);
+        let pool = pool::create_pool<P,SCALE>();
         
         test_scenario::next_tx(tx,owner);
         {

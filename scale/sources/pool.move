@@ -29,7 +29,7 @@ module scale::pool {
         spread_profit: Balance<T>,
     }
 
-    public fun create_pool<P: drop ,T>(_pool_token: P,_token: &Coin<T>): Pool<P,T> {
+    public fun create_pool<P: drop ,T>(): Pool<P,T> {
         Pool {
             vault_supply: balance::create_supply(LSP<P,T>{}),
             vault_balance: balance::zero<T>(),
@@ -37,10 +37,6 @@ module scale::pool {
             insurance_balance: balance::zero<T>(),
             spread_profit: balance::zero<T>(),
         }
-    }
-
-    public fun create_pool_<T>(token: &Coin<T>): Pool<Scale,T> {
-        create_pool(Scale{}, token)
     }
 
     public(friend) fun add_liquidity<P,T>(
