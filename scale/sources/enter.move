@@ -317,17 +317,20 @@ module scale::enter {
     ){
         position::process_fund_fee<P,T>(list,account,_ctx);
     }
-    
+
     public fun update_limit_position<P,T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
         auto_open_price: u64,
+        coins: vector<Coin<T>>,
         list: &mut List<P,T>,
         account: &mut Account<T>,
         ctx: &mut TxContext,
     ){
+        account::isolated_deposit(account,coins);
         position::update_limit_position<P,T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
+        account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
     public fun open_limit_position<P,T>(
@@ -340,7 +343,7 @@ module scale::enter {
     ){
         position::open_limit_position<P,T>(position_id,list,account,state,c,_ctx);
     }
-
+    
     public fun update_automatic_price<T>(
         position_id: ID,
         stop_surplus_price: u64,
@@ -349,5 +352,18 @@ module scale::enter {
         ctx: &mut TxContext,
     ){
         position::update_automatic_price<T>(position_id,stop_surplus_price,stop_loss_price,account,ctx);
+    }
+
+    public fun isolated_deposit<P,T>(
+        position_id: ID,
+        amount: u64,
+        coins: vector<Coin<T>>,
+        account: &mut Account<T>,
+        list: &mut List<P,T>,
+        ctx: &mut TxContext,
+    ){        
+        let token = vector::pop_back(&mut coins);
+        pay::join_vec(&mut token, coins);
+        position::isolated_deposit<P,T>(position_id,token,amount,account,list,ctx);
     }
 }

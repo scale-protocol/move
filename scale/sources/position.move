@@ -1,6 +1,8 @@
 module scale::position {
     use sui::object::{Self,UID,ID};
     use sui::balance::{Self,Balance};
+    use sui::coin::{Self,Coin};
+    use sui::transfer;
     use scale::market::{Self,Market,Price,List};
     use scale::account::{Self,Account,PFK};
     use sui::tx_context::{Self,TxContext};
@@ -35,6 +37,7 @@ module scale::position {
     const EInvalidStopPrice:u64 = 619;
     const EInvalidStopSurplusPrice:u64 = 620;
     const EInvalidStopLossPrice:u64 = 621;
+    const EInsufficientCoins:u64 = 622;
 
     const MAX_U64_VALUEU64: u64 = 18446744073709551615;
     const MAX_U64_VALUEU128: u128 = 18446744073709551615;
@@ -564,7 +567,7 @@ module scale::position {
     ): ID {
         let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
-        check_open_position<T>(market,lot,leverage,1,direction);
+        check_open_position<T>(market,lot,leverage,type,direction);
         let pre_exposure = market::get_exposure(market);
         let (margin,size,fund_size,insurance_fee,spread_fee,id) = create_position<T>(
                 lot,
@@ -647,6 +650,7 @@ module scale::position {
         state: &oracle::State,
         position: &mut Position<T>,
         c: &Clock,
+        ctx: &mut TxContext
     ){
         let price = market::get_price(market,state,c);
         let real_price = market::get_real_price(&price);
@@ -698,6 +702,10 @@ module scale::position {
         }else{
             account::remove_isolated_position_id(account,object::uid_to_inner(&position.id));
         };
+        if (position.info.type == 2) {
+            let owner = account::get_owner(account);
+            account::isolated_withdraw(account,owner,ctx);
+        }
     }
 
     public fun close_position<P,T>(
@@ -722,14 +730,14 @@ module scale::position {
         if (lot < position.info.lot && lot > 0){
             let new_position = split_position<T>(&mut position,lot,market::get_margin_fee(&market),ctx);
             new_position.info.status = 5;
-            settlement_pl<P,T>(owner,false,list,&mut market, account, state, &mut new_position,c);
+            settlement_pl<P,T>(owner,false,list,&mut market, account, state, &mut new_position,c,ctx);
             let new_position_id = object::id(&new_position);
             event::create<Position<T>>(new_position_id);
             event::update<Position<T>>(position_id);
             dof::add(account::get_uid_mut(account),new_position_id,new_position);
         }else{
             position.info.status = 2;
-            settlement_pl<P,T>(owner,false,list,&mut market, account, state, &mut position,c);
+            settlement_pl<P,T>(owner,false,list,&mut market, account, state, &mut position,c,ctx);
             event::delete<Position<T>>(position_id);
         };
         // transfer::transfer(position,owner);
@@ -755,7 +763,7 @@ module scale::position {
         assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
         
         position.info.status = 6;
-        settlement_pl<P,T>(tx_context::sender(ctx),true,list,&mut market, account, state, &mut position,c);
+        settlement_pl<P,T>(tx_context::sender(ctx),true,list,&mut market, account, state, &mut position,c,ctx);
         event::delete<Position<T>>(position_id);
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(object::id(&market));
@@ -763,7 +771,7 @@ module scale::position {
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         dof::add(account::get_uid_mut(account),position_id,position);
     }
-    
+
     public fun burst_position<P,T>(        
         position_id: ID,
         list: &mut List<P,T>,
@@ -807,7 +815,7 @@ module scale::position {
         };
         // settlement
         position.info.status = 3;
-        settlement_pl<P,T>(tx_context::sender(ctx),false,list,&mut market,account, state, &mut position,c);
+        settlement_pl<P,T>(tx_context::sender(ctx),false,list,&mut market,account, state, &mut position,c,ctx);
         // transfer::transfer(position,tx_context::sender(ctx));
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(object::id(&market));
@@ -978,5 +986,36 @@ module scale::position {
         position.info.stop_surplus_price = stop_surplus_price;
         position.info.stop_loss_price = stop_loss_price;
         event::update<Position<T>>(position_id);
+    }
+
+    public fun isolated_deposit<P,T>(
+        position_id: ID,
+        token: Coin<T>,
+        amount: u64,
+        account: &mut Account<T>,
+        list: &mut List<P,T>,
+        ctx: &mut TxContext,
+    ){
+        let owner = tx_context::sender(ctx);
+        let addount_id = object::id(account);
+        assert!(owner == account::get_owner(account), ENoPermission);
+        let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),position_id);
+        assert!(addount_id == position.info.account_id, EInvalidAccountId);
+        assert!(position.info.status == 1, EInvalidPositionStatus);
+        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),position.info.symbol);
+        assert!(market::get_status(market) != 3, EInvalidMarketStatus);
+        if (amount == 0) {
+            amount = coin::value(&token);
+            balance::join(&mut position.margin_balance, coin::into_balance(token));
+        }else{
+            assert!(amount <= coin::value(&token), EInsufficientCoins);
+            balance::join(&mut position.margin_balance, coin::into_balance(coin::split(&mut token, amount,ctx)));
+            transfer::public_transfer(token,tx_context::sender(ctx));
+        };
+        position.info.margin = position.info.margin + amount;
+        inc_margin_fund<T>(market, account, position.info.type, position.info.direction, amount, 0);
+        event::update<Market>(object::id(market));
+        event::update<Account<T>>(object::id(account));
+        event::delete<Position<T>>(position_id);
     }
 }
