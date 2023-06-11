@@ -13,7 +13,7 @@ module scale::bond {
     use scale::admin::AdminCap;
     use sui::dynamic_field as field;
     use scale::event;
-    use sui::package;
+    use sui::package::{Self, Publisher};
     use sui::display;
 
     const ENameRequired:u64 = 401;
@@ -37,7 +37,7 @@ module scale::bond {
         list_id: ID,
     }
 
-    struct NFT has drop {}
+    struct BOND has drop {}
 
     /// The scale nft factory stores some token templates and styles
     struct BondFactory has key {
@@ -52,7 +52,17 @@ module scale::bond {
 	    image_url: String,
     }
 
-    fun init<P,T>(otw: NFT, ctx: &mut TxContext){
+    fun init(otw: BOND, ctx: &mut TxContext){
+        let publisher = package::claim(otw, ctx);
+        transfer::public_transfer(publisher, sender(ctx));
+        transfer::share_object(BondFactory{
+            id: object::new(ctx),
+            penalty_fee: 300,
+            mould: table::new<String,BondItem>(ctx),
+        })
+    }
+
+    public fun create_display<P,T>(publisher: &Publisher,ctx: &mut TxContext){
         let keys = vector[
             utf8(b"name"),
             utf8(b"link"),
@@ -61,7 +71,6 @@ module scale::bond {
             utf8(b"project_url"),
             utf8(b"creator"),
         ];
-
         let values = vector[
             utf8(b"{name}"),
             utf8(b"https://clutchy.io/marketplace/item/{id}"),
@@ -70,28 +79,21 @@ module scale::bond {
             utf8(b"https://scale.exchange"),
             utf8(b"Scale Protocol Team"),
         ];
-        let publisher = package::claim(otw, ctx);
         let display = display::new_with_fields<ScaleBond<P,T>>(
-            &publisher, keys, values, ctx
+            publisher, keys, values, ctx
         );
+        
         display::update_version(&mut display);
-        transfer::public_transfer(publisher, sender(ctx));
         transfer::public_transfer(display, sender(ctx));
-        transfer::share_object(BondFactory{
-            id: object::new(ctx),
-            penalty_fee: 300,
-            mould: table::new<String,BondItem>(ctx),
-        })
     }
-
     /// Provide current pool funds and obtain NFT bond certificates
     public fun investment<P,T>(
         token: Coin<T>,
+        nft_name: vector<u8>,
+        amount: u64,
         issue_time_ms: u64,
         list: &mut List<P,T>,
         factory: &mut BondFactory,
-        name: vector<u8>,
-        amount: u64,
         c: &Clock,
         ctx: &mut TxContext
     ){
@@ -104,8 +106,8 @@ module scale::bond {
             coin::join(&mut coins,coin::split(&mut token, amount, ctx));
             transfer::public_transfer(token,tx_context::sender(ctx));
         };
-        // assert!(!vector::is_empty(&name), ENameRequired);
-        let mould = table::borrow(&factory.mould,string::utf8(name));
+        assert!(!vector::is_empty(&nft_name), ENameRequired);
+        let mould = table::borrow(&factory.mould,string::utf8(nft_name));
         let uid = object::new(ctx);
         // Index all existing NFTs for interest distribution
         field::add(&mut factory.id,object::uid_to_inner(&uid),true);
@@ -127,8 +129,8 @@ module scale::bond {
     public fun divestment<P,T>(
         nft: ScaleBond<P,T>,
         list: &mut List<P,T>,
-        c: &Clock,
         factory: &BondFactory,
+        c: &Clock,
         ctx: &mut TxContext
     ){
         let ScaleBond<P,T> {

@@ -23,14 +23,14 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         ) = pt::get_test_ctx();
 //         let tx = &mut scenario;
 //         let position_id :ID;
 //         // test open cross position
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
+//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),1);
 //             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -102,7 +102,7 @@
 //         // test open isolated position
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
+//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,1,test_scenario::ctx(tx));
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),2);
 //             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -178,7 +178,7 @@
 //         // test open cross position sell
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
+//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),301);
 //             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -251,7 +251,7 @@
 //         // test open isolated position sell
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
+//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,2,test_scenario::ctx(tx));
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),401);
 //             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -331,7 +331,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 // }

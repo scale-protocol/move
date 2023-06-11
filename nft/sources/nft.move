@@ -57,12 +57,13 @@ module scale_nft::nft{
         let display = display::new_with_fields<ScaleProtocol>(
             &publisher, keys, values, ctx
         );
+        let owner = sender(ctx);
         display::update_version(&mut display);
-        transfer::public_transfer(publisher, sender(ctx));
-        transfer::public_transfer(display, sender(ctx));
+        transfer::public_transfer(publisher, owner);
+        transfer::public_transfer(display, owner);
         transfer::transfer(AdminCap{
             id: object::new(ctx),
-        },sender(ctx));
+        },owner);
     }
 
     fun mint_(name:vector<u8>,description:vector<u8>,img_url:vector<u8>,ctx: &mut TxContext): ScaleProtocol {

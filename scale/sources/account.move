@@ -9,9 +9,9 @@ module scale::account {
     use scale::i64::{Self,I64};
     use sui::math;
     use scale::event;
-
+    use sui::pay;
     friend scale::position;
-    // friend scale::enter;
+    friend scale::enter;
         
     const EInsufficientCoins: u64 = 1;
     const ENotOwner: u64 = 2;
@@ -190,6 +190,18 @@ module scale::account {
             balance::split(&mut account.isolated_balance, amount)
         }
     }
+
+    public(friend) fun isolated_deposit<T>(account: &mut Account<T>, coins: vector<Coin<T>>) {
+        let token = vector::pop_back(&mut coins);
+        pay::join_vec(&mut token, coins);
+        balance::join(&mut account.isolated_balance, coin::into_balance(token));
+    }
+    public(friend) fun isolated_withdraw<T>(account: &mut Account<T>, receiver: address,ctx: &mut TxContext) {
+        let balance = balance::value(&account.isolated_balance);
+        let coin = coin::from_balance(balance::split(&mut account.isolated_balance, balance),ctx);
+        transfer::public_transfer(coin, receiver);
+    }
+
     public(friend) fun inc_profit<T>(account: &mut Account<T>, profit: u64) {
         i64::inc_u64(&mut account.profit, profit);
     }

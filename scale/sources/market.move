@@ -11,6 +11,7 @@ module scale::market{
     use oracle::oracle;
     use sui::url::{Self, Url};
     use scale::event;
+    use sui::clock::Clock;
 
     friend scale::position;
     friend scale::bond;
@@ -92,7 +93,6 @@ module scale::market{
         unit_size: u64,
         /// The price at 0 o'clock in the utc of the current day, which is used to calculate the spread_fee
         opening_price: u64,
-        pyth_id: ID,
     }
 
     struct Price has drop,copy {
@@ -115,10 +115,6 @@ module scale::market{
         id
     }
 
-    public fun create_list_<T>(ctx: &mut TxContext): ID{
-       create_list<Scale,T>(ctx)
-    }
-    
     public fun get_direction_price(price:&Price, direction: u8) : u64{
         if (direction == 1) {
             price.buy_price
@@ -154,14 +150,14 @@ module scale::market{
         }
     }
 
-    public fun get_pyth_price(root: &oracle::Root,id: ID):u64 {
+    public fun get_pyth_price(state: &oracle::State,symbol: &vector<u8>,_c: &Clock):u64 {
         // todo: get real price from pyth
-        let (price , _timestamp) = oracle::get_price(root,id);
+        let (price , _timestamp) = oracle::get_price(state,*symbol);
         price
     }
 
-    public fun get_price(market: &Market,root: &oracle::Root): Price {
-        let real_price = get_pyth_price(root, market.pyth_id);
+    public fun get_price(market: &Market,state: &oracle::State,c: &Clock): Price {
+        let real_price = get_pyth_price(state, string::bytes(&market.symbol),c);
         get_price_(market, real_price)
     }
 
@@ -334,7 +330,6 @@ module scale::market{
         description: vector<u8>,
         unit_size: u64,
         opening_price: u64,
-        pyth_id: ID,
         ctx: &mut TxContext
     ): ID {
         assert!(!vector::is_empty(&symbol), ENameRequired);
@@ -366,7 +361,6 @@ module scale::market{
             officer: 2,
             unit_size,
             opening_price,
-            pyth_id,
         });
         list.total = list.total + 1;
         event::create<Market>(id);
@@ -499,10 +493,11 @@ module scale::market{
     /// The robot triggers at 0:00 every day to update the price of the day
     public fun trigger_update_opening_price(
         market: &mut Market,
-        root: &oracle::Root,
+        state: &oracle::State,
+        c: &Clock,
         _ctx: &mut TxContext
     ){
-        let real_price = get_pyth_price(root, market.pyth_id);
+        let real_price = get_pyth_price(state, string::bytes(&market.symbol),c);
         // todo check price time and openg price must gt 0
         assert!(real_price > 0,EInvalidOpingPrice);
         market.opening_price = real_price;

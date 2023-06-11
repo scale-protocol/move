@@ -26,7 +26,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         ) = pt::get_test_ctx();
 //         let tx = &mut scenario;
 //         let position_id : ID;
@@ -38,7 +38,7 @@
 //         };
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,1,1,test_scenario::ctx(tx));
+//             position_id = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,1,1,test_scenario::ctx(tx));
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),2);
 //             let position: &Position<SCALE> = dof::borrow(account::get_uid<SCALE>(&account),position_id);
@@ -113,7 +113,7 @@
 //         };
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             let position_id_new = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,10000,4,1,1,test_scenario::ctx(tx));
+//             let position_id_new = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,10000,4,1,1,test_scenario::ctx(tx));
 //             assert!(position_id_new == position_id,300);
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),301);
@@ -191,7 +191,7 @@
 //         let position_id_new_1: ID;
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id_new_1 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,2,1,2,test_scenario::ctx(tx));
+//             position_id_new_1 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,2,1,2,test_scenario::ctx(tx));
 //             assert!(position_id_new_1 != position_id,400);
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),401);
@@ -266,8 +266,8 @@
 //         };
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             oracle::update_price(&mut root,feed_id,900,11244569,test_scenario::ctx(tx));
-//             let position_id_new_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,10000,5,1,2,test_scenario::ctx(tx));
+//             oracle::update_price(&mut state,feed_id,900,11244569,test_scenario::ctx(tx));
+//             let position_id_new_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,10000,5,1,2,test_scenario::ctx(tx));
 //             assert!(position_id_new_1 == position_id_new_2,500);
 //             debug::print_stack_trace();
 //             assert!(dof::exists_(account::get_uid<SCALE>(&account),position_id),501);
@@ -353,7 +353,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 // }

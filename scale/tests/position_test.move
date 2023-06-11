@@ -21,10 +21,10 @@
 //         account: Account<SCALE>,
 //         scale_coin: Coin<SCALE>,
 //         list: MarketList<P,T>,
-//         root: oracle::Root,
+//         state: oracle::State,
 //     }
 
-//     public fun get_test_ctx<P,T>(): (address,Scenario,ID,ID,ID,Account<SCALE>,Coin<SCALE>,MarketList<P,T>,oracle::Root) {
+//     public fun get_test_ctx<P,T>(): (address,Scenario,ID,ID,ID,Account<SCALE>,Coin<SCALE>,MarketList<P,T>,oracle::State) {
 //         let owner = @0x1;
 //         let test_tx = test_scenario::begin(owner);
 //         let tx = &mut test_tx;
@@ -39,12 +39,12 @@
 //             oracle::init_for_testing(test_scenario::ctx(tx));
 //         };
 //         test_scenario::next_tx(tx,owner);
-//         let root = test_scenario::take_shared<oracle::Root>(tx);
+//         let state = test_scenario::take_shared<oracle::State>(tx);
 //         let oracle_admin = test_scenario::take_from_sender<oracle::AdminCap>(tx);
 //         let list = test_scenario::take_shared<MarketList<P,T>>(tx);
 //         let ctx = test_scenario::ctx(tx);
-//         feed_id = oracle::create_price_feed_for_testing(&mut oracle_admin,&mut root,b"BTC/USD",ctx);
-//         oracle::update_price(&mut root,feed_id,1000,11234567,ctx);
+//         feed_id = oracle::create_price_feed_for_testing(&mut oracle_admin,&mut state,b"BTC/USD",ctx);
+//         oracle::update_price(&mut state,feed_id,1000,11234567,ctx);
 //         let n = b"BTC/USD";
 //         let d = b"BTC/USD testing";
 //         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
@@ -71,7 +71,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         )
 //     }
 
@@ -80,11 +80,11 @@
 //         account: Account<SCALE>,
 //         scale_coin: Coin<SCALE>,
 //         list: MarketList<P,T>,
-//         root: oracle::Root,
+//         state: oracle::State,
 //     ) {
 //         test_scenario::return_shared(list);
 //         test_scenario::return_shared(account);
-//         test_scenario::return_shared(root);
+//         test_scenario::return_shared(state);
 //         coin::burn_for_testing(scale_coin);
 //         test_scenario::end(scenario);
 //     }
@@ -101,7 +101,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -125,7 +125,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     #[test]
@@ -140,7 +140,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -166,7 +166,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     #[test]
@@ -181,7 +181,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -225,7 +225,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     #[test]
@@ -239,7 +239,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = get_test_ctx();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -257,42 +257,42 @@
 //                 // debug::print(&price);
 //                 // pl = (shell_price - open_real_price ) * size = (1488 - 1000) * (1000/10000) * 1 = 48.8
 //                 // fund_fee = 0
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
 //                 // pl = (shell_price - open_real_price ) * size = (1488 - 1000) * (100000/10000) * 1 = 4880
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,1,test_scenario::ctx(tx));
 //                 // pl = (open_real_price - buy_price ) * size = (1000 - 1511) * (1000/10000) * 1 = -51.1
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
 //                 // pl = (open_real_price - buy_price ) * size = (1000 - 1511) * (100000/10000) * 1 = -5110
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
-//                 oracle::update_price(&mut root,feed_id,1500,11241569,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,2,test_scenario::ctx(tx));
+//                 oracle::update_price(&mut state,feed_id,1500,11241569,test_scenario::ctx(tx));
 //                 // debug::print(&account);
 //                 // equity = balance + cross position pl = 205998 + 48 - 51 = 203995
-//                 let equity = position::get_equity<Scale,SCALE>(&list,&account,&root);
+//                 let equity = position::get_equity<Scale,SCALE>(&list,&account,&state);
 //                 // debug::print(&equity);
 //                 assert!(i64::get_value(&equity) == 205995,2);
 //                 assert!(i64::is_negative(&equity) == false,3);
 //             };
 //             test_scenario::next_tx(tx,owner);
 //             {
-//                 // oracle::update_price(&mut root,feed_id,1000,11251569,test_scenario::ctx(tx));
+//                 // oracle::update_price(&mut state,feed_id,1000,11251569,test_scenario::ctx(tx));
 //                 assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
 //                 // let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-//                 // let price = market::get_price(market,&root);
+//                 // let price = market::get_price(market,&state);
 //                 // debug::print(&price);
 //                 // reset price , price => price = fund_size / size => (0.1*1000+0.1*1500) / 0.2 => 1250
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
 //                 // reset price , price => price = fund_size / size => (0.2 * 1250 + 10 * 1500) / 10.2 => 1495.09
 //                 // pl = (shell_price - open_real_price ) * size = (798 - 1495) * (102000/10000) * 1 = -7109.4
 //                 // fund_fee = 1495 * 10.2 * 3/10000 = 4.52
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,1,1,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,1,1,test_scenario::ctx(tx));
 
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,30000,5,1,2,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,30000,5,1,2,test_scenario::ctx(tx));
 //                 // reset price , price = price = fund_size / size => (0.1 * 1000 + 7.1 * 1500) / 7.2  => 1493.05
 //                 // pl = (open_real_price - buy_price ) * size = (1493 - 801) * 7.2 * 1 = 4982.4
 //                 // fund_fee = 1493 * 7.2 * 3/10000 = -3.22
-//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,40000,5,1,2,test_scenario::ctx(tx));
-//                 oracle::update_price(&mut root,feed_id,800,11261569,test_scenario::ctx(tx));
+//                 position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,40000,5,1,2,test_scenario::ctx(tx));
+//                 oracle::update_price(&mut state,feed_id,800,11261569,test_scenario::ctx(tx));
 //             };
 //             test_scenario::next_tx(tx,owner);
 //             {
@@ -300,7 +300,7 @@
 //                 // let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
 //                 // let price = market::get_price_by_real(market,800);
 //                 // equity = balance + cross position pl = 205997 - 7109 + 4 + 4982 - 3 = 203871
-//                 let equity = position::get_equity<Scale,SCALE>(&list,&account,&root);
+//                 let equity = position::get_equity<Scale,SCALE>(&list,&account,&state);
 //                 // There is a calculation deviation, so the result is 203861,During actual use, the amount value is amplified to eliminate
 //                 assert!(i64::get_value(&equity) == 203861,2);
 //                 assert!(i64::is_negative(&equity) == false,3);
@@ -311,7 +311,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     #[test]
@@ -326,7 +326,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -339,7 +339,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     #[test]
@@ -354,7 +354,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
@@ -380,7 +380,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 //     // Value overflow test
@@ -395,12 +395,12 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = get_test_ctx<Scale,SCALE>();
 //         let tx = &mut scenario;
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             oracle::update_price(&mut root,feed_id,9_223_372_036_854_775_807/20000,222222222222,test_scenario::ctx(tx));
+//             oracle::update_price(&mut state,feed_id,9_223_372_036_854_775_807/20000,222222222222,test_scenario::ctx(tx));
 //             account::deposit(&mut account,coin::mint_for_testing<SCALE>((9_223_372_036_854_775_807 - 10000),test_scenario::ctx(tx)),0,test_scenario::ctx(tx));
 //             // add liquidity
 //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
@@ -409,14 +409,14 @@
 //             // 9223372036854775807
 //             let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(&mut list),coin::mint_for_testing<SCALE>((18446744073709551615 - 100000 -1 ),test_scenario::ctx(tx)),test_scenario::ctx(tx));
 //             coin::burn_for_testing(lsp_coin);
-//             let _position_id_new_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,20000,5,1,2,test_scenario::ctx(tx));
+//             let _position_id_new_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,20000,5,1,2,test_scenario::ctx(tx));
 //         };
 //         drop_test_ctx(
 //             scenario,
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 // }

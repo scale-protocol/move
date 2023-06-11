@@ -24,7 +24,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //          ) = pt::get_test_ctx();
 //         let tx = &mut scenario;
 //         let position_id_1: ID;
@@ -33,19 +33,19 @@
 //         let position_id_4: ID;
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             position_id_1 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,1,test_scenario::ctx(tx));
-//             position_id_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,1,test_scenario::ctx(tx));
-//             position_id_3 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,1000,2,1,2,test_scenario::ctx(tx));
-//             position_id_4 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &root,100000,5,2,2,test_scenario::ctx(tx));
+//             position_id_1 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
+//             position_id_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,1,test_scenario::ctx(tx));
+//             position_id_3 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
+//             position_id_4 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,2,test_scenario::ctx(tx));
 //         };
 //         test_scenario::next_tx(tx,owner);
 //         {
 //             // price increases
-//             oracle::update_price(&mut root,feed_id,2000,11234569,test_scenario::ctx(tx));
+//             oracle::update_price(&mut state,feed_id,2000,11234569,test_scenario::ctx(tx));
 //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),500);
 //             let market: &mut Market  = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
 //             market::set_opening_price_for_testing(market, 900);
-//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &root,position_id_1,test_scenario::ctx(tx));
+//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &state,position_id_1,test_scenario::ctx(tx));
 //             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_1),501);
 //         };
 //         test_scenario::next_tx(tx,owner);
@@ -123,11 +123,11 @@
 //         };
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             oracle::update_price(&mut root,feed_id,1100,11234789,test_scenario::ctx(tx));
+//             oracle::update_price(&mut state,feed_id,1100,11234789,test_scenario::ctx(tx));
 //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),600);
 //             let market: &mut Market  = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
 
-//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &root,position_id_4,test_scenario::ctx(tx));
+//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &state,position_id_4,test_scenario::ctx(tx));
 //             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_4),601);
 //         };
 //         test_scenario::next_tx(tx,owner);
@@ -211,11 +211,11 @@
 //         // falling prices
 //         test_scenario::next_tx(tx,owner);
 //         {
-//             oracle::update_price(&mut root,feed_id,900,11235569,test_scenario::ctx(tx));
+//             oracle::update_price(&mut state,feed_id,900,11235569,test_scenario::ctx(tx));
 //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),700);
 //             let market: &mut Market  = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
 //             market::set_opening_price_for_testing(market, 990);
-//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &root,position_id_2,test_scenario::ctx(tx));
+//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &state,position_id_2,test_scenario::ctx(tx));
 //             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_2),701);
 //         };
 //         test_scenario::next_tx(tx,owner);
@@ -298,7 +298,7 @@
 //         {
 //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),800);
 //             let market: &mut Market  = dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &root,position_id_3,test_scenario::ctx(tx));
+//             position::close_position<Scale,SCALE>(&mut list,market_id, &mut account, &state,position_id_3,test_scenario::ctx(tx));
 //             assert!(!dof::exists_(account::get_uid<SCALE>(&account),position_id_3),801);
 //         };
 //         test_scenario::next_tx(tx,owner);
@@ -384,7 +384,7 @@
 //             account,
 //             scale_coin,
 //             list,
-//             root,
+//             state,
 //         );
 //     }
 // }

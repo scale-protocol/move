@@ -6,7 +6,15 @@ version = "0.0.1"
 [dependencies]
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
 Sui = { local = "../../sui/crates/sui-framework/packages/sui-framework"}
+# [dependencies.Sui]
+# git = "https://github.com/MystenLabs/sui.git"
+# subdir = "crates/sui-framework/packages/sui-framework"
+# rev = "09b2081498366df936abae26eea4b2d5cafb2788"
 
+# [dependencies.Wormhole]
+# git = "https://github.com/wormhole-foundation/wormhole.git"
+# subdir = "sui/wormhole"
+# rev = "d050ad1d67a5b7da9fb65030aad12ef5d774ccad"
 [addresses]
 oracle =  "0x0"
 sui =  "0x2"
