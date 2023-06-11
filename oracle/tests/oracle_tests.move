@@ -20,7 +20,7 @@ module oracle::oracle_tests {
             let admin_cap = test_scenario::take_from_sender<oracle::AdminCap>(tx);
             let state = test_scenario::take_shared<oracle::State>(tx);
             symbol = b"Crypto.BTC/USD";
-            oracle::create_price_feed_for_testing(&mut admin_cap, &mut state, symbol, test_scenario::ctx(tx));
+            oracle::create_price_feed(&mut admin_cap, &mut state, symbol, test_scenario::ctx(tx));
             test_scenario::return_to_sender(tx,admin_cap);
             test_scenario::return_shared(state);
         };
@@ -61,7 +61,7 @@ module oracle::oracle_tests {
             let admin_cap = test_scenario::take_from_sender<oracle::AdminCap>(tx);
             let state = test_scenario::take_shared<oracle::State>(tx);
             let symbol = b"";
-            oracle::create_price_feed_for_testing(&mut admin_cap, &mut state,symbol, test_scenario::ctx(tx));
+            oracle::create_price_feed(&mut admin_cap, &mut state,symbol, test_scenario::ctx(tx));
             test_scenario::return_to_sender(tx,admin_cap);
             test_scenario::return_shared(state);
         };
@@ -83,7 +83,7 @@ module oracle::oracle_tests {
             let admin_cap = test_scenario::take_from_sender<oracle::AdminCap>(tx);
             let symbol = b"Crypto.BTC/USDCrypto.BTC/USDCrypto.BTC/USDCrypto.BTC/USD";
             let state = test_scenario::take_shared<oracle::State>(tx);
-            oracle::create_price_feed_for_testing(&mut admin_cap,&mut state, symbol, test_scenario::ctx(tx));
+            oracle::create_price_feed(&mut admin_cap,&mut state, symbol, test_scenario::ctx(tx));
             test_scenario::return_to_sender(tx,admin_cap);
             test_scenario::return_shared(state);
         };
@@ -106,7 +106,7 @@ module oracle::oracle_tests {
             let admin_cap = test_scenario::take_from_sender<oracle::AdminCap>(tx);
             symbol = b"Crypto.BTC/USD";
             let state = test_scenario::take_shared<oracle::State>(tx);
-            oracle::create_price_feed_for_testing(&mut admin_cap,&mut state, symbol, test_scenario::ctx(tx));
+            oracle::create_price_feed(&mut admin_cap,&mut state, symbol, test_scenario::ctx(tx));
             test_scenario::return_to_sender(tx,admin_cap);
              test_scenario::return_shared(state);
         };
@@ -138,7 +138,7 @@ module oracle::oracle_tests {
             let admin_cap = test_scenario::take_from_sender<oracle::AdminCap>(tx);
             symbol = b"Crypto.BTC/USD";
             let state = test_scenario::take_shared<oracle::State>(tx);
-            oracle::create_price_feed_for_testing(&mut admin_cap, &mut state, symbol, test_scenario::ctx(tx));
+            oracle::create_price_feed(&mut admin_cap, &mut state, symbol, test_scenario::ctx(tx));
             test_scenario::return_to_sender(tx,admin_cap);
             test_scenario::return_shared(state);
         };

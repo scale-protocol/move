@@ -88,18 +88,6 @@ module oracle::oracle {
         update_price(state,symbol,price,timestamp,_ctx);
     }
     #[test_only]
-    public fun create_price_feed_for_testing(
-        _admin: &mut AdminCap,
-        state: &mut State,
-        symbol: vector<u8>,
-        ctx: &mut TxContext,
-    ): ID {
-        let price_feed = new_price_feed(symbol, ctx);
-        let id = object::uid_to_inner(&price_feed.id);
-        dof::add(&mut state.id, id, price_feed);
-        id
-    }
-    #[test_only]
     public fun init_for_testing(ctx: &mut TxContext){
         init(ctx);
     }
