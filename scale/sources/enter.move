@@ -318,7 +318,19 @@ module scale::enter {
         position::process_fund_fee<P,T>(list,account,_ctx);
     }
 
-    public fun update_limit_position<P,T>(
+    public fun update_cross_limit_position<P,T>(
+        position_id: ID,
+        lot: u64,
+        leverage: u8,
+        auto_open_price: u64,
+        list: &mut List<P,T>,
+        account: &mut Account<T>,
+        ctx: &mut TxContext,
+    ){
+        position::update_limit_position<P,T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
+    }
+    
+    public fun update_isolated_limit_position<P,T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
