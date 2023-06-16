@@ -12,6 +12,8 @@ module oracle::oracle {
     const EInvalidOwner:u64 = 4;
     const EPriceFeedNotExist:u64 = 5;
 
+    friend oracle::pyth_network;
+
     struct AdminCap has key {
         id: UID
     }
@@ -77,6 +79,7 @@ module oracle::oracle {
         let feed: &PriceFeed = dof::borrow(&state.id, symbol);
         (feed.price, feed.timestamp)
     }
+    
     #[test_only]
     public fun update_price_for_testing(
         state: &mut State,
