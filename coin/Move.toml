@@ -11,5 +11,5 @@ git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
 rev = "testnet"
 [addresses]
-sui_coin =  "0x0"
+sui_coin =  "0x2101c92efa3e3a8720b77229a1f706d7011d8c5be1a97cf3d7fa732116f4a1ee"
 sui =  "0x2"
