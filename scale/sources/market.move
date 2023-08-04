@@ -150,9 +150,8 @@ module scale::market{
         }
     }
 
-    public fun get_pyth_price(state: &oracle::State,symbol: &vector<u8>,_c: &Clock):u64 {
-        // todo: get real price from pyth
-        let (price , _timestamp) = oracle::get_price(state,*symbol);
+    public fun get_pyth_price(state: &oracle::State,symbol: &vector<u8>,c: &Clock):u64 {
+        let (price , _timestamp) = oracle::get_price(state,*symbol,c);
         price
     }
 

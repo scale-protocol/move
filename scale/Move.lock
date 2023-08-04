@@ -20,7 +20,6 @@ source = { local = "../oracle" }
 dependencies = [
   { name = "Pyth" },
   { name = "Sui" },
-  { name = "Wormhole" },
 ]
 
 [[move.package]]

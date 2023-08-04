@@ -3,6 +3,7 @@ module oracle::oracle_tests {
     use oracle::oracle;
     use sui::test_scenario;
     use std::debug;
+    use sui::clock;
     // use sui::dynamic_object_field as dof;
 
     #[test]
@@ -28,20 +29,26 @@ module oracle::oracle_tests {
         {
             let state = test_scenario::take_shared<oracle::State>(tx);
             // let feed: &oracle::PriceFeed = dof::borrow(oracle::get_uid(&state), id);
-            let (price, timestamp) = oracle::get_price(&state, symbol);
-            assert!(price == 0,1);
-            assert!(timestamp == 0,1);
+            let c = clock::create_for_testing(test_scenario::ctx(tx));
+            clock::set_for_testing(&mut c, 101*1000);
             oracle::update_price_for_testing(&mut state,symbol, 100, 100, test_scenario::ctx(tx));
+            let (price, timestamp) = oracle::get_price(&state, symbol,&c);
+            assert!(price == 100,1);
+            assert!(timestamp == 100,1);
             test_scenario::return_shared(state);
+            clock::destroy_for_testing(c);
         };
         test_scenario::next_tx(tx,owner);
         {
             let state = test_scenario::take_shared<oracle::State>(tx);
             // let feed: &oracle::PriceFeed = dof::borrow(oracle::get_uid(&state), id);
-            let (price, timestamp) = oracle::get_price(&state, symbol);
+            let c = clock::create_for_testing(test_scenario::ctx(tx));
+            clock::set_for_testing(&mut c, 101*1000);
+            let (price, timestamp) = oracle::get_price(&state, symbol,&c);
             assert!(price == 100,1);
             assert!(timestamp == 100,2);
             test_scenario::return_shared(state);
+            clock::destroy_for_testing(c);
         };
         test_scenario::end(test_tx);
     }
@@ -121,8 +128,8 @@ module oracle::oracle_tests {
         test_scenario::end(test_tx);
     }
     #[test]
-    #[expected_failure(abort_code = 4, location = oracle)]
-    fun test_exception_owner(){
+    #[expected_failure(abort_code = 3, location = oracle)]
+    fun test_exception_price_timestamp_1(){
         let owner = @0x1;
         let owner2 = @0x2;
         let test_tx = test_scenario::begin(owner);
@@ -152,12 +159,14 @@ module oracle::oracle_tests {
         test_scenario::next_tx(tx,owner2);
         {
             let state = test_scenario::take_shared<oracle::State>(tx);
-            let (price, timestamp) = oracle::get_price(&state, symbol);
+            let c = clock::create_for_testing(test_scenario::ctx(tx));
+            clock::set_for_testing(&mut c, 104*1000);
+            // abort code 3
+            let (price, timestamp) = oracle::get_price(&state, symbol,&c);
             assert!(price == 100,1);
             assert!(timestamp == 99,2);
-            // abort code 4
-            oracle::update_price_for_testing(&mut state,symbol, 100, 200, test_scenario::ctx(tx));
             test_scenario::return_shared(state);
+            clock::destroy_for_testing(c);
         };
         test_scenario::end(test_tx);
     }

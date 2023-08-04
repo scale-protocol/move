@@ -48,9 +48,9 @@ module oracle::pyth_network {
     }
 
     public entry fun async_pyth_price(
-        price_info: &mut PriceInfoObject,
-        pyth_state: &mut PythState,
-        curr_state: &mut State,
+        price_info: &PriceInfoObject,
+        pyth_state: &PythState,
+        curr_state: &State,
         oracle_state: &mut oracle::State,
         c: &Clock,
         ctx: &mut TxContext
@@ -64,8 +64,8 @@ module oracle::pyth_network {
 
     public fun async_pyth_price_bat(
         price_info: vector<PriceInfoObject>,
-        pyth_state: &mut PythState,
-        curr_state: &mut State,
+        pyth_state: &PythState,
+        curr_state: &State,
         oracle_state: &mut oracle::State,
         c: &Clock,
         ctx: &mut TxContext
@@ -103,6 +103,9 @@ module oracle::pyth_network {
     //     let token = vector::pop_back(&mut coins);
     //     pay::join_vec(&mut token, coins);
     //     let fee = state::get_base_update_fee(pyth_state) / 5;
+    //     if (fee ==0 ){
+    //         fee = 1;
+    //      }
     //     while (i < vector::length(&price_infos)) {
     //         let pi = vector::borrow_mut(&mut price_infos,i);
     //         hot_potato = pyth::update_single_price_feed(pyth_state, hot_potato, pi, coin::split(&mut token,fee,ctx), c);

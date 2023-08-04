@@ -5,6 +5,7 @@ module oracle::oracle {
     use sui::tx_context::{Self,TxContext};
     use sui::transfer;
     use sui::dynamic_object_field as dof;
+    use sui::clock::{Self,Clock};
 
     const ENameRequired:u64 = 1;
     const ENameTooLong:u64 = 2;
@@ -74,9 +75,13 @@ module oracle::oracle {
         feed.timestamp = timestamp;
     }
 
-    public fun get_price(state: &State, symbol: vector<u8>): (u64, u64){
+    public fun get_price(state: &State, symbol: vector<u8>,c: &Clock): (u64, u64){
         assert!(dof::exists_(&state.id,symbol),EPriceFeedNotExist);
         let feed: &PriceFeed = dof::borrow(&state.id, symbol);
+        let current_time = clock::timestamp_ms(c) / 1000;
+        assert!(current_time >= feed.timestamp, EInvalidTimestamp);
+        // 3 seconds
+        assert!(current_time - feed.timestamp <= 3, EInvalidTimestamp);
         (feed.price, feed.timestamp)
     }
     
