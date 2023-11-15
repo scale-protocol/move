@@ -70,12 +70,12 @@ module scale::admin {
         vec_set::remove(&mut admin_cap.member, addr);
     }
 
-    public fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: address, ctx: &mut TxContext){
+    public fun add_admin_member(admin_cap:&mut ScaleAdminCap, addr: address, ctx: &TxContext){
         assert!(is_a_super(admin_cap, &tx_context::sender(ctx)), ENoPermission);
         add_admin_member_(admin_cap, &addr);
     }
     
-    public fun remove_admin_member(admin_cap:&mut ScaleAdminCap, addr: address, ctx: &mut TxContext){
+    public fun remove_admin_member(admin_cap:&mut ScaleAdminCap, addr: address, ctx: &TxContext){
         assert!(is_a_super(admin_cap, &tx_context::sender(ctx)), ENoPermission);
         remove_admin_member_(admin_cap, &addr);
     }

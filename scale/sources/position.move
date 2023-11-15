@@ -29,17 +29,17 @@ module scale::position {
     const ERiskControlBurstRate:u64 = 611;
     const RiskControlBlockingFundSize:u64 = 612;
     const RiskControlBlockingFundPool:u64 = 613;
-    const EInvalidMarketId:u64 = 614;
+    // const EInvalidMarketId:u64 = 614;
     const EInvalidAccountId:u64 = 615;
     const ERiskControlNegativeEquity:u64 = 616;
     const EBurstConditionsNotMet:u64 = 617;
     const EInvalidAutoOpenPrice:u64 = 618;
     const EInvalidStopPrice:u64 = 619;
-    const EInvalidStopSurplusPrice:u64 = 620;
+    // const EInvalidStopSurplusPrice:u64 = 620;
     const EInvalidStopLossPrice:u64 = 621;
     const EInsufficientCoins:u64 = 622;
 
-    const MAX_U64_VALUEU64: u64 = 18446744073709551615;
+    // const MAX_U64_VALUEU64: u64 = 18446744073709551615;
     const MAX_U64_VALUEU128: u128 = 18446744073709551615;
     const FLOATING_PRICE:u64 = 5;
 
@@ -47,15 +47,15 @@ module scale::position {
     const DENOMINATORU128: u128 = 10000;
     /// The exposure ratio should not exceed 70% of the current pool,
     /// so as to avoid the risk that the platform's current pool is empty.
-    const POSITION_DIFF_PROPORTION: u64 = 7000;
+    // const POSITION_DIFF_PROPORTION: u64 = 7000;
     const POSITION_DIFF_PROPORTIONU128: u128 = 7000;
     /// The liquidation line ratio means that if the user's margin loss exceeds this ratio in one quotation,
     /// the system will be liquidated and the position will be forced to close.
     const BURST_RATE: u64 = 5000;
     /// so as to avoid the risk of malicious position opening.
-    const POSITION_PROPORTION: u64 = 15000;
+    const POSITION_PROPORTION_U128: u128 = 15000;
     /// The size of a single position shall not be greater than 20% of the exposure
-    const POSITION_PROPORTION_ONE: u64 = 2000;
+    const POSITION_PROPORTION_ONE_U128: u128 = 2000;
 
     struct Position<phantom T> has key,store {
         id: UID,
@@ -201,10 +201,10 @@ module scale::position {
     public fun get_account_id<T>(position: &Position<T>) :&ID {
         &position.info.account_id
     }
-    public fun get_denominator128<T>() :u64 {
+    public fun get_denominator128() :u64 {
         (DENOMINATORU128 as u64)
     }
-    public fun get_denominator<T>() :u64 {
+    public fun get_denominator() :u64 {
         DENOMINATOR
     }
     public fun get_auto_open_price<T>(position: &Position<T>) :u64 {
@@ -324,7 +324,7 @@ module scale::position {
                 let unit_size = market::get_unit_size(market);
                 let size = size(ps.info.lot,unit_size);
                 let fund_size = fund_size(size,market::get_real_price(&price));
-                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market), &get_pl<T>(size, fund_size, ps.info.direction, &price)));
+                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market), &get_pl(size, fund_size, ps.info.direction, &price)));
             };
             i = i + 1;
         };
@@ -332,7 +332,7 @@ module scale::position {
         pl
     }
     /// get Floating P/L
-    public fun get_pl<T>(size: u64, fund_size: u64, direction: u8,price: &Price) :I64 {
+    public fun get_pl(size: u64, fund_size: u64, direction: u8,price: &Price) :I64 {
         if (direction == 1) {
             i64::u64_sub(fund_size(size,market::get_sell_price(price)), fund_size)
         } else {
@@ -362,7 +362,7 @@ module scale::position {
         }
     }
 
-    fun check_open_position<T>(  
+    fun check_open_position(  
         market: &Market, 
         lot: u64,
         leverage: u8,
@@ -412,25 +412,30 @@ module scale::position {
         (margin_new,id)
     }
 
-    fun risk_assertion(
+    public fun risk_assertion(
         total_liquidity: u64,
         fund_size: u64,
         pre_exposure: u64,
         exposure: u64,
         position_total: u64
     ){
-        if (exposure > total_liquidity / DENOMINATOR * POSITION_DIFF_PROPORTION){
+        let total_liquidity = (total_liquidity as u128);
+        let fund_size = (fund_size as u128);
+        let pre_exposure = (pre_exposure as u128);
+        let exposure = (exposure as u128);
+        let position_total = (position_total as u128);
+        if (exposure * DENOMINATORU128 > total_liquidity * POSITION_DIFF_PROPORTIONU128) {
             assert!(
                 exposure < pre_exposure,
                 ERiskControlBlockingExposure
             );
         };
         assert!(
-            fund_size < total_liquidity / DENOMINATOR * POSITION_PROPORTION_ONE,
+            fund_size * DENOMINATORU128 < total_liquidity * POSITION_PROPORTION_ONE_U128,
             RiskControlBlockingFundSize
         );
         assert!(
-            position_total / POSITION_PROPORTION < total_liquidity / DENOMINATOR,
+            position_total * DENOMINATORU128 < total_liquidity * POSITION_PROPORTION_U128,
             RiskControlBlockingFundPool
         );
     }
@@ -567,7 +572,7 @@ module scale::position {
     ): ID {
         let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
-        check_open_position<T>(market,lot,leverage,type,direction);
+        check_open_position(market,lot,leverage,type,direction);
         let pre_exposure = market::get_exposure(market);
         let (margin,size,fund_size,insurance_fee,spread_fee,id) = create_position<T>(
                 lot,
@@ -661,14 +666,13 @@ module scale::position {
         position.info.close_spread = market::get_spread(&price);
         position.info.close_price = market::get_direction_price(&price,position.info.direction);
         position.info.close_real_price = market::get_real_price(&price);
-        // todo: update close_time
-        position.info.close_time = 0;
+        position.info.close_time = clock::timestamp_ms(c);
         position.info.close_operator = close_operator;
         let p = market::get_pool_mut<P,T>(list);
         // collect spread
         let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
         pool::join_spread_profit<P,T>(p,spread_balance);
-        let pl = get_pl<T>(size, fund_size, position.info.direction, &price);
+        let pl = get_pl(size, fund_size, position.info.direction, &price);
         if (!i64::is_negative(&pl)){
             if (auto) {
                 assert!(real_price + FLOATING_PRICE >= position.info.stop_surplus_price && real_price - FLOATING_PRICE <= position.info.stop_surplus_price, EInvalidStopLossPrice);
@@ -806,7 +810,7 @@ module scale::position {
                 let price = market::get_price(&market,state,c);
                 let size = size(position.info.lot,position.info.unit_size);
                 let fund_size = fund_size(size,market::get_real_price(&price));
-                 let pl = get_pl<T>(size, fund_size, position.info.direction, &price);
+                 let pl = get_pl(size, fund_size, position.info.direction, &price);
                 i64::inc_u64(&mut pl,position.info.margin);
                 if (!i64::is_negative(&pl)){
                     assert!(i64::get_value(&pl) <= BURST_RATE * position.info.margin / DENOMINATOR, EBurstConditionsNotMet);
@@ -868,7 +872,7 @@ module scale::position {
         auto_open_price: u64,
         list: &mut List<P,T>,
         account: &mut Account<T>,
-        ctx: &mut TxContext,
+        ctx: &TxContext,
     ){
         let owner = tx_context::sender(ctx);
         assert!(owner == account::get_owner(account), ENoPermission);
@@ -975,7 +979,7 @@ module scale::position {
         stop_surplus_price: u64,
         stop_loss_price: u64,
         account: &mut Account<T>,
-        ctx: &mut TxContext,
+        ctx: &TxContext,
     ){
         let owner = tx_context::sender(ctx);
         assert!(owner == account::get_owner(account), ENoPermission);

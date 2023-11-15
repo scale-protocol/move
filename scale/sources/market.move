@@ -16,7 +16,7 @@ module scale::market{
     friend scale::position;
     friend scale::bond;
     
-    const ELSPCreatorPermissionRequired:u64 = 301;
+    // const ELSPCreatorPermissionRequired:u64 = 301;
     const EInvalidLeverage:u64 = 302;
     const EInvalidSpread:u64 = 303;
     const EInvalidInsuranceRate:u64 = 304;
@@ -25,7 +25,7 @@ module scale::market{
     const ENameRequired:u64 = 307;
     const EDescriptionRequired:u64 = 308;
     const ENoPermission:u64 = 309;
-    const EInvalidSellPrice:u64 = 310;
+    // const EInvalidSellPrice:u64 = 310;
     const EInvalidSize:u64 = 311;
     const EInvalidFundRate:u64 = 312;
     const EInvalidOpingPrice:u64 = 313;
@@ -38,7 +38,7 @@ module scale::market{
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
-    const DENOMINATORU128: u128 = 10000;
+    // const DENOMINATORU128: u128 = 10000;
     const MAX_VALUE: u64 = {
         18446744073709551615 / 10000
     };
@@ -46,7 +46,7 @@ module scale::market{
     struct List<phantom P, phantom T> has key,store {
         id: UID,
         total: u64,
-        /// Market operator, 
+        /// Market pool operator, 
         /// 1 project team
         /// 2 Certified Third Party
         /// 3 Community
@@ -85,7 +85,7 @@ module scale::market{
         /// Transaction pair (token type, such as BTC, ETH)
         symbol: String,
         icon: Url,
-        officer: u8,
+        // officer: u8,
         /// market description
         description: String,
         /// Basic size of transaction pair contract
@@ -93,6 +93,7 @@ module scale::market{
         unit_size: u64,
         /// The price at 0 o'clock in the utc of the current day, which is used to calculate the spread_fee
         opening_price: u64,
+        list_id: ID,
     }
 
     struct Price has drop,copy {
@@ -342,6 +343,8 @@ module scale::market{
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
         admin::create_scale_admin(id,ctx);
+        let list_id = object::uid_to_inner(&list.id);
+        let symbol = string::utf8(symbol);
         dof::add(&mut list.id, symbol, Market{
             id: uid,
             max_leverage: 125,
@@ -352,14 +355,15 @@ module scale::market{
             status: 1,
             long_position_total: 0,
             short_position_total: 0,
-            symbol: string::utf8(symbol),
+            symbol,
             icon: url::new_unsafe_from_bytes(icon),
             description: string::utf8(description),
             spread_fee: 1000,
             spread_fee_manual: false,
-            officer: 2,
+            // officer: 2,
             unit_size,
             opening_price,
+            list_id
         });
         list.total = list.total + 1;
         event::create<Market>(id);
@@ -367,84 +371,84 @@ module scale::market{
     }
 
     public fun update_max_leverage(
-        pac:&mut ScaleAdminCap,
-        market:&mut Market,
+        pac: &ScaleAdminCap,
+        market: &mut Market,
         max_leverage: u8,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(max_leverage > 0 && max_leverage < 255,EInvalidLeverage);
         market.max_leverage = max_leverage;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
 
     public fun update_insurance_fee(
-        pac:&mut ScaleAdminCap,
-        market:&mut Market,
+        pac: &ScaleAdminCap,
+        market: &mut Market,
         insurance_fee: u64,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(insurance_fee > 0 && insurance_fee <= DENOMINATOR, EInvalidInsuranceRate);
         market.insurance_fee = insurance_fee;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
 
     public fun update_margin_fee(
-        pac:&mut ScaleAdminCap,
-        market:&mut Market,
+        pac: &ScaleAdminCap,
+        market: &mut Market,
         margin_fee: u64,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(margin_fee > 0 && margin_fee <= DENOMINATOR, EInvalidMarginRate);
         market.margin_fee = margin_fee;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
     public fun update_fund_fee(
-        pac:&mut ScaleAdminCap,
-        market:&mut Market,
+        pac:& ScaleAdminCap,
+        market: &mut Market,
         fund_fee: u64,
         manual: bool,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(fund_fee > 0 && fund_fee <= DENOMINATOR, EInvalidFundRate);
         market.fund_fee = fund_fee;
         market.fund_fee_manual = manual;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
     public fun update_status(
-        pac:&mut ScaleAdminCap,
+        pac:&ScaleAdminCap,
         market:&mut Market,
         status: u8,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(status > 0 && status <= 3,EInvalidStatus);
         market.status = status;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
 
     public fun update_description(
-        pac:&mut ScaleAdminCap,
-        market:&mut Market,
+        pac: &ScaleAdminCap,
+        market: &mut Market,
         description: vector<u8>,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(!vector::is_empty(&description), EDescriptionRequired);
         market.description = string::utf8(description);
         event::update<Market>(object::uid_to_inner(&market.id));
     }
 
     public fun update_icon(
-        pac:&mut ScaleAdminCap,
+        pac:&ScaleAdminCap,
         market:&mut Market,
         icon: vector<u8>,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(!vector::is_empty(&icon), EIconRequired);
         assert!(vector::length(&icon) < 280, EIconTooLong);
         market.icon = url::new_unsafe_from_bytes(icon);
@@ -452,13 +456,13 @@ module scale::market{
     }
 
     public fun update_spread_fee(
-        pac: &mut ScaleAdminCap,
+        pac: &ScaleAdminCap,
         market:&mut Market,
         spread_fee: u64,
         manual: bool,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ){
-        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
+        assert!(admin::is_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&market.id)),ENoPermission);
         assert!(spread_fee > 0 && spread_fee <= DENOMINATOR,EInvalidSpread);
         market.spread_fee = spread_fee;
         market.spread_fee_manual = manual;
@@ -466,15 +470,15 @@ module scale::market{
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
-    public fun update_officer(
-        _cap:&mut AdminCap,
-        market:&mut Market,
+    public fun update_officer<P,T>(
+        _cap: &mut AdminCap,
+        list: &mut List<P,T>,
         officer: u8,
         _ctx: &mut TxContext
     ){
         assert!(officer > 0 && officer < 4,EInvalidOfficer);
-        market.officer = officer;
-        event::update<Market>(object::uid_to_inner(&market.id));
+        list.officer = officer;
+        event::update<List<P,T>>(object::uid_to_inner(&list.id));
     }
 
     /// When the robot fails to update the price, update manually

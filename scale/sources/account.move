@@ -307,7 +307,7 @@ module scale::account {
         event::update<Account<T>>(object::id(account));
     }
 
-    public(friend) fun withdrawal<P,T>(
+    public(friend) fun withdrawal<T>(
         equity: I64,
         account: &mut Account<T>,
         amount: u64,

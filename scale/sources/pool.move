@@ -91,7 +91,7 @@ module scale::pool {
     }
 
     public(friend) fun split_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
-        let profit_balance_value = balance::value(&mut pool.profit_balance);
+        let profit_balance_value = balance::value(&pool.profit_balance);
         if (profit_balance_value >= amount) {
             return balance::split(&mut pool.profit_balance, amount)
         };

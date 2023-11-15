@@ -19,7 +19,7 @@ module scale::bond {
     const ENameRequired:u64 = 401;
     const EDescriptionRequired:u64 = 402;
     const EUrlRequired:u64 = 403;
-    const EInvalidNFTID:u64 = 404;
+    // const EInvalidNFTID:u64 = 404;
     const EInvalidMarketID:u64 = 405;
     const EInsufficientCoins:u64 = 406;
     const EInvalidIssueTime:u64 = 407;

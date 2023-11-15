@@ -40,7 +40,7 @@ module scale::enter {
         c: &Clock,
         ctx: &mut TxContext
     ){
-        account::withdrawal<P,T>(position::get_equity<P,T>(list, account,state,c),account,amount,ctx);
+        account::withdrawal<T>(position::get_equity<P,T>(list, account,state,c),account,amount,ctx);
     }
 
     public entry fun add_admin_member(
@@ -174,12 +174,10 @@ module scale::enter {
     public entry fun update_officer<P,T>(
         cap:&mut AdminCap,
         list: &mut List<P,T>,
-        market_id: ID,
         officer: u8,
         ctx: &mut TxContext
     ){
-        let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),market_id);
-        market::update_officer(cap,market,officer,ctx);
+        market::update_officer(cap,list,officer,ctx);
     }
 
     /// The robot triggers at 0:00 every day to update the price of the day
