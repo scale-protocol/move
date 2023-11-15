@@ -10,8 +10,7 @@ module oracle::oracle {
     const ENameRequired:u64 = 1;
     const ENameTooLong:u64 = 2;
     const EInvalidTimestamp:u64 = 3;
-    const EInvalidOwner:u64 = 4;
-    const EPriceFeedNotExist:u64 = 5;
+    const EPriceFeedNotExist:u64 = 4;
 
     friend oracle::pyth_network;
 
@@ -22,6 +21,7 @@ module oracle::oracle {
     struct State has key {
         id: UID,
         total: u64,
+        price_timeout_ms: u64,
     }
 
     struct PriceFeed has key,store {
@@ -38,6 +38,7 @@ module oracle::oracle {
         transfer::share_object(State{
             id: object::new(ctx),
             total: 0,
+            price_timeout_ms: 3000,
         });
     }
 
@@ -62,6 +63,15 @@ module oracle::oracle {
         dof::add(&mut state.id,symbol,price_feed);
     }
 
+    public entry fun update_price_timeout(
+        _admin: &mut AdminCap,
+        state: &mut State,
+        timeout_ms: u64,
+        _ctx: &TxContext,
+    ){
+        state.price_timeout_ms = timeout_ms;
+    }
+
     public(friend) fun update_price(
         state: &mut State,
         symbol: vector<u8>,
@@ -78,11 +88,11 @@ module oracle::oracle {
     public fun get_price(state: &State, symbol: vector<u8>,c: &Clock): (u64, u64){
         assert!(dof::exists_(&state.id,symbol),EPriceFeedNotExist);
         let feed: &PriceFeed = dof::borrow(&state.id, symbol);
-        let current_time = clock::timestamp_ms(c) / 1000;
-        assert!(current_time >= feed.timestamp, EInvalidTimestamp);
-        // 3 seconds
-        assert!(current_time - feed.timestamp <= 3, EInvalidTimestamp);
-        (feed.price, feed.timestamp)
+        let current_time_ms = clock::timestamp_ms(c);
+        let feed_timestamp_ms = feed.timestamp * 1000;
+        assert!(current_time_ms >= feed_timestamp_ms, EInvalidTimestamp);
+        assert!(current_time_ms - feed_timestamp_ms <= state.price_timeout_ms, EInvalidTimestamp);
+        (feed.price, feed_timestamp_ms)
     }
     
     #[test_only]

@@ -34,7 +34,7 @@ module oracle::oracle_tests {
             oracle::update_price_for_testing(&mut state,symbol, 100, 100, test_scenario::ctx(tx));
             let (price, timestamp) = oracle::get_price(&state, symbol,&c);
             assert!(price == 100,1);
-            assert!(timestamp == 100,1);
+            assert!(timestamp == 100000,1);
             test_scenario::return_shared(state);
             clock::destroy_for_testing(c);
         };
@@ -46,7 +46,7 @@ module oracle::oracle_tests {
             clock::set_for_testing(&mut c, 101*1000);
             let (price, timestamp) = oracle::get_price(&state, symbol,&c);
             assert!(price == 100,1);
-            assert!(timestamp == 100,2);
+            assert!(timestamp == 100000,2);
             test_scenario::return_shared(state);
             clock::destroy_for_testing(c);
         };
