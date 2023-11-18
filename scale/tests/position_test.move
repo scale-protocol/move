@@ -6,33 +6,20 @@ module scale::position_tests {
     use scale::pool::{Self,Scale};
     use sui::test_scenario::{Self,Scenario};
     use sui::dynamic_object_field as dof;
-    use sui::object::{ID};
+    // use sui::object::{ID};
     use sui::coin::{Self,Coin};
     use oracle::oracle;
-    // use scale::i64;
-    use std::debug;
+    use scale::i64;
+    // use std::debug;
     use sui_coin::scale::{SCALE};
     use std::string::{Self,String};
     use sui::clock;
-
-    // struct TestContext<phantom P, phantom T> {
-    //     owner: address,
-    //     scenario: Scenario,
-    //     symbol: string::String,
-    //     market_id: ID,
-    //     position_id: ID,
-    //     account: Account<SCALE>,
-    //     scale_coin: Coin<SCALE>,
-    //     list: List<P,T>,
-    //     state: oracle::State,
-    // }
 
     public fun get_test_ctx<P:drop,T>():
      (
         address,
         Scenario,
         String,
-        ID,
         Account<T>,
         Coin<T>,
         List<P,T>,
@@ -57,11 +44,11 @@ module scale::position_tests {
         let oracle_admin = test_scenario::take_from_sender<oracle::AdminCap>(tx);
         let list = test_scenario::take_shared<List<P,T>>(tx);
         let ctx = test_scenario::ctx(tx);
-        oracle::update_price_for_testing(&mut state,n,1000,11234567,ctx);
-        let n = b"BTC/USD";
+        oracle::create_price_feed_for_testing(&mut state,n,ctx);
+        oracle::update_price_for_testing(&mut state,n,1000,123,ctx);
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        let market_id = market::create_market<P,T>(
+        market::create_market<P,T>(
             &mut list,
             n,
             i,
@@ -76,17 +63,19 @@ module scale::position_tests {
         let account = test_scenario::take_shared<Account<T>>(tx);
         // deposit
         account::deposit(&mut account,coin::mint_for_testing<T>(10000,test_scenario::ctx(tx)),0,test_scenario::ctx(tx));
+        let coin = coin::mint_for_testing<T>(20000,test_scenario::ctx(tx));
+        account::isolated_deposit_for_testing(&mut account,coin);
         // add liquidity
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),symbol),1);
-        let lsp_coin = pool::add_liquidity_for_testing<P,T>(market::get_pool_mut_for_testing<P,T>(&mut list),coin::mint_for_testing<T>(100000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
+        let lsp_coin = pool::add_liquidity_for_testing<P,T>(market::get_pool_mut_for_testing<P,T>(&mut list),coin::mint_for_testing<T>(1000000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
         coin::burn_for_testing(lsp_coin);
         let c = clock::create_for_testing(test_scenario::ctx(tx));
+        clock::set_for_testing(&mut c,123000);
         test_scenario::return_to_sender(tx,oracle_admin);
         (
             owner,
             test_tx,
             symbol,
-            market_id,
             account,
             scale_coin,
             list,
@@ -181,7 +170,6 @@ module scale::position_tests {
             owner,
             scenario,
             symbol,
-            _market_id,
             account,
             scale_coin,
             list,
@@ -189,15 +177,16 @@ module scale::position_tests {
             c,
         ) = get_test_ctx<Scale,SCALE>();
         let tx = &mut scenario;
+        let sb=*string::bytes(&symbol);
         test_scenario::next_tx(tx,owner);
         {
            let _position_id = position::open_position(
-                *string::bytes(&symbol),
+                sb,
+                100,
                 1,
                 1,
                 1,
-                1,
-                1,
+                0,
                 0,
                 0,
                 &mut list,
@@ -206,13 +195,59 @@ module scale::position_tests {
                 &c,
                 test_scenario::ctx(tx)
             );
+            // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
+            // balabce = balance - insurance_fee - fund_fee => 10000 - 1 - 0 = 9999
+            // buy position ,pl = (sell_price - open_real_price ) * size + balance
+            // =>  992 * 100 / 10000 - 1000 * 100 / 10000 + 9999
+            // =>  9.92 - 10 + 9999
+            // =>  9 - 10+9999
+            // =>  9998
             let equity = position::get_equity(
                     &list,
                     &account,
                     &state,
                     &c,
                 );
-            debug::print(&equity);
+            assert!(i64::get_value(&equity) == 9998,1);
+            assert!(account::get_balance(&account) == 9999,2);
+        };
+        test_scenario::next_tx(tx,owner);
+        {
+            let ctx = test_scenario::ctx(tx);
+            clock::set_for_testing(&mut c,134000);
+            oracle::update_price_for_testing(&mut state,sb,1500,133,ctx);
+            let _position_id = position::open_position(
+                sb,
+                100000,
+                1,
+                1,
+                2,
+                0,
+                0,
+                0,
+                &mut list,
+                &mut account,
+                &state,
+                &c,
+                test_scenario::ctx(tx)
+            );
+            // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
+            // let price = market::get_price(market,&state,&c);
+            // debug::print(&price);
+            // becose this position is isolated so the balance is not changed
+            // buy position ,pl = (sell_price - open_real_price ) * size + balance
+            // =>  1488 * 100 / 10000 - 1500 * 100 / 10000 + 9999
+            // =>  14.88 - 15
+            // =>  14 - 15 + 9999
+            // =>  9998
+            let equity = position::get_equity(
+                    &list,
+                    &account,
+                    &state,
+                    &c,
+                );
+            // debug::print(&equity);
+            assert!(i64::get_value(&equity) == 9998,1);
         };
         drop_test_ctx(
             scenario,
@@ -223,195 +258,85 @@ module scale::position_tests {
             c,
         );
     }
-    // #[test]
-    // fun test_equity(){
-    //     let (
-    //         owner,
-    //         scenario,
-    //         market_id,
-    //         _position_id,
-    //         feed_id,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //      ) = get_test_ctx();
-    //     let tx = &mut scenario;
-    //     test_scenario::next_tx(tx,owner);
-    //     {
-    //         test_scenario::next_tx(tx,owner);
-    //         {
-    //             // balance = 210000
-    //             account::deposit(&mut account,coin::mint_for_testing<SCALE>(200000,test_scenario::ctx(tx)),0,test_scenario::ctx(tx));
-    //         };
-    //         test_scenario::next_tx(tx,owner);
-    //         {
-    //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-    //             // let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-    //             // let price = market::get_price_by_real(market,1500);
-    //             // debug::print(&price);
-    //             // pl = (shell_price - open_real_price ) * size = (1488 - 1000) * (1000/10000) * 1 = 48.8
-    //             // fund_fee = 0
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
-    //             // pl = (shell_price - open_real_price ) * size = (1488 - 1000) * (100000/10000) * 1 = 4880
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,1,test_scenario::ctx(tx));
-    //             // pl = (open_real_price - buy_price ) * size = (1000 - 1511) * (1000/10000) * 1 = -51.1
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
-    //             // pl = (open_real_price - buy_price ) * size = (1000 - 1511) * (100000/10000) * 1 = -5110
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,2,2,test_scenario::ctx(tx));
-    //             oracle::update_price(&mut state,feed_id,1500,11241569,test_scenario::ctx(tx));
-    //             // debug::print(&account);
-    //             // equity = balance + cross position pl = 205998 + 48 - 51 = 203995
-    //             let equity = position::get_equity<Scale,SCALE>(&list,&account,&state);
-    //             // debug::print(&equity);
-    //             assert!(i64::get_value(&equity) == 205995,2);
-    //             assert!(i64::is_negative(&equity) == false,3);
-    //         };
-    //         test_scenario::next_tx(tx,owner);
-    //         {
-    //             // oracle::update_price(&mut state,feed_id,1000,11251569,test_scenario::ctx(tx));
-    //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-    //             // let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-    //             // let price = market::get_price(market,&state);
-    //             // debug::print(&price);
-    //             // reset price , price => price = fund_size / size => (0.1*1000+0.1*1500) / 0.2 => 1250
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,1,test_scenario::ctx(tx));
-    //             // reset price , price => price = fund_size / size => (0.2 * 1250 + 10 * 1500) / 10.2 => 1495.09
-    //             // pl = (shell_price - open_real_price ) * size = (798 - 1495) * (102000/10000) * 1 = -7109.4
-    //             // fund_fee = 1495 * 10.2 * 3/10000 = 4.52
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,100000,5,1,1,test_scenario::ctx(tx));
+    #[test]
+    fun test_not_force_liquidation(){
+        // When the margin ratio is less 50% , forced liquidation
+        let equity = i64::new(6,false);
+        assert!(position::is_force_liquidation(&equity,10) == false,1);
+        let equity = i64::new(10,false);
+        assert!(position::is_force_liquidation(&equity,10) == false,1);
+        let equity = i64::new(11,false);
+        assert!(position::is_force_liquidation(&equity,10) == false,1);
+    }
+    #[test]
+    fun test_force_liquidation(){
+        let equity = i64::new(5,false);
+        assert!(position::is_force_liquidation(&equity,10) == true,1);
+        let equity = i64::new(1,false);
+        assert!(position::is_force_liquidation(&equity,10) == true,1);
+        let equity = i64::new(3333,false);
+        assert!(position::is_force_liquidation(&equity,9999) == true,1);
+    }
 
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,1000,2,1,2,test_scenario::ctx(tx));
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,30000,5,1,2,test_scenario::ctx(tx));
-    //             // reset price , price = price = fund_size / size => (0.1 * 1000 + 7.1 * 1500) / 7.2  => 1493.05
-    //             // pl = (open_real_price - buy_price ) * size = (1493 - 801) * 7.2 * 1 = 4982.4
-    //             // fund_fee = 1493 * 7.2 * 3/10000 = -3.22
-    //             position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,40000,5,1,2,test_scenario::ctx(tx));
-    //             oracle::update_price(&mut state,feed_id,800,11261569,test_scenario::ctx(tx));
-    //         };
-    //         test_scenario::next_tx(tx,owner);
-    //         {
-    //             assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-    //             // let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-    //             // let price = market::get_price_by_real(market,800);
-    //             // equity = balance + cross position pl = 205997 - 7109 + 4 + 4982 - 3 = 203871
-    //             let equity = position::get_equity<Scale,SCALE>(&list,&account,&state);
-    //             // There is a calculation deviation, so the result is 203861,During actual use, the amount value is amplified to eliminate
-    //             assert!(i64::get_value(&equity) == 203861,2);
-    //             assert!(i64::is_negative(&equity) == false,3);
-    //         };
-    //     };
-    //     drop_test_ctx(
-    //         scenario,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //     );
-    // }
-    // #[test]
-    // #[expected_failure(abort_code = 616, location = position)]
-    // fun test_check_margin_negative(){
-    //     let (
-    //         owner,
-    //         scenario,
-    //         _market_id,
-    //         _position_id,
-    //         _feed_id,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //      ) = get_test_ctx<Scale,SCALE>();
-    //     let tx = &mut scenario;
-    //     test_scenario::next_tx(tx,owner);
-    //     {
-    //         let e = i64::new(100000,true);
-    //         position::check_margin<SCALE>(&account,&e);
-    //     };
-    //     drop_test_ctx(
-    //         scenario,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //     );
-    // }
-    // #[test]
-    // #[expected_failure(abort_code = 611, location = position)]
-    // fun test_check_margin(){
-    //     let (
-    //         owner,
-    //         scenario,
-    //         _market_id,
-    //         _position_id,
-    //         _feed_id,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //      ) = get_test_ctx<Scale,SCALE>();
-    //     let tx = &mut scenario;
-    //     test_scenario::next_tx(tx,owner);
-    //     {
-    //         let e = i64::new(100000,false);
-    //         account::inc_margin_cross_sell_total_for_testing(&mut account,1);
-    //         // balance = 10000
-    //         position::check_margin<SCALE>(&account,&e);
-
-    //         let e = i64::new(300,false);
-    //         account::inc_margin_cross_buy_total_for_testing(&mut account,500);
-    //         account::inc_margin_cross_sell_total_for_testing(&mut account,234);
-    //         position::check_margin<SCALE>(&account,&e);
-
-    //         let e = i64::new(250,false);
-    //         position::check_margin<SCALE>(&account,&e);
-
-    //         let e = i64::new(249,false);
-    //         position::check_margin<SCALE>(&account,&e);
-    //     };
-    //     drop_test_ctx(
-    //         scenario,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //     );
-    // }
-    // // Value overflow test
-    // #[test]
-    // fun test_value_overflow(){
-    //     let (
-    //         owner,
-    //         scenario,
-    //         market_id,
-    //         _position_id,
-    //         feed_id,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //      ) = get_test_ctx<Scale,SCALE>();
-    //     let tx = &mut scenario;
-    //     test_scenario::next_tx(tx,owner);
-    //     {
-    //         oracle::update_price(&mut state,feed_id,9_223_372_036_854_775_807/20000,222222222222,test_scenario::ctx(tx));
-    //         account::deposit(&mut account,coin::mint_for_testing<SCALE>((9_223_372_036_854_775_807 - 10000),test_scenario::ctx(tx)),0,test_scenario::ctx(tx));
-    //         // add liquidity
-    //         assert!(dof::exists_(market::get_list_uid_mut(&mut list),market_id),1);
-    //         let market: &mut Market= dof::borrow_mut(market::get_list_uid_mut(&mut list),market_id);
-    //         // 18446744073709551615
-    //         // 9223372036854775807
-    //         let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(&mut list),coin::mint_for_testing<SCALE>((18446744073709551615 - 100000 -1 ),test_scenario::ctx(tx)),test_scenario::ctx(tx));
-    //         coin::burn_for_testing(lsp_coin);
-    //         let _position_id_new_2 = position::open_position<Scale,SCALE>(&mut list, market_id, &mut account, &state,20000,5,1,2,test_scenario::ctx(tx));
-    //     };
-    //     drop_test_ctx(
-    //         scenario,
-    //         account,
-    //         scale_coin,
-    //         list,
-    //         state,
-    //     );
-    // }
+    #[test]
+    fun test_value_overflow(){
+        let(
+            owner,
+            scenario,
+            symbol,
+            account,
+            scale_coin,
+            list,
+            state,
+            c,
+        ) = get_test_ctx<Scale,SCALE>();
+        let tx = &mut scenario;
+        let sb=*string::bytes(&symbol);
+        test_scenario::next_tx(tx,owner);
+        {
+            let ctx = test_scenario::ctx(tx);
+            clock::set_for_testing(&mut c,134000);
+            oracle::update_price_for_testing(&mut state,sb,9_223_372_036_854_775_807/20000,133,ctx);
+            account::deposit(
+                &mut account,
+                coin::mint_for_testing<SCALE>(
+                (9_223_372_036_854_775_807 - 10000),
+                test_scenario::ctx(tx)),
+                0,
+                test_scenario::ctx(tx)
+            );
+            // add liquidity
+            let lsp_coin = pool::add_liquidity_for_testing<Scale,SCALE>(
+                market::get_pool_mut_for_testing<Scale,SCALE>(&mut list),
+                coin::mint_for_testing<SCALE>(18446744073709551615 - 1000000 -1,
+                test_scenario::ctx(tx)),test_scenario::ctx(tx)
+            );
+            // 18446744073709551615
+            // 9223372036854775807
+            coin::burn_for_testing(lsp_coin);
+            let _position_id = position::open_position(
+                sb,
+                10000,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                &mut list,
+                &mut account,
+                &state,
+                &c,
+                test_scenario::ctx(tx)
+            );
+        };
+        drop_test_ctx(
+            scenario,
+            account,
+            scale_coin,
+            list,
+            state,
+            c,
+        );
+    }
 }

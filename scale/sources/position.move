@@ -13,7 +13,8 @@ module scale::position {
     use oracle::oracle;
     use scale::event;
     use sui::clock::{Self, Clock};
-    // use std::debug;
+    use std::string::{Self,String};
+    use std::debug;
     // use sui::dynamic_field as df;/
 
     
@@ -31,7 +32,7 @@ module scale::position {
     const RiskControlBlockingFundPool:u64 = 613;
     // const EInvalidMarketId:u64 = 614;
     const EInvalidAccountId:u64 = 615;
-    const ERiskControlNegativeEquity:u64 = 616;
+    // const ERiskControlNegativeEquity:u64 = 616;
     const EBurstConditionsNotMet:u64 = 617;
     const EInvalidAutoOpenPrice:u64 = 618;
     const EInvalidStopPrice:u64 = 619;
@@ -51,7 +52,7 @@ module scale::position {
     const POSITION_DIFF_PROPORTIONU128: u128 = 7000;
     /// The liquidation line ratio means that if the user's margin loss exceeds this ratio in one quotation,
     /// the system will be liquidated and the position will be forced to close.
-    const BURST_RATE: u64 = 5000;
+    const FORCE_LIQUIDATION_RATE: u64 = 5000;
     /// so as to avoid the risk of malicious position opening.
     const POSITION_PROPORTION_U128: u128 = 15000;
     /// The size of a single position shall not be greater than 20% of the exposure
@@ -111,7 +112,7 @@ module scale::position {
         open_operator: address,
         /// Account number of warehouse closing operator (user manual, or clearing robot Qiangping)
         close_operator: address,
-        symbol: vector<u8>,
+        symbol: String,
         /// Market account number of the position
         market_id: ID,
         account_id: ID,
@@ -216,7 +217,8 @@ module scale::position {
     }
 
     public fun fund_size(size :u64, price: u64) :u64 {
-        let r = (size as u128) * (price as u128);
+        // reduce lot
+        let r = (size as u128) * (price as u128) / DENOMINATORU128;
         assert!(r <= MAX_U64_VALUEU128 ,ENumericOverflow);
         (r as u64)
     }
@@ -226,7 +228,7 @@ module scale::position {
     }
 
     fun size(lot: u64, unit_size:u64) :u64 {
-        let r = (unit_size as u128) * (lot as u128) / DENOMINATORU128;
+        let r = (unit_size as u128) * (lot as u128);
         assert!(r <= MAX_U64_VALUEU128 ,ENumericOverflow);
         (r as u64)
     }
@@ -319,16 +321,25 @@ module scale::position {
             let id = vector::borrow(&ids,i);
             let ps: &Position<T> = dof::borrow(account::get_uid(account),*id);
             if ( ps.info.status == 1 ){
-                let market: &Market = dof::borrow(market::get_list_uid(list),ps.info.market_id);
+                let market: &Market = dof::borrow(market::get_list_uid(list),ps.info.symbol);
                 let price = market::get_price(market,state,c);
                 let unit_size = market::get_unit_size(market);
                 let size = size(ps.info.lot,unit_size);
                 let fund_size = fund_size(size,market::get_real_price(&price));
-                pl = i64::i64_add(&pl,&i64::i64_add(&get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market), &get_pl(size, fund_size, ps.info.direction, &price)));
+                let p = get_pl(size, fund_size, ps.info.direction, &price);
+                let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
+                // debug::print(&ps.info.lot);
+                // debug::print(&unit_size);
+                // debug::print(&size);
+                // debug::print(&fund_size);
+                // debug::print(&p);
+                // debug::print(&fund_fee);
+                pl = i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p));
             };
             i = i + 1;
         };
         i64::inc_u64(&mut pl,account::get_balance(account));
+        // debug::print(&pl);
         pl
     }
     /// get Floating P/L
@@ -358,7 +369,8 @@ module scale::position {
             if (min == 0){
                 return i64::new(0,false)
             };
-            i64::new(max * market::get_fund_fee(market,total_liquidity) /DENOMINATOR * fund_size / min,false)
+            // i64::new(max * market::get_fund_fee(market,total_liquidity) / DENOMINATOR * fund_size / min,false)
+            i64::new(max * market::get_fund_fee(market,total_liquidity) * fund_size / (DENOMINATOR * min),false)
         }
     }
 
@@ -444,19 +456,37 @@ module scale::position {
         account: &Account<T>,
         equity: &I64
     ){
-        assert!(!i64::is_negative(equity), ERiskControlNegativeEquity);
+        // assert!(!i64::is_negative(equity), ERiskControlNegativeEquity);
         let margin_used = account::get_margin_used(account);
         if (margin_used > 0) {
-            assert!(i64::get_value(equity) >= BURST_RATE * margin_used / DENOMINATOR, ERiskControlBurstRate);
+            assert!(!is_force_liquidation(equity, margin_used),ERiskControlBurstRate);
         }
     }
 
+    public fun is_force_liquidation(
+        equity: &I64,
+        margin_used: u64
+    ):bool{
+        i64::is_negative(equity) || i64::get_value(equity) <= FORCE_LIQUIDATION_RATE * margin_used / DENOMINATOR
+    }
+
     fun get_insurance_amount(margin: u64,insurance_fee: u64): u64{
-        ((margin as u128) * (insurance_fee as u128) / (DENOMINATOR as u128) as u64)
+        let r = ((margin as u128) * (insurance_fee as u128) / (DENOMINATOR as u128) as u64);
+        if (r == 0) {
+            return 1
+        } else {
+            return r
+        }
     }
 
     fun get_spread_amount(spread: u64, size: u64):u64 {
-        size * (spread / DENOMINATOR / 2)
+        // size * (spread / DENOMINATOR / 2)
+        let r = size * spread / ( DENOMINATOR * 2);
+        if (r == 0) {
+            return 1
+        } else {
+            return r
+        }
     }
 
     fun create_position<T>(
@@ -467,7 +497,7 @@ module scale::position {
         auto_open_price: u64,
         stop_surplus_price: u64,
         stop_loss_price: u64,
-        symbol: vector<u8>,
+        symbol: String,
         market: &mut Market,
         account: &mut Account<T>,
         state: &oracle::State,
@@ -484,7 +514,7 @@ module scale::position {
         let spread_fee = market::get_spread_fee(market, real_price);
         let unix_time = clock::timestamp_ms(c);
         let pfk = account::new_PFK(object::id(market),object::id(account),direction);
-        if (type == 1 && auto_open_price == 0){
+        if (type == 1 && auto_open_price == 0 && account::contains_pfk(account,&pfk)){
             let (margin, id) = merge_cross_position<T>(market,account,&pfk,lot,leverage,direction,margin_fee,size,fund_size,unix_time);
             event::update<Position<T>>(id);
             event::update<Account<T>>(object::id(account));
@@ -545,6 +575,9 @@ module scale::position {
         if (type == 1 ){
             account::add_pfk_id(account, pfk, id);
         } else {
+            // debug::print(&margin);
+            // debug::print(&insurance_fee);
+            // debug::print(&spread_fee);
             balance::join(&mut position.margin_balance, account::split_balance(account,type, margin + insurance_fee + spread_fee ));
             account::add_isolated_position_id(account, id);
         };
@@ -570,6 +603,7 @@ module scale::position {
         c: &Clock,
         ctx: &mut TxContext
     ): ID {
+        let symbol = string::utf8(symbol);
         let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),symbol);
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
         check_open_position(market,lot,leverage,type,direction);
@@ -578,7 +612,7 @@ module scale::position {
                 lot,
                 leverage,
                 direction,
-                1u8,
+                type,
                 auto_open_price,
                 stop_surplus_price,
                 stop_loss_price,
@@ -613,11 +647,17 @@ module scale::position {
         };
         event::update<List<P,T>>(object::id(list));
         let p = market::get_pool_mut<P,T>(list);
+        // debug::print(&margin);
+        // debug::print(&insurance_fee);
+        // debug::print(&get_insurance_amount(margin,insurance_fee));
         // collect insurance
         let insurance_balance = account::split_balance(account,type, get_insurance_amount(margin,insurance_fee));
         pool::join_insurance_balance<P,T>(p,insurance_balance);
         // collect spread
         let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
+        // debug::print(&spread_fee);
+        // debug::print(&size);
+        // debug::print(&get_spread_amount(spread_fee,size));
         pool::join_spread_profit<P,T>(p,spread_balance);
         id
     }
@@ -803,7 +843,7 @@ module scale::position {
                 if (!i64::is_negative(&equity)){
                     let margin_used = account::get_margin_used(account);
                     if (margin_used > 0) {
-                        assert!(i64::get_value(&equity) <= BURST_RATE * margin_used / DENOMINATOR, EBurstConditionsNotMet);
+                        assert!(is_force_liquidation(&equity,margin_used), EBurstConditionsNotMet);
                     }
                 }
             } else {
@@ -813,7 +853,7 @@ module scale::position {
                  let pl = get_pl(size, fund_size, position.info.direction, &price);
                 i64::inc_u64(&mut pl,position.info.margin);
                 if (!i64::is_negative(&pl)){
-                    assert!(i64::get_value(&pl) <= BURST_RATE * position.info.margin / DENOMINATOR, EBurstConditionsNotMet);
+                    assert!(is_force_liquidation(&pl,position.info.margin), EBurstConditionsNotMet);
                 }
             }
         };

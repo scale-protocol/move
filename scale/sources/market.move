@@ -355,7 +355,7 @@ module scale::market{
             status: 1,
             long_position_total: 0,
             short_position_total: 0,
-            symbol,
+            symbol:symbol,
             icon: url::new_unsafe_from_bytes(icon),
             description: string::utf8(description),
             spread_fee: 1000,

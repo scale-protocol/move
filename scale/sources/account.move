@@ -83,7 +83,9 @@ module scale::account {
     public fun get_balance<T>(account: &Account<T>): u64 {
         balance::value(&account.balance)
     }
-
+    public fun get_isolated_balance<T>(account: &Account<T>): u64 {
+        balance::value(&account.isolated_balance)
+    }
     public fun get_profit<T>(account: &Account<T>): &I64 {
         &account.profit
     }
@@ -196,6 +198,13 @@ module scale::account {
         pay::join_vec(&mut token, coins);
         balance::join(&mut account.isolated_balance, coin::into_balance(token));
     }
+    #[test_only]
+    public fun isolated_deposit_for_testing<T>(account: &mut Account<T>, coin: Coin<T>) {
+        let v = vector::empty();
+        vector::push_back(&mut v, coin);
+        isolated_deposit(account, v);
+    }
+
     public(friend) fun isolated_withdraw<T>(account: &mut Account<T>, receiver: address,ctx: &mut TxContext) {
         let balance = balance::value(&account.isolated_balance);
         let coin = coin::from_balance(balance::split(&mut account.isolated_balance, balance),ctx);
