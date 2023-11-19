@@ -416,8 +416,8 @@ module scale::position {
         position.info.open_time = unix_time;
         let margin_old = position.info.margin;
         let position_type = position.info.type;
-        let fund_size_new =  get_fund_size(position);
-        let margin_new = margin_size(fund_size,leverage,margin_fee);
+        let fund_size_new = get_fund_size(position);
+        let margin_new = margin_size(fund_size_new,leverage,margin_fee);
         position.info.margin = margin_new;
         dec_margin_fund<T>(market, account, position_type, direction, margin_old, fund_size_old);
         inc_margin_fund<T>(market, account, position_type, direction, margin_new,fund_size_new);
@@ -480,8 +480,8 @@ module scale::position {
     }
 
     fun get_spread_amount(spread: u64, size: u64):u64 {
-        // size * (spread / DENOMINATOR / 2)
-        let r = size * spread / ( DENOMINATOR * 2);
+        // spread / 2 * size / DENOMINATOR / DENOMINATOR
+        let r = size * spread / 2 / DENOMINATOR / DENOMINATOR;
         if (r == 0) {
             return 1
         } else {
@@ -511,7 +511,7 @@ module scale::position {
         let fund_size = fund_size(size,real_price);
         let margin_fee = market::get_margin_fee(market);
         let insurance_fee = market::get_insurance_fee(market);
-        let spread_fee = market::get_spread_fee(market, real_price);
+        let spread = market::get_spread(&price);
         let unix_time = clock::timestamp_ms(c);
         let pfk = account::new_PFK(object::id(market),object::id(account),direction);
         if (type == 1 && auto_open_price == 0 && account::contains_pfk(account,&pfk)){
@@ -519,7 +519,7 @@ module scale::position {
             event::update<Position<T>>(id);
             event::update<Account<T>>(object::id(account));
             event::update<Market>(object::id(market));
-            return (margin,size,fund_size,insurance_fee,spread_fee,id)
+            return (margin,size,fund_size,insurance_fee,spread,id)
         };
         let offset = account::get_offset(account) + 1;
         let uid = object::new(ctx);
@@ -578,14 +578,14 @@ module scale::position {
             // debug::print(&margin);
             // debug::print(&insurance_fee);
             // debug::print(&spread_fee);
-            balance::join(&mut position.margin_balance, account::split_balance(account,type, margin + insurance_fee + spread_fee ));
+            balance::join(&mut position.margin_balance, account::split_balance(account,type, margin + insurance_fee ));
             account::add_isolated_position_id(account, id);
         };
         dof::add(account::get_uid_mut(account),id,position);
         event::create<Position<T>>(id);
         event::update<Account<T>>(object::id(account));
         event::update<Market>(object::id(market));
-        (margin,size,fund_size,insurance_fee,spread_fee,id)
+        (margin,size,fund_size,insurance_fee,spread,id)
     }
 
     public fun open_position<P,T>(
@@ -608,7 +608,7 @@ module scale::position {
         assert!(tx_context::sender(ctx) == account::get_owner(account), ENoPermission);
         check_open_position(market,lot,leverage,type,direction);
         let pre_exposure = market::get_exposure(market);
-        let (margin,size,fund_size,insurance_fee,spread_fee,id) = create_position<T>(
+        let (margin,size,fund_size,insurance_fee,spread,id) = create_position<T>(
                 lot,
                 leverage,
                 direction,
@@ -647,6 +647,7 @@ module scale::position {
         };
         event::update<List<P,T>>(object::id(list));
         let p = market::get_pool_mut<P,T>(list);
+        // debug::print(p);
         // debug::print(&margin);
         // debug::print(&insurance_fee);
         // debug::print(&get_insurance_amount(margin,insurance_fee));
@@ -654,17 +655,16 @@ module scale::position {
         let insurance_balance = account::split_balance(account,type, get_insurance_amount(margin,insurance_fee));
         pool::join_insurance_balance<P,T>(p,insurance_balance);
         // collect spread
-        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread_fee,size));
-        // debug::print(&spread_fee);
+        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread,size));
+        // debug::print(&spread);
         // debug::print(&size);
-        // debug::print(&get_spread_amount(spread_fee,size));
+        // debug::print(&get_spread_amount(spread,size));
         pool::join_spread_profit<P,T>(p,spread_balance);
         id
     }
 
     fun split_position<T>(ps: &mut Position<T>, lot: u64,margin_fee: u64, ctx: &mut TxContext): Position<T> {
-        let size = size(lot,ps.info.unit_size);
-        let fund_size = fund_size(size,ps.info.open_real_price);
+        let fund_size = fund_size(size(lot,ps.info.unit_size),ps.info.open_real_price);
         let margin = margin_size(
             fund_size,
             ps.info.leverage,
@@ -701,11 +701,11 @@ module scale::position {
         let real_price = market::get_real_price(&price);
         let size = size(position.info.lot,position.info.unit_size);
         let spread_fee = market::get_spread_fee(market, real_price);
-        let fund_size = fund_size(size,market::get_real_price(&price));
+        let fund_size = fund_size(size,position.info.open_real_price);
         
         position.info.close_spread = market::get_spread(&price);
         position.info.close_price = market::get_direction_price(&price,position.info.direction);
-        position.info.close_real_price = market::get_real_price(&price);
+        position.info.close_real_price = real_price;
         position.info.close_time = clock::timestamp_ms(c);
         position.info.close_operator = close_operator;
         let p = market::get_pool_mut<P,T>(list);
