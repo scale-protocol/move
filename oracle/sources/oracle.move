@@ -62,7 +62,15 @@ module oracle::oracle {
         let price_feed = new_price_feed(symbol,ctx);
         dof::add(&mut state.id,symbol,price_feed);
     }
-
+    #[test_only]
+    public fun create_price_feed_for_testing(
+        state: &mut State,
+        symbol: vector<u8>,
+        ctx: &mut TxContext,
+    ){
+        let price_feed = new_price_feed(symbol,ctx);
+        dof::add(&mut state.id,symbol,price_feed);
+    }
     public entry fun update_price_timeout(
         _admin: &mut AdminCap,
         state: &mut State,
