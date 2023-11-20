@@ -101,6 +101,7 @@ module scale::account {
     public fun get_margin_used<T>(account: &Account<T>): u64 {
         math::max(account.margin_cross_buy_total, account.margin_cross_sell_total)
     }
+
     public fun get_margin_isolated_total<T>(account: &Account<T>): u64 {
         account.margin_isolated_total
     }
@@ -148,7 +149,9 @@ module scale::account {
             i = i + 1;
         };
     }
-
+    public fun get_isolated_position_ids<T>(account: &Account<T>):vector<ID> {
+        account.isolated_position_idx
+    }
     public fun contains_isolated_position_id<T>(account: &Account<T>,id: &ID): bool {
         vector::contains(&account.isolated_position_idx, id)
     }
