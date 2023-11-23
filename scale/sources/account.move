@@ -210,6 +210,9 @@ module scale::account {
 
     public(friend) fun isolated_withdraw<T>(account: &mut Account<T>, receiver: address,ctx: &mut TxContext) {
         let balance = balance::value(&account.isolated_balance);
+        if (balance == 0) {
+            return
+        };
         let coin = coin::from_balance(balance::split(&mut account.isolated_balance, balance),ctx);
         transfer::public_transfer(coin, receiver);
     }

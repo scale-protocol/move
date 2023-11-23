@@ -86,7 +86,7 @@ module scale::market_tests {
             scale_coin,
             list,
         } = get_test_ctx();
-        debug::print(&symbol);
+        // debug::print(&symbol);
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
@@ -265,7 +265,7 @@ module scale::market_tests {
         // opening_price = 800
         // change = |real_price - opening_price| / openging_price = |790 - 800| / 800 = 0.0125 = 1.25% so fee = 3/1000 = 0.003
         let fee =  market::get_spread_fee(market,790u64);
-        debug::print(&fee);
+        // debug::print(&fee);
         assert!(fee == 30u64,2);
         // change = |real_price - opening_price| / openging_price = |750 - 800| / 800 = 0.0625 = 6.25% so fee  = 6.25/1000 = 0.00625
         let fee = market::get_spread_fee(market,750u64);
@@ -330,7 +330,7 @@ module scale::market_tests {
         // buy_price = real_price + spread/2 = 750 + 4.65/2 = 752.325
         // sell_price = real_price - spread/2 = 750 - 4.65/2 = 747.675
         let price = market::get_price_by_real(market,750u64);
-        debug::print(&price);
+        // debug::print(&price);
         assert!(market::get_real_price(&price) == 750u64,10);
         assert!(market::get_buy_price(&price) == 752u64,11);
         assert!(market::get_sell_price(&price) == 747u64,12);

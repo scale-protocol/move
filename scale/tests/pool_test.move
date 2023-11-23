@@ -170,7 +170,7 @@ module scale::pool_tests {
             assert!(pool::get_profit_balance(&pool) == 0,3);
             assert!(pool::get_spread_profit(&pool) == 5000,4);
 
-            debug::print(&pool::get_insurance_balance(&pool));
+            // debug::print(&pool::get_insurance_balance(&pool));
 
             let ts_token = pool::split_spread_profit_for_testing(&mut pool,4000);
             assert!(pool::get_vault_supply(&pool) == 2000_000_000,5);

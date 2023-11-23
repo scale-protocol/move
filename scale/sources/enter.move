@@ -284,6 +284,7 @@ module scale::enter {
         ctx: &mut TxContext,
     ){
         position::close_position<P,T>(position_id,lot,state,account,list,c,ctx);
+        account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
     public fun auto_close_position<P,T>(
@@ -295,6 +296,7 @@ module scale::enter {
         ctx: &mut TxContext,
     ){
         position::auto_close_position<P,T>(position_id,state,account,list,c,ctx);
+        account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
     public entry fun burst_position<P,T>(
@@ -306,6 +308,7 @@ module scale::enter {
         ctx: &mut TxContext,
     ){
         position::burst_position<P,T>(position_id,list,account,state,c,ctx);
+        account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
     public fun process_fund_fee<P,T>(

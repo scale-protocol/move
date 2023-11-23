@@ -5,7 +5,7 @@ module scale::i64_tests {
     #[test]
     fun test_new() {
         let i = i64::new(0, false);
-        debug::print(&i);
+        // debug::print(&i);
         assert!(i64::get_value(&i) == 0 && !i64::is_negative(&i), 1);
         let i = i64::new(9_223_372_036_854_775_807, false);
         assert!(i64::get_value(&i) == 9_223_372_036_854_775_807 && !i64::is_negative(&i), 2);

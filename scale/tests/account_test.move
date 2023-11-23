@@ -18,9 +18,9 @@ module scale::account_tests {
         let muid = object::new(test_scenario::ctx(tx));
         let auid = object::new(test_scenario::ctx(tx));
         let id = object::uid_to_inner(&muid);
-        debug::print(&muid);
-        debug::print(&auid);
-        debug::print(&id);
+        // debug::print(&muid);
+        // debug::print(&auid);
+        // debug::print(&id);
         let pfk = PFK {
             market_id: object::uid_to_inner(&muid),
             account_id: object::uid_to_inner(&auid),

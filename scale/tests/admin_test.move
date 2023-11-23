@@ -31,7 +31,7 @@ module scale::admin_tests{
             let o = test_scenario::take_from_sender<O>(tx);
 
             let scale_admin = test_scenario::take_shared<admin::ScaleAdminCap>(tx);
-            debug::print(&admin_cap);
+            // debug::print(&admin_cap);
             assert!(admin::is_admin(&scale_admin,&owner,object::uid_to_inner(&o.id)),1);
             assert!(!admin::is_admin(&scale_admin,&(@0x2),object::uid_to_inner(&o.id)),2);
 
@@ -84,7 +84,7 @@ module scale::admin_tests{
             assert!(admin::get_scale_admin_mum(&scale_admin) == 5,2);
 
             // admin::add_admin_member(&mut scale_admin,&(@0xD));
-            debug::print(&admin::get_scale_admin_mum(&scale_admin));
+            // debug::print(&admin::get_scale_admin_mum(&scale_admin));
             test_scenario::return_shared(scale_admin);
             test_scenario::return_to_sender(tx,admin_cap);
             test_scenario::return_to_sender(tx,o);
