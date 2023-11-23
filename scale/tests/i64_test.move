@@ -1,7 +1,7 @@
 #[test_only]
 module scale::i64_tests {
     use scale::i64;
-    use std::debug;
+    // use std::debug;
     #[test]
     fun test_new() {
         let i = i64::new(0, false);

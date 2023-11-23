@@ -6,7 +6,7 @@ module scale::pool_tests {
     use sui::coin;
     use sui::test_utils;
     use sui::balance;
-    use std::debug;
+    // use std::debug;
 
     struct P has drop{}
     #[test]

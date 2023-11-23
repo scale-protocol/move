@@ -242,6 +242,31 @@ module scale::position_close_isolated_tests {
             assert!(pool::get_insurance_balance(pool) == 3,245);
             assert!(pool::get_spread_profit(pool) == 75+75,246);
         };
+        test_scenario::next_tx(tx,owner);
+        {
+            position::close_position(
+                ps_id_1,
+                0,
+                &state,
+                &mut account,
+                &mut list,
+                &c,
+                test_scenario::ctx(tx),
+            );
+            position::close_position(
+                ps_id_2,
+                0,
+                &state,
+                &mut account,
+                &mut list,
+                &c,
+                test_scenario::ctx(tx),
+            );
+            let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
+            assert!(market::get_long_position_total(market) == 0,941);
+            assert!(market::get_short_position_total(market) == 0,942);
+            assert!(account::get_margin_total(&account) == 0,931);
+        };
         position_tests::drop_test_ctx(
             scenario,
             account,

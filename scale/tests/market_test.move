@@ -86,7 +86,7 @@ module scale::market_tests {
             scale_coin,
             list,
         } = get_test_ctx();
-        // debug::print(&symbol);
+        debug::print(&symbol);
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";

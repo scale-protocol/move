@@ -2,7 +2,7 @@
 module scale::account_tests {
     use sui::object::{Self,ID};
     use sui::vec_map;
-    use std::debug;
+    // use std::debug;
     use sui::test_scenario;
 
     struct PFK has store,copy,drop {

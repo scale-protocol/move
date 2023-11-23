@@ -2,7 +2,7 @@
 module scale::admin_tests{
     use scale::admin;
     use sui::test_scenario;
-    use std::debug;
+    // use std::debug;
     use sui::object::{Self,UID};
     use sui::transfer;
     use sui::tx_context;
