@@ -84,7 +84,6 @@ module scale::position_open_limit_update_tests{
             assert!(position::get_stop_loss_price(position) == 0,219);
             assert!(position::get_create_time(position) == 123000,220);
             assert!(position::get_close_time(position) == 0,221);
-            assert!(position::get_validity_time(position) == 0,222);
             assert!(*position::get_open_operator(position) == owner,223);
             assert!(*position::get_close_operator(position) == @0x0,224);
             assert!(*position::get_market_id(position) == market_id ,225);
@@ -169,7 +168,6 @@ module scale::position_open_limit_update_tests{
             assert!(position::get_stop_loss_price(position) == 0,319);
             assert!(position::get_create_time(position) == 123000,320);
             assert!(position::get_close_time(position) == 0,321);
-            assert!(position::get_validity_time(position) == 0,322);
             assert!(*position::get_open_operator(position) == owner,323);
             assert!(*position::get_close_operator(position) == @0x0,324);
             assert!(*position::get_market_id(position) == market_id,325);

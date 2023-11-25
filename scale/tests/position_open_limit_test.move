@@ -140,7 +140,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,219);
             assert!(position::get_create_time(position) == 123000,220);
             assert!(position::get_close_time(position) == 0,221);
-            assert!(position::get_validity_time(position) == 0,222);
             assert!(*position::get_open_operator(position) == owner,223);
             assert!(*position::get_close_operator(position) == @0x0,224);
             assert!(*position::get_market_id(position) == market_id ,225);
@@ -280,7 +279,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,519);
             assert!(position::get_create_time(position) == 134000,520);
             assert!(position::get_close_time(position) == 0,521);
-            assert!(position::get_validity_time(position) == 0,522);
             assert!(*position::get_open_operator(position) == owner,523);
             assert!(*position::get_close_operator(position) == @0x0,524);
             assert!(*position::get_market_id(position) == market_id,525);
@@ -359,7 +357,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,519);
             assert!(position::get_create_time(position) == 134000,520);
             assert!(position::get_close_time(position) == 0,521);
-            assert!(position::get_validity_time(position) == 0,522);
             assert!(*position::get_open_operator(position) == owner,523);
             assert!(*position::get_close_operator(position) == @0x0,524);
             assert!(*position::get_market_id(position) == market_id,525);
@@ -480,7 +477,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,219);
             assert!(position::get_create_time(position) == 123000,220);
             assert!(position::get_close_time(position) == 0,221);
-            assert!(position::get_validity_time(position) == 0,222);
             assert!(*position::get_open_operator(position) == owner,223);
             assert!(*position::get_close_operator(position) == @0x0,224);
             assert!(*position::get_market_id(position) == market_id ,225);
@@ -608,7 +604,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,219);
             assert!(position::get_create_time(position) == 123000,220);
             assert!(position::get_close_time(position) == 0,221);
-            assert!(position::get_validity_time(position) == 0,222);
             assert!(*position::get_open_operator(position) == owner,223);
             assert!(*position::get_close_operator(position) == @0x0,224);
             assert!(*position::get_market_id(position) == market_id ,225);
@@ -721,7 +716,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 0,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == @0x0,424);
             assert!(*position::get_market_id(position) == market_id,425);
@@ -801,7 +795,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 0,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == @0x0,424);
             assert!(*position::get_market_id(position) == market_id,425);
@@ -895,7 +888,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,519);
             assert!(position::get_create_time(position) == 134000,520);
             assert!(position::get_close_time(position) == 0,521);
-            assert!(position::get_validity_time(position) == 0,522);
             assert!(*position::get_open_operator(position) == owner,523);
             assert!(*position::get_close_operator(position) == @0x0,524);
             assert!(*position::get_market_id(position) == market_id,525);
@@ -984,7 +976,6 @@ module scale::position_open_limit_tests{
             assert!(position::get_stop_loss_price(position) == 0,519);
             assert!(position::get_create_time(position) == 123000,520);
             assert!(position::get_close_time(position) == 0,521);
-            assert!(position::get_validity_time(position) == 0,522);
             assert!(*position::get_open_operator(position) == owner,523);
             assert!(*position::get_close_operator(position) == @0x0,524);
             assert!(*position::get_market_id(position) == market_id,525);

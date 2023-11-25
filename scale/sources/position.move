@@ -104,10 +104,6 @@ module scale::position {
         create_time: u64,
         open_time: u64,
         close_time: u64,
-        /// The effective time of the order.
-        /// If the position is not opened successcrossy after this time in the order listing mode,
-        /// the order will be closed directly
-        validity_time: u64,
         /// Opening operator (the user manually, or the clearing robot in the listing mode)
         open_operator: address,
         /// Account number of warehouse closing operator (user manual, or clearing robot Qiangping)
@@ -186,9 +182,6 @@ module scale::position {
     }
     public fun get_close_time<T>(position: &Position<T>) :u64 {
         position.info.close_time
-    }
-    public fun get_validity_time<T>(position: &Position<T>) :u64 {
-        position.info.validity_time
     }
     public fun get_open_operator<T>(position: &Position<T>) :&address {
         &position.info.open_operator
@@ -546,7 +539,6 @@ module scale::position {
                 create_time: unix_time,
                 open_time: unix_time,
                 close_time: 0,
-                validity_time: 0,
                 open_operator: tx_context::sender(ctx),
                 close_operator: @0x0,
                 symbol,
@@ -652,7 +644,7 @@ module scale::position {
         id
     }
 
-    fun split_position<T>(ps: &mut Position<T>, lot: u64,margin_fee: u64, ctx: &mut TxContext): Position<T> {
+    fun split_position<T>(ps: &mut Position<T>, lot: u64, margin_fee: u64, ctx: &mut TxContext): Position<T> {
         let fund_size = fund_size(size(lot,ps.info.unit_size),ps.info.open_real_price);
         let margin = margin_size(
             fund_size,

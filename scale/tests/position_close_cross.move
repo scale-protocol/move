@@ -157,7 +157,6 @@ module scale::position_close_cross_tests {
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 135000,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == owner,424);
             assert!(*position::get_market_id(position) == market_id,425);
@@ -251,7 +250,6 @@ module scale::position_close_cross_tests {
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 136000,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == owner,424);
             assert!(*position::get_market_id(position) == market_id,425);
@@ -344,7 +342,6 @@ module scale::position_close_cross_tests {
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 136000,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == owner,424);
             assert!(*position::get_market_id(position) == market_id,425);
@@ -430,7 +427,6 @@ module scale::position_close_cross_tests {
             assert!(position::get_stop_loss_price(position) == 0,419);
             assert!(position::get_create_time(position) == 123000,420);
             assert!(position::get_close_time(position) == 137000,421);
-            assert!(position::get_validity_time(position) == 0,422);
             assert!(*position::get_open_operator(position) == owner,423);
             assert!(*position::get_close_operator(position) == owner,424);
             assert!(*position::get_market_id(position) == market_id,425);
