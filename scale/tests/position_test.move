@@ -195,14 +195,17 @@ module scale::position_tests {
                 &c,
                 test_scenario::ctx(tx)
             );
+            let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
             // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
+            // let price = market::get_price(market,&state,&c);
             // balabce = balance - insurance_fee - fund_fee => 10000 - 1 - 0 = 9999
-            // buy position ,pl = (sell_price - open_real_price ) * size + balance
-            // =>  992 * 100 / 10000 - 1000 * 100 / 10000 + 9999
-            // =>  9.92 - 10 + 9999
-            // =>  9 - 10+9999
-            // =>  9998
+            // buy position ,pl = (sell_price - open_real_price ) * size
+            // =>  992 * 100 / 10000 - 1000 * 100 / 10000
+            // =>  9.92 - 10
+            // =>  9 - 10 
+            // =>  -1
             let equity = position::get_equity(
+                    total_liquidity,
                     &list,
                     &account,
                     &state,
@@ -231,23 +234,28 @@ module scale::position_tests {
                 &c,
                 test_scenario::ctx(tx)
             );
+            let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
             // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
             // let price = market::get_price(market,&state,&c);
-            // debug::print(&price);
+            // pl_1= (sell_price - open_real_price ) * size
+            // =>  1488 * 100 / 10000 - 1000 * 100 / 10000
+            // =>  14.88 - 10
+            // =>  14 - 10
+            // =>  4
             // becose this position is isolated so the balance is not changed
-            // buy position ,pl = (sell_price - open_real_price ) * size + balance
-            // =>  1488 * 100 / 10000 - 1500 * 100 / 10000 + 9999
-            // =>  14.88 - 15
-            // =>  14 - 15 + 9999
-            // =>  9998
+            // buy position ,pl = (open_real_price - buy_price ) * size
+            // =>  1500 * 100000 / 10000 - 1511 * 100000 / 10000
+            // =>  150 - 151.1
+            // =>  -1.1
             let equity = position::get_equity(
+                    total_liquidity,
                     &list,
                     &account,
                     &state,
                     &c,
                 );
-            // debug::print(&equity);
-            assert!(i64::get_value(&equity) == 9998,1);
+            // 10000 -1 + 4  = 10003
+            assert!(i64::get_value(&equity) == 10003,1);
         };
         drop_test_ctx(
             scenario,

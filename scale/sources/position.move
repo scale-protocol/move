@@ -14,7 +14,7 @@ module scale::position {
     use scale::event;
     use sui::clock::{Self, Clock};
     use std::string::{Self,String};
-    // use std::debug;
+    use std::debug;
     // use sui::dynamic_field as df;/
 
     
@@ -42,7 +42,6 @@ module scale::position {
 
     // const MAX_U64_VALUEU64: u64 = 18446744073709551615;
     const MAX_U64_VALUEU128: u128 = 18446744073709551615;
-    const FLOATING_PRICE:u64 = 5;
 
     const DENOMINATOR: u64 = 10000;
     const DENOMINATORU128: u128 = 10000;
@@ -300,6 +299,7 @@ module scale::position {
     }
 
     public fun get_equity<P,T>(
+        total_liquidity: u64,
         list: &List<P,T>,
         account: &Account<T>,
         state: &oracle::State,
@@ -309,7 +309,7 @@ module scale::position {
         let n = vector::length(&ids);
         let i = 0;
         let pl = i64::new(0,false);
-        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
+        // let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
         while ( i < n ){
             let id = vector::borrow(&ids,i);
             if (!dof::exists_(account::get_uid(account),*id)){
@@ -320,17 +320,24 @@ module scale::position {
             if ( ps.info.status == 1 ){
                 let market: &Market = dof::borrow(market::get_list_uid(list),ps.info.symbol);
                 let price = market::get_price(market,state,c);
-                let unit_size = market::get_unit_size(market);
-                let size = size(ps.info.lot,unit_size);
-                let fund_size = fund_size(size,market::get_real_price(&price));
-                let p = get_pl(size, fund_size, ps.info.direction, &price);
-                let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
-                pl = i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p));
+                pl = position_pl_fund_fee(total_liquidity, market, &price, ps);
             };
             i = i + 1;
         };
         i64::inc_u64(&mut pl,account::get_balance(account));
         pl
+    }
+
+    fun position_pl_fund_fee<T>(total_liquidity:u64, market: &Market, price: &Price, ps: &Position<T>): I64{
+        let pl = i64::new(0,false);
+        if ( ps.info.status == 1 ){
+            return pl
+        };
+        let size = size(ps.info.lot,ps.info.unit_size);
+        let fund_size = fund_size(size,ps.info.open_real_price);
+        let p = get_pl(size, fund_size, ps.info.direction, price);
+        let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
+        i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p))
     }
     /// get Floating P/L
     public fun get_pl(size: u64, fund_size: u64, direction: u8,price: &Price) :I64 {
@@ -446,18 +453,27 @@ module scale::position {
         account: &Account<T>,
         equity: &I64
     ){
-        // assert!(!i64::is_negative(equity), ERiskControlNegativeEquity);
-        let margin_used = account::get_margin_used(account);
-        if (margin_used > 0) {
-            assert!(!is_force_liquidation(equity, margin_used),ERiskControlBurstRate);
-        }
+        assert!(!is_force_liquidation(equity, account::get_margin_used(account)),ERiskControlBurstRate);
     }
 
     public fun is_force_liquidation(
         equity: &I64,
         margin_used: u64
     ):bool{
+        if (margin_used == 0) {
+            return false
+        };
+        debug::print(equity);
+        debug::print(&margin_used);
         i64::is_negative(equity) || i64::get_value(equity) <= FORCE_LIQUIDATION_RATE * margin_used / DENOMINATOR
+    }
+
+    public fun is_auto_close(direction:u8,real_price:u64,stop_surplus_price: u64,stop_loss_price: u64): bool{
+        if (direction == 1){
+            (stop_surplus_price > 0 && stop_surplus_price >= real_price) || (stop_loss_price > 0 && real_price <= stop_loss_price)
+        }else{
+            (stop_surplus_price > 0 && real_price <= stop_surplus_price) || (stop_loss_price > 0 && stop_loss_price >= real_price)
+        }
     }
 
     fun get_insurance_amount(margin: u64,insurance_fee: u64): u64{
@@ -626,6 +642,7 @@ module scale::position {
         );
         if ( type == 1 ){
             let equity = get_equity<P,T>(
+                total_liquidity,
                 list,
                 account,
                 state,
@@ -679,6 +696,9 @@ module scale::position {
     ){
         let price = market::get_price(market,state,c);
         let real_price = market::get_real_price(&price);
+        if (auto) {
+            assert!(is_auto_close(position.info.direction,real_price,position.info.stop_surplus_price,position.info.stop_loss_price), EInvalidStopLossPrice);
+        };
         let size = size(position.info.lot,position.info.unit_size);
         // let spread = market::get_spread(&price);
         let fund_size = fund_size(size,position.info.open_real_price);
@@ -693,14 +713,8 @@ module scale::position {
         // pool::join_spread_profit<P,T>(p,spread_balance);
         let pl = get_pl(size, fund_size, position.info.direction, &price);
         if (!i64::is_negative(&pl)){
-            if (auto) {
-                assert!(real_price + FLOATING_PRICE >= position.info.stop_surplus_price && real_price - FLOATING_PRICE <= position.info.stop_surplus_price, EInvalidStopLossPrice);
-            };
             account::join_balance(account, position.info.type, pool::split_profit_balance(p,i64::get_value(&pl)));
         }else{
-            if (auto) {
-                assert!(real_price + FLOATING_PRICE >= position.info.stop_loss_price && real_price - FLOATING_PRICE <= position.info.stop_loss_price, EInvalidStopLossPrice);
-            };
             let loss = if (position.info.type == 1){
                 account::split_balance(account,position.info.type,i64::get_value(&pl))
             }else{
@@ -744,7 +758,7 @@ module scale::position {
         assert!(lot >= 0 && lot <= position.info.lot, EInvalidLot);
         assert!(position.info.status == 1, EInvalidPositionStatus);
         let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
-        assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
+        assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
         // assert!(object::id(&market) == position.info.market_id, EInvalidMarketId);
         assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
         let id:ID;
@@ -785,7 +799,7 @@ module scale::position {
         assert!(position.info.status == 1, EInvalidPositionStatus);
         assert!(position.info.stop_loss_price > 0 || position.info.stop_surplus_price > 0, EInvalidStopPrice);
         let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
-        assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
+        assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
         
         position.info.status = 6;
         settlement_pl<P,T>(tx_context::sender(ctx),true,list,&mut market, account, state, &mut position,c);
@@ -797,7 +811,7 @@ module scale::position {
         dof::add(account::get_uid_mut(account),position_id,position);
     }
 
-    public fun burst_position<P,T>(        
+    public fun force_liquidation<P,T>(        
         position_id: ID,
         list: &mut List<P,T>,
         account: &mut Account<T>,
@@ -808,45 +822,33 @@ module scale::position {
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         assert!(position.info.status == 1, EInvalidPositionStatus);
         assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
-        let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
-        assert!(market::get_status(&market) != 3, EInvalidMarketStatus);
-        // assert!(object::id(&market) == position.info.market_id, EInvalidMarketId);
-        // assert
-        {
-            assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
-            if (position.info.type == 1){
-                let equity = get_equity<P,T>(
-                    list,
-                    account,
-                    state,
-                    c,
-                );
-                if (!i64::is_negative(&equity)){
-                    let margin_used = account::get_margin_used(account);
-                    if (margin_used > 0) {
-                        assert!(is_force_liquidation(&equity,margin_used), EBurstConditionsNotMet);
-                    }
-                }
-            } else {
-                let price = market::get_price(&market,state,c);
-                let size = size(position.info.lot,position.info.unit_size);
-                let fund_size = fund_size(size,market::get_real_price(&price));
-                 let pl = get_pl(size, fund_size, position.info.direction, &price);
-                i64::inc_u64(&mut pl,position.info.margin);
-                if (!i64::is_negative(&pl)){
-                    assert!(is_force_liquidation(&pl,position.info.margin), EBurstConditionsNotMet);
-                }
-            }
-        };
         // settlement
         position.info.status = 3;
+        let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
+        assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
         settlement_pl<P,T>(tx_context::sender(ctx),false,list,&mut market,account, state, &mut position,c);
-        // transfer::transfer(position,tx_context::sender(ctx));
+        let market_id = object::id(&market);
+        dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
+        if (position.info.type == 1){
+            let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
+            let equity = get_equity<P,T>(
+                total_liquidity,
+                list,
+                account,
+                state,
+                c,
+            );
+            equity = i64::i64_add(&equity,&position.info.profit);
+            assert!(is_force_liquidation(&equity,account::get_margin_used(account)), EBurstConditionsNotMet);
+        } else {
+            let pl = position.info.profit;
+            i64::inc_u64(&mut pl,position.info.margin);
+            assert!(is_force_liquidation(&pl,position.info.margin), EBurstConditionsNotMet);
+        };
         event::update<List<P,T>>(object::id(list));
-        event::update<Market>(object::id(&market));
+        event::update<Market>(market_id);
         event::update<Account<T>>(object::id(account));
         event::delete<Position<T>>(position_id);
-        dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         dof::add(account::get_uid_mut(account),position_id,position);
     }
 
@@ -919,8 +921,6 @@ module scale::position {
                 account::join_balance(account,2,balance::split(&mut position.margin_balance,d));
             };
         };
-        // dec_margin_fund<T>(market, account, position.info.type, position.info.direction, position.info.margin, get_fund_size(&position));
-        // inc_margin_fund<T>(market, account, position.info.type, position.info.direction, margin_new,fund_size);
         position.info.lot = lot;
         position.info.leverage = leverage;
         position.info.margin = margin_new;
@@ -953,7 +953,6 @@ module scale::position {
         };
         let insurance_fee = market::get_insurance_fee(&market);
         let pre_exposure = market::get_exposure(&market);
-
         let size = get_size(&position);
         let fund_size = fund_size(size,real_price);
         let margin_fee = market::get_margin_fee(&market);
@@ -996,11 +995,12 @@ module scale::position {
             exposure,
             position_total
         );
+        let market_id = object::id(&market);
         // Failure to do so may result in the inability to calculate equity
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
-        let market: &Market = dof::borrow(market::get_list_uid_mut(list),position.info.symbol);
         if ( position.info.type == 1 ){
             let equity = get_equity<P,T>(
+                total_liquidity,
                 list,
                 account,
                 state,
@@ -1011,7 +1011,7 @@ module scale::position {
         position.info.open_time = clock::timestamp_ms(c);
         event::update<List<P,T>>(object::id(list));
         event::update<Account<T>>(object::id(account));
-        event::update<Market>(object::id(market));
+        event::update<Market>(market_id);
         event::update<Position<T>>(position_id);
         let p = market::get_pool_mut<P,T>(list);
         let insurance_amount = get_insurance_amount(position.info.margin,insurance_fee);

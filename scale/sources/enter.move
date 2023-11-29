@@ -11,7 +11,7 @@ module scale::enter {
     use oracle::oracle;
     use std::vector;
     use sui::pay;
-    use scale::pool::Scale;
+    use scale::pool::{Self,Scale};
     use sui::package::Publisher;
     use sui::clock::Clock;
 
@@ -40,7 +40,8 @@ module scale::enter {
         c: &Clock,
         ctx: &mut TxContext
     ){
-        account::withdrawal<T>(position::get_equity<P,T>(list, account,state,c),account,amount,ctx);
+        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
+        account::withdrawal<T>(position::get_equity<P,T>(total_liquidity,list, account,state,c),account,amount,ctx);
     }
 
     public entry fun add_admin_member(
@@ -299,7 +300,7 @@ module scale::enter {
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public entry fun burst_position<P,T>(
+    public entry fun force_liquidation<P,T>(
         position_id: ID,
         list: &mut List<P,T>,
         account: &mut Account<T>,
@@ -307,7 +308,7 @@ module scale::enter {
         c: &Clock,
         ctx: &mut TxContext,
     ){
-        position::burst_position<P,T>(position_id,list,account,state,c,ctx);
+        position::force_liquidation<P,T>(position_id,list,account,state,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 

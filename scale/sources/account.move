@@ -352,4 +352,14 @@ module scale::account {
         balance::join(&mut account.balance, coin::into_balance(balance_coin));
         coin::burn_for_testing(c);
     }
+    #[test_only]
+    public fun set_isolated_balance_for_testing<T>(account: &mut Account<T>,expected_balance:u64,ctx: &mut TxContext) {
+        let balance_coin = coin::mint_for_testing<T>(expected_balance,ctx);
+        // take all
+        let v = balance::value(&account.isolated_balance);
+        let c = coin::take(&mut account.isolated_balance, v ,ctx);
+        // join all
+        balance::join(&mut account.isolated_balance, coin::into_balance(balance_coin));
+        coin::burn_for_testing(c);
+    }
 }

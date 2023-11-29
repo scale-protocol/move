@@ -469,4 +469,86 @@ module scale::position_close_cross_tests {
             c,
         );
     }
+    #[test]
+    fun test_auto_close_cross(){
+        let(
+            owner,
+            scenario,
+            symbol,
+            account,
+            scale_coin,
+            list,
+            state,
+            c,
+        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        let tx = &mut scenario;
+        let sb=*string::bytes(&symbol);
+        let ps_id_1:ID;
+        let ps_id_2:ID;
+        test_scenario::next_tx(tx,owner);
+        {
+            ps_id_1 = position::open_position(
+                sb,
+                100000,
+                5,
+                1,
+                1,
+                0,
+                1500,
+                900,
+                &mut list,
+                &mut account,
+                &state,
+                &c,
+                test_scenario::ctx(tx)
+            );
+            ps_id_2 = position::open_position(
+                sb,
+                10000,
+                5,
+                2,
+                1,
+                0,
+                900,
+                1000,
+                &mut list,
+                &mut account,
+                &state,
+                &c,
+                test_scenario::ctx(tx)
+            );
+        };
+        test_scenario::next_tx(tx,owner);
+        {
+            position::auto_close_position(
+                ps_id_1,
+                &state,
+                &mut account,
+                &mut list,
+                &c,
+                test_scenario::ctx(tx),
+            );
+        };
+        test_scenario::next_tx(tx,owner);
+        {
+            clock::set_for_testing(&mut c,137000);
+            oracle::update_price_for_testing(&mut state,sb,800,137,test_scenario::ctx(tx));
+            position::auto_close_position(
+                ps_id_2,
+                &state,
+                &mut account,
+                &mut list,
+                &c,
+                test_scenario::ctx(tx),
+            );
+        };
+        position_tests::drop_test_ctx(
+            scenario,
+            account,
+            scale_coin,
+            list,
+            state,
+            c,
+        );
+    }
 }
