@@ -97,6 +97,11 @@ module scale::pool {
         };
         let b = balance::split(&mut pool.profit_balance, profit_balance_value);
         let s = amount - balance::value(&b);
+        // let balance = balance::value(&pool.vault_balance);
+        // // force to split all
+        // if (s > balance) {
+        //     s = balance;
+        // };
         balance::join(&mut b, balance::split(&mut pool.vault_balance, s));
         b
     }

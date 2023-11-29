@@ -1,3 +1,4 @@
+#[lint_allow(self_transfer)]
 module scale::account {
     use sui::balance::{Self,Balance};
     use sui::object::{Self,UID,ID};
@@ -190,8 +191,18 @@ module scale::account {
     }
     public(friend) fun split_balance<T>(account: &mut Account<T>, type: u8, amount: u64): Balance<T> {
         if ( type == 1){
+            let balance = balance::value(&account.balance);
+            // force to split all
+            if (amount > balance) {
+                amount = balance;
+            };
             balance::split(&mut account.balance, amount)
         }else{
+            let balance = balance::value(&account.isolated_balance);
+            // force to split all
+            if (amount > balance) {
+                amount = balance;
+            };
             balance::split(&mut account.isolated_balance, amount)
         }
     }

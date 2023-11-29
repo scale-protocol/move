@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(self_transfer)]
 module scale::admin_tests{
     use scale::admin;
     use sui::test_scenario;

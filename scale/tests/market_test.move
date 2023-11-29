@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(self_transfer)]
 module scale::market_tests {
     use scale::market::{Self, List, Market};
     // use scale::pool::Scale;
@@ -11,14 +12,14 @@ module scale::market_tests {
     // use sui::test_utils;
     // use scale::i64;
     use sui_coin::scale::{SCALE};
-    use std::string;
+    use std::string::{Self,String};
 
 
-
+    #[lint_allow(coin_field)]
     struct TestContext<phantom P, phantom T> {
         owner: address,
         scenario: Scenario,
-        symbol: string::String,
+        symbol: String,
         scale_coin: Coin<SCALE>,
         list: List<Scale,SCALE>,
     }

@@ -1,3 +1,5 @@
+#[lint_allow(self_transfer)]
+#[allow(unused_function)]
 module scale::bond {
     use sui::object::{Self,UID,ID};
     use std::string::{Self,utf8, String};

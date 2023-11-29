@@ -1,3 +1,4 @@
+#[lint_allow(self_transfer)]
 module scale::admin {
     use sui::object::{Self, UID, ID};
     use sui::vec_set::{Self, VecSet};
