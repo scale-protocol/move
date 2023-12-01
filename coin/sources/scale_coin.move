@@ -1,3 +1,4 @@
+#[lint_allow(self_transfer)]
 module sui_coin::scale {
     use sui::coin::{Self, Coin};
     use sui::transfer;
