@@ -4,7 +4,7 @@ module scale::bond {
     use sui::object::{Self,UID,ID};
     use std::string::{Self,utf8, String};
     use sui::clock::{Self, Clock};
-    use sui::balance::{Balance};
+    use sui::balance::{Self,Balance};
     use scale::pool::{Self,LSP};
     use scale::market::{Self,List};
     use sui::coin::{Self, Coin};
@@ -25,6 +25,7 @@ module scale::bond {
     const EInvalidMarketID:u64 = 405;
     const EInsufficientCoins:u64 = 406;
     const EInvalidIssueTime:u64 = 407;
+    const EInvalidPenaltyFee:u64 = 408;
 
     const DENOMINATOR: u64 = 10000;
     /// scale bond nft
@@ -34,7 +35,7 @@ module scale::bond {
 	    description: String,
 	    image_url: String,
         mint_time: u64,
-        face_value: Balance<LSP<P,T>>,
+        denomination: Balance<LSP<P,T>>,
         issue_expiration_time: u64,
         list_id: ID,
     }
@@ -84,7 +85,6 @@ module scale::bond {
         let display = display::new_with_fields<ScaleBond<P,T>>(
             publisher, keys, values, ctx
         );
-        
         display::update_version(&mut display);
         transfer::public_transfer(display, sender(ctx));
     }
@@ -100,6 +100,8 @@ module scale::bond {
         ctx: &mut TxContext
     ){
         assert!(issue_time_ms > 0, EInvalidIssueTime);
+        let now = clock::timestamp_ms(c);
+        assert!(issue_time_ms > now, EInvalidIssueTime);
         let coins = coin::zero<T>(ctx);
         if (amount == 0){
             coin::join(&mut coins,token);
@@ -112,15 +114,14 @@ module scale::bond {
         let mould = table::borrow(&factory.mould,string::utf8(nft_name));
         let uid = object::new(ctx);
         // Index all existing NFTs for interest distribution
-        field::add(&mut factory.id,object::uid_to_inner(&uid),true);
-        let now = clock::timestamp_ms(c);
+        field::add(&mut factory.id,object::uid_to_inner(&uid),now);
         transfer::transfer(ScaleBond<P,T> {
             id: uid,
             name: mould.name,
             description: mould.description,
             image_url: mould.image_url,
             mint_time: now,
-            face_value: coin::into_balance(pool::add_liquidity(market::get_pool_mut(list),coins,ctx)),
+            denomination: coin::into_balance(pool::add_liquidity(market::get_pool_mut(list),coins,ctx)),
             issue_expiration_time: now + issue_time_ms,
             list_id: object::id(list),
         },tx_context::sender(ctx));
@@ -131,7 +132,7 @@ module scale::bond {
     public fun divestment<P,T>(
         nft: ScaleBond<P,T>,
         list: &mut List<P,T>,
-        factory: &BondFactory,
+        factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
     ){
@@ -141,18 +142,19 @@ module scale::bond {
             description:_,
             image_url:_,
             mint_time:_,
-            face_value,
+            denomination,
             issue_expiration_time,
             list_id,
         } = nft;
         assert!(list_id == object::id(list), EInvalidMarketID);
         let p = market::get_pool_mut(list);
-        let bl = pool::remove_liquidity(p,face_value,ctx);
+        let bl = pool::remove_liquidity(p,denomination,ctx);
         // Collect penalty for breach of contract
-        if (clock::timestamp_ms(c) < issue_expiration_time && name != string::utf8(b"freely")){
+        if (clock::timestamp_ms(c) < issue_expiration_time  && factory.penalty_fee > 0 && name != string::utf8(b"freely")){
             let penalty = coin::value(&bl) * factory.penalty_fee / DENOMINATOR;
             pool::join_profit_balance<P,T>(p,coin::into_balance(coin::split(&mut bl,penalty,ctx)));
         };
+        let _: u64 = field::remove(&mut factory.id,object::uid_to_inner(&id));
         transfer::public_transfer(bl,tx_context::sender(ctx));
         object::delete(id);
     }
@@ -185,5 +187,26 @@ module scale::bond {
     ) {
         assert!(!vector::is_empty(&name), ENameRequired);
         let BondItem {name:_,description:_,image_url:_} = table::remove(&mut factory.mould,string::utf8(name));
+    }
+
+    public fun set_penalty_fee(
+        _admin_cap: &mut AdminCap,
+        factory: &mut BondFactory,
+        penalty_fee: u64,
+    ) {
+        assert!(penalty_fee > 0 && factory.penalty_fee <= DENOMINATOR, EInvalidPenaltyFee);
+        factory.penalty_fee = penalty_fee;
+    }
+
+    public fun get_bond_denomination<P,T>(nft: &ScaleBond<P,T>): u64{
+        balance::value(&nft.denomination)
+    }
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext){
+        init(BOND{},ctx);
+    }
+    #[test_only]
+    public fun create_bond_for_testing():BOND{
+        BOND{}
     }
 }

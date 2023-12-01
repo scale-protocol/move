@@ -59,7 +59,7 @@ module oracle::pyth_network {
         let symbol = vec_map::get(&curr_state.symbol_price_mp,&object::id(price_info));
         let p = get_price_value(&price);
         let t = price::get_timestamp(&price);
-        oracle::update_price(oracle_state, *symbol,p , t,ctx);
+        oracle::update_price(oracle_state, *symbol,p,t,ctx);
     }
 
     public fun async_pyth_price_bat(

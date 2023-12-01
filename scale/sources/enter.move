@@ -212,7 +212,14 @@ module scale::enter {
     ){
         bond::remove_factory_mould(admin_cap,factory,name,ctx);
     }
-
+    public entry fun update_penalty_fee(
+        admin_cap: &mut AdminCap,
+        factory: &mut BondFactory,
+        penalty_fee: u64,
+        _ctx: &TxContext
+    ){
+        bond::set_penalty_fee(admin_cap,factory,penalty_fee);
+    }
     public entry fun investment<P,T>(
         coins: vector<Coin<T>>,
         nft_name: vector<u8>,
@@ -231,7 +238,7 @@ module scale::enter {
     public entry fun divestment<P,T>(
         nft: ScaleBond<P,T>,
         list: &mut List<P,T>,
-        factory: &BondFactory,
+        factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
     ){

@@ -30,7 +30,7 @@ module scale::position_tests {
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
         let scale_coin: Coin<T>;
-        scale_coin =  coin::mint_for_testing<T>(100_0000,test_scenario::ctx(tx));
+        scale_coin =  coin::mint_for_testing<T>(1_000_000,test_scenario::ctx(tx));
         let n = b"BTC/USD";
         let symbol = string::utf8(n);
         test_scenario::next_tx(tx,owner);

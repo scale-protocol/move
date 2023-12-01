@@ -335,7 +335,6 @@ module scale::position {
         let fund_size = fund_size(size,ps.info.open_real_price);
         let p = get_pl(size, fund_size, ps.info.direction, price);
         let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
-
         i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p))
     }
     /// get Floating P/L
@@ -365,7 +364,6 @@ module scale::position {
             if (min == 0){
                 return i64::new(0,false)
             };
-            // i64::new(max * market::get_fund_fee(market,total_liquidity) / DENOMINATOR * fund_size / min,false)
             i64::new(max * market::get_fund_fee(market,total_liquidity) * fund_size / (DENOMINATOR * min),false)
         }
     }
@@ -516,12 +514,14 @@ module scale::position {
         let insurance_fee = market::get_insurance_fee(market);
         let spread = market::get_spread(&price);
         let unix_time = clock::timestamp_ms(c);
-        let pfk = account::new_PFK(object::id(market),object::id(account),direction);
+        let account_id = object::id(account);
+        let market_id = object::id(market);
+        let pfk = account::new_PFK(market_id,account_id,direction);
         if (type == 1 && auto_open_price == 0 && account::contains_pfk(account,&pfk)){
             let (margin, id) = merge_cross_position<T>(market,account,&pfk,lot,leverage,direction,margin_fee,size,fund_size,unix_time);
             event::update<Position<T>>(id);
-            event::update<Account<T>>(object::id(account));
-            event::update<Market>(object::id(market));
+            event::update<Account<T>>(account_id);
+            event::update<Market>(market_id);
             return (margin,size,fund_size,insurance_fee,spread,id)
         };
         let offset = account::get_offset(account) + 1;
@@ -555,8 +555,8 @@ module scale::position {
                 open_operator: tx_context::sender(ctx),
                 close_operator: @0x0,
                 symbol,
-                market_id: object::id(market),
-                account_id: object::id(account),
+                market_id: market_id,
+                account_id: account_id,
             }
         };
         let offset = account::get_offset(account) + 1;
@@ -584,8 +584,8 @@ module scale::position {
         };
         dof::add(account::get_uid_mut(account),id,position);
         event::create<Position<T>>(id);
-        event::update<Account<T>>(object::id(account));
-        event::update<Market>(object::id(market));
+        event::update<Account<T>>(account_id);
+        event::update<Market>(market_id);
         (margin,size,fund_size,insurance_fee,spread,id)
     }
 
@@ -672,7 +672,6 @@ module scale::position {
         };
         ps.info.lot = ps.info.lot - lot;
         ps.info.margin = ps.info.margin - margin;
-
         new_position.info.lot = lot;
         new_position.info.margin = margin;
         if (ps.info.type == 2u8) {
@@ -762,8 +761,8 @@ module scale::position {
         assert!(position.info.status == 1, EInvalidPositionStatus);
         let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
         assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
-        // assert!(object::id(&market) == position.info.market_id, EInvalidMarketId);
-        assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
+        let account_id = object::id(account);
+        assert!(account_id == position.info.account_id, EInvalidAccountId);
         let id:ID;
         // partial close
         if (lot < position.info.lot && lot > 0){
@@ -784,7 +783,7 @@ module scale::position {
         // transfer::transfer(position,owner);
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(object::id(&market));
-        event::update<Account<T>>(object::id(account));
+        event::update<Account<T>>(account_id);
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         dof::add(account::get_uid_mut(account),position_id,position);
         id
@@ -823,7 +822,8 @@ module scale::position {
     ){
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         assert!(position.info.status == 1, EInvalidPositionStatus);
-        assert!(object::id(account) == position.info.account_id, EInvalidAccountId);
+        let account_id = object::id(account);
+        assert!(account_id == position.info.account_id, EInvalidAccountId);
         // settlement
         position.info.status = 3;
         let margin_used = account::get_margin_used(account);
@@ -850,7 +850,7 @@ module scale::position {
         };
         event::update<List<P,T>>(object::id(list));
         event::update<Market>(market_id);
-        event::update<Account<T>>(object::id(account));
+        event::update<Account<T>>(account_id);
         event::delete<Position<T>>(position_id);
         dof::add(account::get_uid_mut(account),position_id,position);
     }
@@ -867,7 +867,7 @@ module scale::position {
         while (i < n) {
             let id = vector::borrow(&ids, i);
             let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),*id);
-            let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),position.info.market_id);
+            let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),position.info.symbol);
             let size = size(position.info.lot,position.info.unit_size);
             let fund_size = fund_size(size,position.info.open_real_price);
             let fund_fee = get_position_fund_fee(total_liquidity, fund_size, position.info.direction, market);
@@ -875,6 +875,7 @@ module scale::position {
                 let bl = if (position.info.type == 1) {
                     account::split_balance(account,1,i64::get_value(&fund_fee))
                 }else{
+                    event::update<Position<T>>(*id);
                     balance::split(&mut position.margin_balance,i64::get_value(&fund_fee))
                 };
                 pool::join_profit_balance(market::get_pool_mut(list),bl);
@@ -883,6 +884,7 @@ module scale::position {
                 if (position.info.type == 1) {
                     account::join_balance(account,1,bl);
                 }else{
+                    event::update<Position<T>>(*id);
                     balance::join(&mut position.margin_balance,bl);
                 };
             };
@@ -960,7 +962,9 @@ module scale::position {
         let fund_size = fund_size(size,real_price);
         let margin_fee = market::get_margin_fee(&market);
         let unix_time = clock::timestamp_ms(c);
-        let pfk = account::new_PFK(object::id(&market),object::id(account),position.info.direction);
+        let market_id = object::id(&market);
+        let account_id = object::id(account);
+        let pfk = account::new_PFK(market_id,account_id,position.info.direction);
         position.info.status = 1;
         let merge = false;
         if (position.info.type == 1){
@@ -998,7 +1002,6 @@ module scale::position {
             exposure,
             position_total
         );
-        let market_id = object::id(&market);
         // Failure to do so may result in the inability to calculate equity
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         if ( position.info.type == 1 ){
@@ -1013,7 +1016,7 @@ module scale::position {
         };
         position.info.open_time = clock::timestamp_ms(c);
         event::update<List<P,T>>(object::id(list));
-        event::update<Account<T>>(object::id(account));
+        event::update<Account<T>>(account_id);
         event::update<Market>(market_id);
         event::update<Position<T>>(position_id);
         let p = market::get_pool_mut<P,T>(list);
