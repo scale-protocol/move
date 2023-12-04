@@ -6,6 +6,8 @@ module scale::pool {
     friend scale::bond;
     friend scale::position;
     friend scale::market;
+    #[test_only]
+    friend scale::pool_tests;
     // friend scale::account;
 
     const EZeroAmount: u64 = 501;
@@ -29,7 +31,7 @@ module scale::pool {
         spread_profit: Balance<T>,
     }
 
-    public fun create_pool<P: drop ,T>(): Pool<P,T> {
+    public(friend) fun create_pool<P: drop ,T>(): Pool<P,T> {
         Pool {
             vault_supply: balance::create_supply(LSP<P,T>{}),
             vault_balance: balance::zero<T>(),

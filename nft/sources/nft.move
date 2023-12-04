@@ -1,3 +1,4 @@
+#[lint_allow(self_transfer)]
 module scale_nft::nft{
     use sui::tx_context::{sender, TxContext};
     use std::string::{Self,utf8, String};

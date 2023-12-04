@@ -4,7 +4,7 @@ module scale::position_open_limit_tests{
     use scale::market::{Self,Market};
     use scale::account::{Self};
     use scale::position::{Self,Position};
-    use scale::pool::{Self,Scale};
+    use scale::pool;
     use sui::test_scenario::{Self};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
@@ -26,7 +26,7 @@ module scale::position_open_limit_tests{
             list,
             state,
             c,
-        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        ) = position_tests::get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         
@@ -80,7 +80,7 @@ module scale::position_open_limit_tests{
             list,
             state,
             c,
-        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        ) = position_tests::get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         let position_id:ID;
@@ -419,7 +419,7 @@ module scale::position_open_limit_tests{
             list,
             state,
             c,
-        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        ) = position_tests::get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         let position_id:ID;

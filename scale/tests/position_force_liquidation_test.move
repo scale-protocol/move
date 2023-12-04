@@ -4,7 +4,6 @@ module scale::position_force_liquidation_tests {
     use scale::market::{Self,Market};
     use scale::account::{Self};
     use scale::position::{Self,Position};
-    use scale::pool::{Scale};
     use sui::test_scenario::{Self};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self,ID};
@@ -26,7 +25,7 @@ module scale::position_force_liquidation_tests {
             list,
             state,
             c,
-        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        ) = position_tests::get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         let ps_id_1:ID;

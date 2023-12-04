@@ -1,7 +1,7 @@
 [package]
 name = "SuiCoin"
 version = "0.0.2"
-published-at = "0x2101c92efa3e3a8720b77229a1f706d7011d8c5be1a97cf3d7fa732116f4a1ee"
+# published-at = "0x6715542a67713f4a507e791dea328c81cdf29e548801c28d7a8cc1b816482af8"
 
 [dependencies]
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }

@@ -15,14 +15,14 @@ module scale::position_tests {
     use std::string::{Self,String};
     use sui::clock;
 
-    public fun get_test_ctx<P:drop,T>():
+    public fun get_test_ctx<T>():
      (
         address,
         Scenario,
         String,
         Account<T>,
         Coin<T>,
-        List<P,T>,
+        List<T>,
         oracle::State,
         clock::Clock
      ) {
@@ -36,19 +36,19 @@ module scale::position_tests {
         test_scenario::next_tx(tx,owner);
         {
             // list init
-            market::create_list<P,T>(test_scenario::ctx(tx));
+            market::create_list<T>(test_scenario::ctx(tx));
             oracle::init_for_testing(test_scenario::ctx(tx));
         };
         test_scenario::next_tx(tx,owner);
         let state = test_scenario::take_shared<oracle::State>(tx);
         let oracle_admin = test_scenario::take_from_sender<oracle::AdminCap>(tx);
-        let list = test_scenario::take_shared<List<P,T>>(tx);
+        let list = test_scenario::take_shared<List<T>>(tx);
         let ctx = test_scenario::ctx(tx);
         oracle::create_price_feed_for_testing(&mut state,n,ctx);
         oracle::update_price_for_testing(&mut state,n,1000,123,ctx);
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        market::create_market<P,T>(
+        market::create_market<T>(
             &mut list,
             n,
             i,
@@ -67,7 +67,7 @@ module scale::position_tests {
         account::isolated_deposit_for_testing(&mut account,coin);
         // add liquidity
         assert!(dof::exists_(market::get_list_uid_mut(&mut list),symbol),1);
-        let lsp_coin = pool::add_liquidity_for_testing<P,T>(market::get_pool_mut_for_testing<P,T>(&mut list),coin::mint_for_testing<T>(1000000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
+        let lsp_coin = pool::add_liquidity_for_testing<Scale,T>(market::get_pool_mut_for_testing<T>(&mut list),coin::mint_for_testing<T>(1000000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
         coin::burn_for_testing(lsp_coin);
         let c = clock::create_for_testing(test_scenario::ctx(tx));
         clock::set_for_testing(&mut c,123000);
@@ -84,11 +84,11 @@ module scale::position_tests {
         )
     }
 
-    public fun drop_test_ctx<P,T>(
+    public fun drop_test_ctx<T>(
         scenario: Scenario,
         account: Account<SCALE>,
         scale_coin: Coin<SCALE>,
-        list: List<P,T>,
+        list: List<T>,
         state: oracle::State,
         c: clock::Clock,
     ) {
@@ -175,7 +175,7 @@ module scale::position_tests {
             list,
             state,
             c,
-        ) = get_test_ctx<Scale,SCALE>();
+        ) = get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         test_scenario::next_tx(tx,owner);
@@ -297,7 +297,7 @@ module scale::position_tests {
             list,
             state,
             c,
-        ) = get_test_ctx<Scale,SCALE>();
+        ) = get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         test_scenario::next_tx(tx,owner);
@@ -315,7 +315,7 @@ module scale::position_tests {
             );
             // add liquidity
             let lsp_coin = pool::add_liquidity_for_testing<Scale,SCALE>(
-                market::get_pool_mut_for_testing<Scale,SCALE>(&mut list),
+                market::get_pool_mut_for_testing<SCALE>(&mut list),
                 coin::mint_for_testing<SCALE>(18446744073709551615 - 1000000 -1,
                 test_scenario::ctx(tx)),test_scenario::ctx(tx)
             );

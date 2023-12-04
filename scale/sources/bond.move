@@ -5,7 +5,7 @@ module scale::bond {
     use std::string::{Self,utf8, String};
     use sui::clock::{Self, Clock};
     use sui::balance::{Self,Balance};
-    use scale::pool::{Self,LSP};
+    use scale::pool::{Self,LSP,Scale};
     use scale::market::{Self,List};
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self,TxContext,sender};
@@ -18,6 +18,10 @@ module scale::bond {
     use sui::package::{Self, Publisher};
     use sui::display;
 
+    friend scale::enter;
+    #[test_only]
+    friend scale::bond_tests;
+
     const ENameRequired:u64 = 401;
     const EDescriptionRequired:u64 = 402;
     const EUrlRequired:u64 = 403;
@@ -29,13 +33,13 @@ module scale::bond {
 
     const DENOMINATOR: u64 = 10000;
     /// scale bond nft
-    struct ScaleBond<phantom P, phantom T> has key ,store {
+    struct ScaleBond<phantom T> has key ,store {
         id: UID,
         name: String,
 	    description: String,
 	    image_url: String,
         mint_time: u64,
-        denomination: Balance<LSP<P,T>>,
+        denomination: Balance<LSP<Scale,T>>,
         issue_expiration_time: u64,
         list_id: ID,
     }
@@ -65,7 +69,7 @@ module scale::bond {
         })
     }
 
-    public fun create_display<P,T>(publisher: &Publisher,ctx: &mut TxContext){
+    public(friend) fun create_display<T>(publisher: &Publisher,ctx: &mut TxContext){
         let keys = vector[
             utf8(b"name"),
             utf8(b"link"),
@@ -82,19 +86,19 @@ module scale::bond {
             utf8(b"https://scale.exchange"),
             utf8(b"Scale Protocol Team"),
         ];
-        let display = display::new_with_fields<ScaleBond<P,T>>(
+        let display = display::new_with_fields<ScaleBond<T>>(
             publisher, keys, values, ctx
         );
         display::update_version(&mut display);
         transfer::public_transfer(display, sender(ctx));
     }
     /// Provide current pool funds and obtain NFT bond certificates
-    public fun investment<P,T>(
+    public fun investment<T>(
         token: Coin<T>,
         nft_name: vector<u8>,
         amount: u64,
         issue_time_ms: u64,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
@@ -115,7 +119,7 @@ module scale::bond {
         let uid = object::new(ctx);
         // Index all existing NFTs for interest distribution
         field::add(&mut factory.id,object::uid_to_inner(&uid),now);
-        transfer::transfer(ScaleBond<P,T> {
+        transfer::transfer(ScaleBond<T> {
             id: uid,
             name: mould.name,
             description: mould.description,
@@ -125,18 +129,18 @@ module scale::bond {
             issue_expiration_time: now + issue_time_ms,
             list_id: object::id(list),
         },tx_context::sender(ctx));
-        event::update<List<P,T>>(object::id(list));
+        event::update<List<T>>(object::id(list));
     }
 
     /// Withdraw funds from the current pool and destroy NFT bond certificates
-    public fun divestment<P,T>(
-        nft: ScaleBond<P,T>,
-        list: &mut List<P,T>,
+    public fun divestment<T>(
+        nft: ScaleBond<T>,
+        list: &mut List<T>,
         factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
     ){
-        let ScaleBond<P,T> {
+        let ScaleBond<T> {
             id,
             name,
             description:_,
@@ -152,7 +156,7 @@ module scale::bond {
         // Collect penalty for breach of contract
         if (clock::timestamp_ms(c) < issue_expiration_time  && factory.penalty_fee > 0 && name != string::utf8(b"freely")){
             let penalty = coin::value(&bl) * factory.penalty_fee / DENOMINATOR;
-            pool::join_profit_balance<P,T>(p,coin::into_balance(coin::split(&mut bl,penalty,ctx)));
+            pool::join_profit_balance<Scale,T>(p,coin::into_balance(coin::split(&mut bl,penalty,ctx)));
         };
         let _: u64 = field::remove(&mut factory.id,object::uid_to_inner(&id));
         transfer::public_transfer(bl,tx_context::sender(ctx));
@@ -198,7 +202,7 @@ module scale::bond {
         factory.penalty_fee = penalty_fee;
     }
 
-    public fun get_bond_denomination<P,T>(nft: &ScaleBond<P,T>): u64{
+    public fun get_bond_denomination<T>(nft: &ScaleBond<T>): u64{
         balance::value(&nft.denomination)
     }
     #[test_only]

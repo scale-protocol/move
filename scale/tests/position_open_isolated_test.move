@@ -4,7 +4,7 @@ module scale::position_open_isolated_tests{
     use scale::market::{Self,Market};
     use scale::account::{Self};
     use scale::position::{Self,Position};
-    use scale::pool::{Self,Scale};
+    use scale::pool;
     use sui::test_scenario::{Self};
     use sui::dynamic_object_field as dof;
     use sui::object::{Self};
@@ -27,7 +27,7 @@ module scale::position_open_isolated_tests{
             list,
             state,
             c,
-        ) = position_tests::get_test_ctx<Scale,SCALE>();
+        ) = position_tests::get_test_ctx<SCALE>();
         let tx = &mut scenario;
         let sb=*string::bytes(&symbol);
         test_scenario::next_tx(tx,owner);

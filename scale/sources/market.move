@@ -15,6 +15,11 @@ module scale::market{
 
     friend scale::position;
     friend scale::bond;
+    friend scale::enter;
+    #[test_only]
+    friend scale::bond_tests;
+    friend scale::market_tests;
+    friend scale::position_tests;
     
     // const ELSPCreatorPermissionRequired:u64 = 301;
     const EInvalidLeverage:u64 = 302;
@@ -43,7 +48,7 @@ module scale::market{
         18446744073709551615 / 10000
     };
 
-    struct List<phantom P, phantom T> has key,store {
+    struct List<phantom T> has key,store {
         id: UID,
         total: u64,
         /// Market pool operator, 
@@ -52,7 +57,7 @@ module scale::market{
         /// 3 Community
         officer: u8,
         /// coin pool of the market
-        pool: Pool<P,T>,
+        pool: Pool<Scale,T>,
     }
 
     struct Market has key,store {
@@ -103,20 +108,20 @@ module scale::market{
         spread: u64,
     }
 
-    public fun create_list<P: drop,T>(ctx: &mut TxContext): ID{
+    public(friend) fun create_list<T>(ctx: &mut TxContext): ID{
         let uid = object::new(ctx);
         let id = object::uid_to_inner(&uid);
-        transfer::share_object( List<P,T>{
+        transfer::share_object(List<T>{
             id: uid,
             total: 0,
             officer: 2,
-            pool: pool::create_pool<P,T>(),
+            pool: pool::create_pool<Scale,T>(),
         });
-        event::create<List<Scale,T>>(id);
+        event::create<List<T>>(id);
         id
     }
 
-    public fun get_direction_price(price:&Price, direction: u8) : u64{
+    public fun get_direction_price(price:&Price, direction: u8): u64{
         if (direction == 1) {
             price.buy_price
         }else{
@@ -288,20 +293,20 @@ module scale::market{
     public fun get_description(market: &Market) : &String{
         &market.description
     }
-    public fun get_officer<P,T>(list: &List<P,T>) : u8{
+    public fun get_officer<T>(list: &List<T>) : u8{
         list.officer
     }
-    public fun get_pool<P,T>(list: &List<P,T>) : &Pool<P,T>{
+    public fun get_pool<T>(list: &List<T>) : &Pool<Scale,T>{
         &list.pool
     }
     public fun get_opening_price_value(market: &Market) : u64{
         market.opening_price
     }
-    public(friend) fun get_pool_mut<P,T>(list:&mut List<P,T>) : &mut Pool<P,T>{
+    public(friend) fun get_pool_mut<T>(list:&mut List<T>) : &mut Pool<Scale,T>{
         &mut list.pool
     }
     #[test_only]
-    public fun get_pool_mut_for_testing<P,T>(list: &mut List<P,T>) : &mut Pool<P,T>{
+    public fun get_pool_mut_for_testing<T>(list: &mut List<T>) : &mut Pool<Scale,T>{
         &mut list.pool
     }
     public fun get_unit_size(market: &Market) : u64{
@@ -313,18 +318,18 @@ module scale::market{
     public fun get_max_value() : u64 {
         MAX_VALUE
     }
-    public fun get_list_uid<P,T>(list: &List<P,T>):&UID {
+    public fun get_list_uid<T>(list: &List<T>):&UID {
         &list.id
     }
-    public fun get_list_uid_mut<P,T>(list: &mut List<P,T>):&mut UID {
+    public fun get_list_uid_mut<T>(list: &mut List<T>):&mut UID {
         &mut list.id
     }
-    public fun get_matket_total<P,T>(list: &List<P,T>):u64 {
+    public fun get_matket_total<T>(list: &List<T>):u64 {
         list.total
     }
     /// Create a market
-    public fun create_market <P,T>(
-        list: &mut List<P,T>,
+    public fun create_market <T>(
+        list: &mut List<T>,
         symbol: vector<u8>,
         icon: vector<u8>,
         description: vector<u8>,
@@ -470,15 +475,15 @@ module scale::market{
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
-    public fun update_officer<P,T>(
+    public fun update_officer<T>(
         _cap: &mut AdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         officer: u8,
         _ctx: &mut TxContext
     ){
         assert!(officer > 0 && officer < 4,EInvalidOfficer);
         list.officer = officer;
-        event::update<List<P,T>>(object::uid_to_inner(&list.id));
+        event::update<List<T>>(object::uid_to_inner(&list.id));
     }
 
     /// When the robot fails to update the price, update manually

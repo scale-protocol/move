@@ -16,15 +16,15 @@ module scale::market_tests {
 
 
     #[lint_allow(coin_field)]
-    struct TestContext<phantom P, phantom T> {
+    struct TestContext<phantom T> {
         owner: address,
         scenario: Scenario,
         symbol: String,
         scale_coin: Coin<SCALE>,
-        list: List<Scale,SCALE>,
+        list: List<SCALE>,
     }
     #[test]
-    fun get_test_ctx(): TestContext<Scale,SCALE> {
+    fun get_test_ctx(): TestContext<SCALE> {
         let owner = @0x1;
         let test_tx = test_scenario::begin(owner);
         let tx = &mut test_tx;
@@ -32,15 +32,15 @@ module scale::market_tests {
         scale_coin =  coin::mint_for_testing<SCALE>(100_0000,test_scenario::ctx(tx));
         test_scenario::next_tx(tx,owner);
         {
-            market::create_list<Scale,SCALE>(test_scenario::ctx(tx));
+            market::create_list<SCALE>(test_scenario::ctx(tx));
         };
         test_scenario::next_tx(tx,owner);
-        let list = test_scenario::take_shared<List<Scale,SCALE>>(tx);
+        let list = test_scenario::take_shared<List<SCALE>>(tx);
         let ctx = test_scenario::ctx(tx);
         let n = b"ETH/USD";
         let d = b"ETH/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        market::create_market<Scale,SCALE>(
+        market::create_market<SCALE>(
                 &mut list,
                 n,
                 i,
@@ -52,7 +52,7 @@ module scale::market_tests {
         test_scenario::next_tx(tx,owner);
         let symbol = string::utf8(n);
         // add liquidity
-        assert!(dof::exists_(market::get_list_uid_mut<Scale,SCALE>(&mut list),symbol),1);
+        assert!(dof::exists_(market::get_list_uid_mut<SCALE>(&mut list),symbol),1);
         // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),n);
         assert!(pool::get_total_liquidity<Scale,SCALE>(market::get_pool(&list)) == 0u64,4);
         let lsp_coin = pool::add_liquidity_for_testing(market::get_pool_mut_for_testing(&mut list),coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx)),test_scenario::ctx(tx));
@@ -66,7 +66,7 @@ module scale::market_tests {
         }
     }
 
-    fun drop_test_ctx<Scale,SCALE>(ctx: TestContext<Scale,SCALE>) {
+    fun drop_test_ctx<SCALE>(ctx: TestContext<SCALE>) {
         let TestContext {
             owner: _,
             scenario,
@@ -80,7 +80,7 @@ module scale::market_tests {
     }
     #[test]
     fun test_create_market(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -91,7 +91,7 @@ module scale::market_tests {
         let n = b"BTC/USD";
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        market::create_market<Scale,SCALE>(
+        market::create_market<SCALE>(
                 &mut list,
                 n,
                 i,
@@ -110,8 +110,8 @@ module scale::market_tests {
         assert!(market::get_margin_fee(market) == 10000u64,6);
         assert!(market::get_status(market) == 1,7);
         assert!(market::get_opening_price_value(market) == 800u64,8);
-        assert!(market::get_officer<Scale,SCALE>(&list) == 2,9);
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        assert!(market::get_officer<SCALE>(&list) == 2,9);
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,
@@ -122,7 +122,7 @@ module scale::market_tests {
     #[test]
     #[expected_failure(abort_code = 307, location = market)]
     fun test_create_market_symbol_empty(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -132,7 +132,7 @@ module scale::market_tests {
         let n = b"";
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        let _new_symbol = market::create_market<Scale,SCALE>(
+        let _new_symbol = market::create_market<SCALE>(
                 &mut list,
                 n,
                 i,
@@ -141,7 +141,7 @@ module scale::market_tests {
                 800u64,
                 test_scenario::ctx(&mut scenario)
             );
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,
@@ -152,7 +152,7 @@ module scale::market_tests {
     #[test]
     #[expected_failure(abort_code = 315, location = market)]
     fun test_create_market_symbol_len(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -162,7 +162,7 @@ module scale::market_tests {
         let n = b"abcdefghijkabcdefghij";
         let d = b"BTC/USD testing";
         let i = b"https://bin.bnbstatic.com/image/admin_mgs_image_upload/20201110/87496d50-2408-43e1-ad4c-78b47b448a6a.png";
-        let _new_symbol = market::create_market<Scale,SCALE>(
+        let _new_symbol = market::create_market<SCALE>(
                 &mut list,
                 n,
                 i,
@@ -171,7 +171,7 @@ module scale::market_tests {
                 800u64,
                 test_scenario::ctx(&mut scenario)
             );
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,
@@ -181,7 +181,7 @@ module scale::market_tests {
     }
     #[test]
     fun test_fund_fee(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -244,7 +244,7 @@ module scale::market_tests {
         assert!(market::get_fund_fee(&market,pool::get_total_liquidity<Scale,SCALE>(market::get_pool(&list))) == 70u64,24);
         // coin::destroy_for_testing(lsp_coin);
         dof::add(market::get_list_uid_mut(&mut list),symbol,market);
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,
@@ -254,7 +254,7 @@ module scale::market_tests {
     }
     #[test]
     fun test_spread_fee(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -285,7 +285,7 @@ module scale::market_tests {
         assert!(market::get_spread_fee(market,690u64) == 150u64,9);
         // change = |real_price - opening_price| / openging_price = |600 - 800| / 800 = 0.25 = 25% so fee = 1.5% = 1.5/100 = 0.015
         assert!(market::get_spread_fee(market,600u64) == 150u64,10);
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,
@@ -295,7 +295,7 @@ module scale::market_tests {
     }
     #[test]
     fun test_get_price(){
-        let TestContext<Scale,SCALE> {
+        let TestContext<SCALE> {
             owner,
             scenario,
             symbol,
@@ -336,7 +336,7 @@ module scale::market_tests {
         assert!(market::get_buy_price(&price) == 752u64,11);
         assert!(market::get_sell_price(&price) == 747u64,12);
         assert!(market::get_spread(&price) == 46500u64,13);
-        drop_test_ctx<Scale,SCALE>(TestContext {
+        drop_test_ctx<SCALE>(TestContext {
             owner,
             scenario,
             symbol,

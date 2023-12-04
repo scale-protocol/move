@@ -32,16 +32,16 @@ module scale::enter {
         account::deposit(account, token, amount, ctx);
     }
 
-    public entry fun withdrawal<P,T>(
-        list: &List<P,T>,
+    public entry fun withdrawal<T>(
+        list: &List<T>,
         account: &mut Account<T>,
         state: &oracle::State,
         amount: u64,
         c: &Clock,
         ctx: &mut TxContext
     ){
-        let total_liquidity = pool::get_total_liquidity<P,T>(market::get_pool(list));
-        account::withdrawal<T>(position::get_equity<P,T>(total_liquidity,list, account,state,c),account,amount,ctx);
+        let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
+        account::withdrawal<T>(position::get_equity<T>(total_liquidity,list, account,state,c),account,amount,ctx);
     }
 
     public entry fun add_admin_member(
@@ -65,12 +65,12 @@ module scale::enter {
         publisher: &Publisher,
         ctx: &mut TxContext
     ){
-        market::create_list<Scale,T>(ctx);
-        bond::create_display<Scale,T>(publisher,ctx)
+        market::create_list<T>(ctx);
+        bond::create_display<T>(publisher,ctx)
     }
 
-    public entry fun create_market<P,T>(
-        list: &mut List<P,T>,
+    public entry fun create_market<T>(
+        list: &mut List<T>,
         symbol: vector<u8>,
         icon: vector<u8>,
         description: vector<u8>,
@@ -78,12 +78,12 @@ module scale::enter {
         opening_price: u64,
         ctx: &mut TxContext
     ){
-        market::create_market<P,T>(list,symbol,icon,description,size,opening_price,ctx);
+        market::create_market<T>(list,symbol,icon,description,size,opening_price,ctx);
     }
 
-    public entry fun update_max_leverage<P,T>(
+    public entry fun update_max_leverage<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         max_leverage: u8,
         ctx: &mut TxContext
@@ -92,9 +92,9 @@ module scale::enter {
         market::update_max_leverage(pac,market,max_leverage,ctx);
     }
 
-    public entry fun update_insurance_fee<P,T>(
+    public entry fun update_insurance_fee<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         insurance_fee: u64,
         ctx: &mut TxContext
@@ -103,9 +103,9 @@ module scale::enter {
         market::update_insurance_fee(pac,market,insurance_fee,ctx);
     }
 
-    public entry fun update_margin_fee<P,T>(
+    public entry fun update_margin_fee<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         margin_fee: u64,
         ctx: &mut TxContext
@@ -114,9 +114,9 @@ module scale::enter {
         market::update_margin_fee(pac,market,margin_fee,ctx);
     }
 
-    public entry fun update_fund_fee<P,T>(
+    public entry fun update_fund_fee<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         fund_fee: u64,
         manual: bool,
@@ -126,9 +126,9 @@ module scale::enter {
         market::update_fund_fee(pac,market,fund_fee,manual,ctx);
     }
     
-    public entry fun update_status<P,T>(
+    public entry fun update_status<T>(
         pac: &mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         status: u8,
         ctx: &mut TxContext
@@ -137,9 +137,9 @@ module scale::enter {
         market::update_status(pac,market,status,ctx);
     }
 
-    public entry fun update_description<P,T>(
+    public entry fun update_description<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         description: vector<u8>,
         ctx: &mut TxContext
@@ -148,9 +148,9 @@ module scale::enter {
         market::update_description(pac,market,description,ctx);
     }
 
-    public entry fun update_icon<P,T>(
+    public entry fun update_icon<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         icon: vector<u8>,
         ctx: &mut TxContext
@@ -159,9 +159,9 @@ module scale::enter {
         market::update_icon(pac,market,icon,ctx);
     }
 
-    public entry fun update_spread_fee<P,T>(
+    public entry fun update_spread_fee<T>(
         pac:&mut ScaleAdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         market_id: ID,
         spread_fee: u64,
         manual: bool,
@@ -172,9 +172,9 @@ module scale::enter {
     }
     /// Update the officer of the market
     /// Only the contract creator has permission to modify this item
-    public entry fun update_officer<P,T>(
+    public entry fun update_officer<T>(
         cap:&mut AdminCap,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         officer: u8,
         ctx: &mut TxContext
     ){
@@ -182,8 +182,8 @@ module scale::enter {
     }
 
     /// The robot triggers at 0:00 every day to update the price of the day
-    public entry fun trigger_update_opening_price<P,T>(
-        list: &mut List<P,T>,
+    public entry fun trigger_update_opening_price<T>(
+        list: &mut List<T>,
         market_id: ID,
         state: &oracle::State,
         c: &Clock,
@@ -220,12 +220,12 @@ module scale::enter {
     ){
         bond::set_penalty_fee(admin_cap,factory,penalty_fee);
     }
-    public entry fun investment<P,T>(
+    public entry fun investment<T>(
         coins: vector<Coin<T>>,
         nft_name: vector<u8>,
         amount: u64,
         issue_time_ms: u64,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
@@ -235,9 +235,9 @@ module scale::enter {
         bond::investment(token,nft_name,amount,issue_time_ms,list,factory,c,ctx);
     }
     /// Normal withdrawal of investment
-    public entry fun divestment<P,T>(
-        nft: ScaleBond<P,T>,
-        list: &mut List<P,T>,
+    public entry fun divestment<T>(
+        nft: ScaleBond<T>,
+        list: &mut List<T>,
         factory: &mut BondFactory,
         c: &Clock,
         ctx: &mut TxContext
@@ -245,7 +245,7 @@ module scale::enter {
         bond::divestment(nft,list,factory,c,ctx);
     }
 
-    public entry fun open_cross_position<P,T>(
+    public entry fun open_cross_position<T>(
         symbol: vector<u8>,
         lot: u64,
         leverage: u8,
@@ -253,16 +253,16 @@ module scale::enter {
         auto_open_price: u64,
         stop_surplus_price: u64,
         stop_loss_price: u64,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         state: &oracle::State,
         c: &Clock,
         ctx: &mut TxContext
     ){
-        position::open_position<P,T>(symbol,lot,leverage,direction,1u8,auto_open_price,stop_surplus_price,stop_loss_price,list,account,state,c,ctx);
+        position::open_position<T>(symbol,lot,leverage,direction,1u8,auto_open_price,stop_surplus_price,stop_loss_price,list,account,state,c,ctx);
     }
 
-    public entry fun open_isolated_position<P,T>(
+    public entry fun open_isolated_position<T>(
         symbol: vector<u8>,
         lot: u64,
         leverage: u8,
@@ -271,98 +271,98 @@ module scale::enter {
         stop_surplus_price: u64,
         stop_loss_price: u64,
         coins: vector<Coin<T>>,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         state: &oracle::State,
         c: &Clock,
         ctx: &mut TxContext
     ){
         account::isolated_deposit(account,coins);
-        position::open_position<P,T>(symbol,lot,leverage,direction,2u8,auto_open_price,stop_surplus_price,stop_loss_price,list,account,state,c,ctx);
+        position::open_position<T>(symbol,lot,leverage,direction,2u8,auto_open_price,stop_surplus_price,stop_loss_price,list,account,state,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public entry fun close_position<P,T>(
+    public entry fun close_position<T>(
         position_id: ID,
         lot: u64,
         state: &oracle::State,
         account: &mut Account<T>,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         c: &Clock,
         ctx: &mut TxContext,
     ){
-        position::close_position<P,T>(position_id,lot,state,account,list,c,ctx);
+        position::close_position<T>(position_id,lot,state,account,list,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun auto_close_position<P,T>(
+    public fun auto_close_position<T>(
         position_id: ID,
         state: &oracle::State,
         account: &mut Account<T>,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         c: &Clock,
         ctx: &mut TxContext,
     ){
-        position::auto_close_position<P,T>(position_id,state,account,list,c,ctx);
+        position::auto_close_position<T>(position_id,state,account,list,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public entry fun force_liquidation<P,T>(
+    public entry fun force_liquidation<T>(
         position_id: ID,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         state: &oracle::State,
         c: &Clock,
         ctx: &mut TxContext,
     ){
-        position::force_liquidation<P,T>(position_id,list,account,state,c,ctx);
+        position::force_liquidation<T>(position_id,list,account,state,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun process_fund_fee<P,T>(
-        list: &mut List<P,T>,
+    public fun process_fund_fee<T>(
+        list: &mut List<T>,
         account: &mut Account<T>,
         _ctx: &TxContext,
     ){
-        position::process_fund_fee<P,T>(list,account,_ctx);
+        position::process_fund_fee<T>(list,account,_ctx);
     }
 
-    public fun update_cross_limit_position<P,T>(
+    public fun update_cross_limit_position<T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
         auto_open_price: u64,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         ctx: &mut TxContext,
     ){
-        position::update_limit_position<P,T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
+        position::update_limit_position<T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
     }
     
-    public fun update_isolated_limit_position<P,T>(
+    public fun update_isolated_limit_position<T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
         auto_open_price: u64,
         coins: vector<Coin<T>>,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         ctx: &mut TxContext,
     ){
         account::isolated_deposit(account,coins);
-        position::update_limit_position<P,T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
+        position::update_limit_position<T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun open_limit_position<P,T>(
+    public fun open_limit_position<T>(
         position_id: ID,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         account: &mut Account<T>,
         state: &oracle::State,
         c: &Clock,
         _ctx: &mut TxContext,
     ){
-        position::open_limit_position<P,T>(position_id,list,account,state,c,_ctx);
+        position::open_limit_position<T>(position_id,list,account,state,c,_ctx);
     }
     
     public fun update_automatic_price<T>(
@@ -375,16 +375,16 @@ module scale::enter {
         position::update_automatic_price<T>(position_id,stop_surplus_price,stop_loss_price,account,ctx);
     }
 
-    public fun isolated_deposit<P,T>(
+    public fun isolated_deposit<T>(
         position_id: ID,
         amount: u64,
         coins: vector<Coin<T>>,
         account: &mut Account<T>,
-        list: &mut List<P,T>,
+        list: &mut List<T>,
         ctx: &mut TxContext,
     ){        
         let token = vector::pop_back(&mut coins);
         pay::join_vec(&mut token, coins);
-        position::isolated_deposit<P,T>(position_id,token,amount,account,list,ctx);
+        position::isolated_deposit<T>(position_id,token,amount,account,list,ctx);
     }
 }

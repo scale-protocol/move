@@ -2,7 +2,7 @@
 module scale::bond_tests {
     use scale::market::{Self, List};
     use scale::bond::{Self,BondFactory,ScaleBond};
-    use scale::pool::{Self,Scale};
+    use scale::pool;
     use scale::admin;
     use sui::test_scenario;
     // use sui::object::{ID};
@@ -21,13 +21,13 @@ module scale::bond_tests {
         let s_token =  coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx));
         let publisher = package::test_claim(bond::create_bond_for_testing(),test_scenario::ctx(tx));
         bond::init_for_testing(test_scenario::ctx(tx));
-        bond::create_display<Scale,SCALE>(&publisher,test_scenario::ctx(tx));
-        market::create_list<Scale,SCALE>(test_scenario::ctx(tx));
+        bond::create_display<SCALE>(&publisher,test_scenario::ctx(tx));
+        market::create_list<SCALE>(test_scenario::ctx(tx));
         admin::init_for_testing(test_scenario::ctx(tx));
         test_scenario::next_tx(tx,owner);
         let c = clock::create_for_testing(test_scenario::ctx(tx));
         clock::set_for_testing(&mut c,123000);
-        let list = test_scenario::take_shared<List<Scale,SCALE>>(tx);
+        let list = test_scenario::take_shared<List<SCALE>>(tx);
         let factory = test_scenario::take_shared<BondFactory>(tx);
         test_scenario::next_tx(tx,owner);
         {
@@ -65,13 +65,13 @@ module scale::bond_tests {
             let pool = market::get_pool_mut_for_testing(&mut list);
             assert!(pool::get_vault_supply(pool) == 10000,101);
             assert!(pool::get_vault_balance(pool) == 10000,101);
-            let nft = test_scenario::take_from_sender<ScaleBond<Scale,SCALE>>(tx);
+            let nft = test_scenario::take_from_sender<ScaleBond<SCALE>>(tx);
             assert!(bond::get_bond_denomination(&nft) == 10000,101);
             test_scenario::return_to_sender(tx,nft);
         };
         test_scenario::next_tx(tx,owner);
         {
-            let nft = test_scenario::take_from_sender<ScaleBond<Scale,SCALE>>(tx);
+            let nft = test_scenario::take_from_sender<ScaleBond<SCALE>>(tx);
             bond::divestment(
                 nft,
                 &mut list,
@@ -97,13 +97,13 @@ module scale::bond_tests {
         let s_token =  coin::mint_for_testing<SCALE>(10000,test_scenario::ctx(tx));
         let publisher = package::test_claim(bond::create_bond_for_testing(),test_scenario::ctx(tx));
         bond::init_for_testing(test_scenario::ctx(tx));
-        bond::create_display<Scale,SCALE>(&publisher,test_scenario::ctx(tx));
-        market::create_list<Scale,SCALE>(test_scenario::ctx(tx));
+        bond::create_display<SCALE>(&publisher,test_scenario::ctx(tx));
+        market::create_list<SCALE>(test_scenario::ctx(tx));
         admin::init_for_testing(test_scenario::ctx(tx));
         test_scenario::next_tx(tx,owner);
         let c = clock::create_for_testing(test_scenario::ctx(tx));
         clock::set_for_testing(&mut c,123000);
-        let list = test_scenario::take_shared<List<Scale,SCALE>>(tx);
+        let list = test_scenario::take_shared<List<SCALE>>(tx);
         let factory = test_scenario::take_shared<BondFactory>(tx);
         test_scenario::next_tx(tx,owner);
         {
@@ -141,7 +141,7 @@ module scale::bond_tests {
             let pool = market::get_pool_mut_for_testing(&mut list);
             assert!(pool::get_vault_supply(pool) == 10000,101);
             assert!(pool::get_vault_balance(pool) == 10000,101);
-            let nft = test_scenario::take_from_sender<ScaleBond<Scale,SCALE>>(tx);
+            let nft = test_scenario::take_from_sender<ScaleBond<SCALE>>(tx);
             assert!(bond::get_bond_denomination(&nft) == 10000,101);
             test_scenario::return_to_sender(tx,nft);
         };
@@ -149,7 +149,7 @@ module scale::bond_tests {
         clock::set_for_testing(&mut c,127000);
         test_scenario::next_tx(tx,owner);
         {
-            let nft = test_scenario::take_from_sender<ScaleBond<Scale,SCALE>>(tx);
+            let nft = test_scenario::take_from_sender<ScaleBond<SCALE>>(tx);
             bond::divestment(
                 nft,
                 &mut list,
