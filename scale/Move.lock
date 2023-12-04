@@ -2,7 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "B569740386CC9E04853290FC12439E04D95B658EA7C213F43B76601C2E7F8DE9"
+manifest_digest = "EE7A69DA6FE24A74FE99238BB204EC2AF4D88B0588D8D02403C73E0B690D6CA7"
 deps_digest = "060AD7E57DFB13104F21BE5F5C3759D03F0553FC3229247D9A7A6B45F50D03A3"
 
 dependencies = [
@@ -26,7 +26,7 @@ dependencies = [
 
 [[move.package]]
 name = "Pyth"
-source = { git = "https://github.com/pyth-network/pyth-crosschain.git", rev = "8b721c38dcf19b2acfa81ad0560a39ce144c3b97", subdir = "target_chains/sui/contracts" }
+source = { local = "../../pyth-crosschain/target_chains/sui/contracts" }
 
 dependencies = [
   { name = "Sui" },

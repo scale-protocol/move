@@ -18,7 +18,9 @@ module scale::market{
     friend scale::enter;
     #[test_only]
     friend scale::bond_tests;
+    #[test_only]
     friend scale::market_tests;
+    #[test_only]
     friend scale::position_tests;
     
     // const ELSPCreatorPermissionRequired:u64 = 301;
