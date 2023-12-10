@@ -295,7 +295,7 @@ module scale::enter {
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun auto_close_position<T>(
+    public entry fun auto_close_position<T>(
         position_id: ID,
         state: &oracle::State,
         account: &mut Account<T>,
@@ -319,7 +319,7 @@ module scale::enter {
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun process_fund_fee<T>(
+    public entry fun process_fund_fee<T>(
         list: &mut List<T>,
         account: &mut Account<T>,
         _ctx: &TxContext,
@@ -327,7 +327,7 @@ module scale::enter {
         position::process_fund_fee<T>(list,account,_ctx);
     }
 
-    public fun update_cross_limit_position<T>(
+    public entry fun update_cross_limit_position<T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
@@ -339,7 +339,7 @@ module scale::enter {
         position::update_limit_position<T>(position_id,lot,leverage,auto_open_price,list,account,ctx);
     }
     
-    public fun update_isolated_limit_position<T>(
+    public entry fun update_isolated_limit_position<T>(
         position_id: ID,
         lot: u64,
         leverage: u8,
@@ -354,7 +354,7 @@ module scale::enter {
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
     }
 
-    public fun open_limit_position<T>(
+    public entry fun open_limit_position<T>(
         position_id: ID,
         list: &mut List<T>,
         account: &mut Account<T>,
@@ -365,7 +365,7 @@ module scale::enter {
         position::open_limit_position<T>(position_id,list,account,state,c,_ctx);
     }
     
-    public fun update_automatic_price<T>(
+    public entry fun update_automatic_price<T>(
         position_id: ID,
         stop_surplus_price: u64,
         stop_loss_price: u64,
@@ -375,7 +375,7 @@ module scale::enter {
         position::update_automatic_price<T>(position_id,stop_surplus_price,stop_loss_price,account,ctx);
     }
 
-    public fun isolated_deposit<T>(
+    public entry fun isolated_deposit<T>(
         position_id: ID,
         amount: u64,
         coins: vector<Coin<T>>,

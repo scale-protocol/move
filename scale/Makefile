@@ -4,3 +4,5 @@ publish:
 	sui client publish --gas-budget 100000000 --skip-dependency-verification .
 upgrade:
 	sui client upgrade --gas-budget 100000000 --upgrade-capability 0x1c87809adbc37391a3d7f996350fd569567dd0e9c8498280f4ae7db1b629c40d --skip-dependency-verification
+
+	sui client upgrade --gas-budget 100000000 --upgrade-capability 0xda324cce1412c187ed4b4cd4bd4abde0f9bcefc161e92f5e2cbc725a20d9d39c --skip-dependency-verification

@@ -1,7 +1,7 @@
 [package]
 name = "Scale"
 version = "0.0.2"
-# published-at = "0xc207349decef2ad84743d32753262cefe26306009d66b9fb1eaa7196d032ebc2"
+published-at = "0xe750202831223bd85c14fda66b67a54438b4d304f67f6e80851110ad4561090b"
 
 [dependencies]
 SuiCoin = { local = "../coin" }
