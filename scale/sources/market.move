@@ -488,18 +488,6 @@ module scale::market{
         event::update<List<T>>(object::uid_to_inner(&list.id));
     }
 
-    /// When the robot fails to update the price, update manually
-    // public fun update_oping_price(
-    //     pac:&mut ScaleAdminCap,
-    //     market:&mut Market,
-    //     opening_price: u64,
-    //     ctx: &mut TxContext
-    // ){
-    //     assert!(admin::is_super_admin(pac,&tx_context::sender(ctx),object::uid_to_inner(&mut market.id)),ENoPermission);
-    //     assert!(opening_price > 0 ,EInvalidOpingPrice);
-    //     market.opening_price = opening_price;
-    // }
-
     /// The robot triggers at 0:00 every day to update the price of the day
     public fun trigger_update_opening_price(
         market: &mut Market,
@@ -508,14 +496,9 @@ module scale::market{
         _ctx: &mut TxContext
     ){
         let real_price = get_pyth_price(state, string::bytes(&market.symbol),c);
-        // todo check price time and openg price must gt 0
         assert!(real_price > 0,EInvalidOpingPrice);
+        // todo check price time and openg price must gt 0
         market.opening_price = real_price;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
-
-    // #[test_only]
-    // public fun init_for_testing(ctx: &mut TxContext){
-    //     init(ctx);
-    // }
 }
