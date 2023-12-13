@@ -40,6 +40,7 @@ module scale::position {
     // const EInvalidStopSurplusPrice:u64 = 620;
     const EInvalidStopLossPrice:u64 = 621;
     const EInsufficientCoins:u64 = 622;
+    const EInvalidSettlementTime:u64 = 623;
 
     // const MAX_U64_VALUEU64: u64 = 18446744073709551615;
     const MAX_U64_VALUEU128: u128 = 18446744073709551615;
@@ -653,7 +654,7 @@ module scale::position {
         let insurance_balance = account::split_balance(account,type, get_insurance_amount(margin,insurance_fee));
         pool::join_insurance_balance<Scale,T>(p,insurance_balance);
         // collect spread
-        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread,size));
+        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread,size),tx_context::epoch(ctx));
         pool::join_spread_profit<Scale,T>(p,spread_balance);
         id
     }
@@ -689,6 +690,7 @@ module scale::position {
         state: &oracle::State,
         position: &mut Position<T>,
         c: &Clock,
+        ctx: &TxContext,
     ){
         let price = market::get_price(market,state,c);
         let real_price = market::get_real_price(&price);
@@ -709,7 +711,7 @@ module scale::position {
         // pool::join_spread_profit<T>(p,spread_balance);
         let pl = get_pl(size, fund_size, position.info.direction, &price);
         if (!i64::is_negative(&pl)){
-            account::join_balance(account, position.info.type, pool::split_profit_balance(p,i64::get_value(&pl)));
+            account::join_balance(account, position.info.type, pool::split_profit_balance(p,i64::get_value(&pl),tx_context::epoch(ctx)));
         }else{
             let loss = if (position.info.type == 1){
                 account::split_balance(account,position.info.type,i64::get_value(&pl))
@@ -722,7 +724,7 @@ module scale::position {
                 };
                 balance::split(&mut position.margin_balance,amount)
             };
-            pool::join_profit_balance(p,loss);
+            pool::join_profit_balance(p,loss,tx_context::epoch(ctx));
         };
         let margin_balance_value = balance::value(&position.margin_balance);
         if (margin_balance_value > 0){
@@ -768,7 +770,7 @@ module scale::position {
         if (lot < position.info.lot && lot > 0){
             let new_position = split_position<T>(&mut position,lot,market::get_margin_fee(&market),ctx);
             new_position.info.status = 5;
-            settlement_pl<T>(owner,false,list,&mut market, account, state, &mut new_position,c);
+            settlement_pl<T>(owner,false,list,&mut market, account, state, &mut new_position,c,ctx);
             let new_position_id = object::id(&new_position);
             event::create<Position<T>>(new_position_id);
             event::update<Position<T>>(position_id);
@@ -776,7 +778,7 @@ module scale::position {
             id = new_position_id;
         }else{
             position.info.status = 2;
-            settlement_pl<T>(owner,false,list,&mut market, account, state, &mut position,c);
+            settlement_pl<T>(owner,false,list,&mut market, account, state, &mut position,c,ctx);
             event::delete<Position<T>>(position_id);
             id = position_id;
         };
@@ -803,7 +805,7 @@ module scale::position {
         let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
         assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
         position.info.status = 6;
-        settlement_pl<T>(tx_context::sender(ctx),true,list,&mut market, account, state, &mut position,c);
+        settlement_pl<T>(tx_context::sender(ctx),true,list,&mut market, account, state, &mut position,c,ctx);
         event::delete<Position<T>>(position_id);
         event::update<List<T>>(object::id(list));
         event::update<Market>(object::id(&market));
@@ -829,7 +831,7 @@ module scale::position {
         let margin_used = account::get_margin_used(account);
         let market: Market = dof::remove(market::get_list_uid_mut(list),position.info.symbol);
         assert!(market::get_status(&market) < 3, EInvalidMarketStatus);
-        settlement_pl<T>(tx_context::sender(ctx),false,list,&mut market,account, state, &mut position,c);
+        settlement_pl<T>(tx_context::sender(ctx),false,list,&mut market,account, state, &mut position,c,ctx);
         let market_id = object::id(&market);
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         if (position.info.type == 1){
@@ -858,12 +860,18 @@ module scale::position {
     public fun process_fund_fee<T>(
         list: &mut List<T>,
         account: &mut Account<T>,
-        _ctx: &TxContext,
+        c: &Clock,
+        ctx: &TxContext,
     ){
         let ids = account::get_all_position_ids(account);
         let i = 0;
         let n = vector::length(&ids);
         let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
+        let latest_time = account::get_latest_settlement_ms(account);
+        let timestamp_ms = clock::timestamp_ms(c);
+        // Charge at least once every 8 hours
+        // Allow one minute in advance
+        assert!(timestamp_ms - latest_time > (8 * 60 * 60 - 60) * 1000, EInvalidSettlementTime);
         while (i < n) {
             let id = vector::borrow(&ids, i);
             let position: &mut Position<T> = dof::borrow_mut(account::get_uid_mut(account),*id);
@@ -878,9 +886,9 @@ module scale::position {
                     event::update<Position<T>>(*id);
                     balance::split(&mut position.margin_balance,i64::get_value(&fund_fee))
                 };
-                pool::join_profit_balance(market::get_pool_mut(list),bl);
+                pool::join_profit_balance(market::get_pool_mut(list),bl,tx_context::epoch(ctx));
             }else{
-                let bl = pool::split_profit_balance(market::get_pool_mut(list),i64::get_value(&fund_fee));
+                let bl = pool::split_profit_balance(market::get_pool_mut(list),i64::get_value(&fund_fee),tx_context::epoch(ctx));
                 if (position.info.type == 1) {
                     account::join_balance(account,1,bl);
                 }else{
@@ -890,6 +898,7 @@ module scale::position {
             };
             i = i + 1;
         };
+        account::set_latest_settlement_ms(account,timestamp_ms);
         event::update<Account<T>>(object::id(account));
     }
 
@@ -942,7 +951,7 @@ module scale::position {
         account: &mut Account<T>,
         state: &oracle::State,
         c: &Clock,
-        _ctx: &mut TxContext,
+        ctx: &mut TxContext,
     ){
         let position: Position<T> = dof::remove(account::get_uid_mut(account),position_id);
         assert!(position.info.status == 4, EInvalidPositionStatus);
@@ -1026,7 +1035,7 @@ module scale::position {
         }else{
             balance::split(&mut position.margin_balance,insurance_amount)
         };
-        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread,size));
+        let spread_balance = pool::split_profit_balance(p,get_spread_amount(spread,size),tx_context::epoch(ctx));
         // collect insurance
         pool::join_insurance_balance<Scale,T>(p,insurance_balance);
         // collect spread

@@ -11,7 +11,7 @@ module scale::market{
     use oracle::oracle;
     use sui::url::{Self, Url};
     use scale::event;
-    use sui::clock::Clock;
+    use sui::clock::{Self,Clock};
 
     friend scale::position;
     friend scale::bond;
@@ -42,6 +42,7 @@ module scale::market{
     const EInvalidOpeningPrice:u64 = 317;
     const EIconRequired:u64 = 318;
     const EIconTooLong:u64 = 319;
+    const EInvalidOpingPriceTime:u64 = 320;
     /// Denominator reference when scaling, default is 10000
     /// e.g. 5% = 5000/10000
     const DENOMINATOR: u64 = 10000;
@@ -100,6 +101,7 @@ module scale::market{
         unit_size: u64,
         /// The price at 0 o'clock in the utc of the current day, which is used to calculate the spread_fee
         opening_price: u64,
+        latest_opening_price_ms: u64,
         list_id: ID,
     }
 
@@ -370,6 +372,7 @@ module scale::market{
             // officer: 2,
             unit_size,
             opening_price,
+            latest_opening_price_ms: 0,
             list_id
         });
         list.total = list.total + 1;
@@ -496,9 +499,13 @@ module scale::market{
         _ctx: &mut TxContext
     ){
         let real_price = get_pyth_price(state, string::bytes(&market.symbol),c);
+        let timestamp_ms = clock::timestamp_ms(c);
         assert!(real_price > 0,EInvalidOpingPrice);
-        // todo check price time and openg price must gt 0
+        // Charge at least once every 24 hours
+        // Allow one minute in advance
+        assert!(timestamp_ms - market.latest_opening_price_ms > (8 * 60 * 60 - 60) * 1000, EInvalidOpingPriceTime);
         market.opening_price = real_price;
+        market.latest_opening_price_ms = timestamp_ms;
         event::update<Market>(object::uid_to_inner(&market.id));
     }
 }

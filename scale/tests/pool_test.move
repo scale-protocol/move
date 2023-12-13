@@ -77,36 +77,41 @@ module scale::pool_tests {
             let t_s_token2 = coin::split(&mut s_token,5000,test_scenario::ctx(tx));
             let s_token_balance = coin::into_balance(t_s_token2);
             // test join
-            pool::join_profit_balance_for_testing(&mut pool,s_token_balance);
+            pool::join_profit_balance_for_testing(&mut pool,s_token_balance,1);
             assert!(pool::get_vault_supply(&pool) == 1000_000_000,1);
             assert!(pool::get_vault_balance(&pool) == 1000_000_000,2);
             assert!(pool::get_profit_balance(&pool) == 5000,3);
+            assert!(pool::get_epoch_profit(&pool,1) == 5000,15);
             assert!(pool::get_insurance_balance(&pool) == 0,4);
             // test take
-            let ts_token = pool::split_profit_balance_for_testing(&mut pool,4000);
+            let ts_token = pool::split_profit_balance_for_testing(&mut pool,4000,2);
             assert!(pool::get_vault_supply(&pool) == 1000_000_000,5);
             assert!(pool::get_vault_balance(&pool) == 1000_000_000,6);
             assert!(pool::get_profit_balance(&pool) == 1000,7);
+            assert!(pool::get_epoch_profit(&pool,2) == 1000,15);
             assert!(pool::get_insurance_balance(&pool) == 0,8);
 
-            let tss_token = pool::split_profit_balance_for_testing(&mut pool,1000);
+            let tss_token = pool::split_profit_balance_for_testing(&mut pool,1000,3);
             assert!(pool::get_vault_supply(&pool) == 1000_000_000,9);
             assert!(pool::get_vault_balance(&pool) == 1000_000_000,10);
             assert!(pool::get_profit_balance(&pool) == 0,11);
+            assert!(pool::get_epoch_profit(&pool,3) == 0,15);
             assert!(pool::get_insurance_balance(&pool) == 0,12);
 
-            let tsss_token = pool::split_profit_balance_for_testing(&mut pool,1000);
+            let tsss_token = pool::split_profit_balance_for_testing(&mut pool,1000,4);
             assert!(pool::get_vault_supply(&pool) == 1000_000_000,13);
             assert!(pool::get_vault_balance(&pool) == 999_999_000,14);
             assert!(pool::get_profit_balance(&pool) == 0,15);
+            assert!(pool::get_epoch_profit(&pool,4) == 0,15);
             assert!(pool::get_insurance_balance(&pool) == 0,16);
 
-            pool::join_profit_balance_for_testing(&mut pool,ts_token);
-            pool::join_profit_balance_for_testing(&mut pool,tss_token);
-            pool::join_profit_balance_for_testing(&mut pool,tsss_token);
+            pool::join_profit_balance_for_testing(&mut pool,ts_token,5);
+            pool::join_profit_balance_for_testing(&mut pool,tss_token,6);
+            pool::join_profit_balance_for_testing(&mut pool,tsss_token,6);
             assert!(pool::get_vault_supply(&pool) == 1000_000_000,17);
             assert!(pool::get_vault_balance(&pool) == 1000_000_000,18);
             assert!(pool::get_profit_balance(&pool) == 5000,19);
+            assert!(pool::get_epoch_profit(&pool,6) == 5000,19);
             assert!(pool::get_insurance_balance(&pool) == 0,20);
 
             coin::burn_for_testing(s_token);

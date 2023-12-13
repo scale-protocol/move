@@ -9,6 +9,8 @@
     // use std::debug;
     use sui_coin::scale::{SCALE};
     use std::string;
+    use sui::clock;
+
     #[test]
     fun test_process_fund_fee(){
         let(
@@ -76,9 +78,11 @@
         };
         test_scenario::next_tx(tx,owner);
         {
+            clock::set_for_testing(&mut c,123000+8*60*60*1000);
             position::process_fund_fee(        
                 &mut list,
                 &mut account,
+                &c,
                 test_scenario::ctx(tx),
             );
             // total_liquidity = 1_000_000

@@ -156,7 +156,7 @@ module scale::bond {
         // Collect penalty for breach of contract
         if (clock::timestamp_ms(c) < issue_expiration_time  && factory.penalty_fee > 0 && name != string::utf8(b"freely")){
             let penalty = coin::value(&bl) * factory.penalty_fee / DENOMINATOR;
-            pool::join_profit_balance<Scale,T>(p,coin::into_balance(coin::split(&mut bl,penalty,ctx)));
+            pool::join_profit_balance<Scale,T>(p,coin::into_balance(coin::split(&mut bl,penalty,ctx)),tx_context::epoch(ctx));
         };
         let _: u64 = field::remove(&mut factory.id,object::uid_to_inner(&id));
         transfer::public_transfer(bl,tx_context::sender(ctx));

@@ -15,6 +15,7 @@ module scale::enter {
     use sui::package::Publisher;
     use sui::clock::Clock;
     use std::string;
+    use scale::bot;
 
     public entry fun create_account<T>(
         ctx: &mut TxContext
@@ -67,7 +68,8 @@ module scale::enter {
         ctx: &mut TxContext
     ){
         market::create_list<T>(ctx);
-        bond::create_display<T>(publisher,ctx)
+        bond::create_display<T>(publisher,ctx);
+        bot::create_bot<T>(ctx);
     }
 
     public entry fun create_market<T>(
@@ -323,9 +325,10 @@ module scale::enter {
     public entry fun process_fund_fee<T>(
         list: &mut List<T>,
         account: &mut Account<T>,
-        _ctx: &TxContext,
+        c: &Clock,
+        ctx: &TxContext,
     ){
-        position::process_fund_fee<T>(list,account,_ctx);
+        position::process_fund_fee<T>(list,account,c,ctx);
     }
 
     public entry fun update_cross_limit_position<T>(

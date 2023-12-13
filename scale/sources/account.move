@@ -37,6 +37,7 @@ module scale::account {
         isolated_balance: Balance<T>,
         /// User settled profit
         profit: I64,
+        latest_settlement_ms: u64,
         /// Total amount of margin used.
         margin_total: u64,
         /// Total amount of used margin in cross warehouse mode.
@@ -284,7 +285,12 @@ module scale::account {
     public(friend) fun dec_margin_isolated_sell_total<T>(account: &mut Account<T>, margin: u64) {
         account.margin_isolated_sell_total = account.margin_isolated_sell_total - margin;
     }
-
+    public(friend) fun set_latest_settlement_ms<T>(account: &mut Account<T>, time: u64) {
+        account.latest_settlement_ms = time;
+    }
+    public fun get_latest_settlement_ms<T>(account: &Account<T>): u64 {
+        account.latest_settlement_ms
+    }
     public fun create_account<T>(
         ctx: &mut TxContext
     ):ID {
@@ -297,6 +303,7 @@ module scale::account {
             balance: balance::zero<T>(),
             isolated_balance: balance::zero<T>(),
             profit: i64::new(0,false),
+            latest_settlement_ms: 0,
             margin_total: 0,
             margin_cross_total: 0,
             margin_isolated_total: 0,
