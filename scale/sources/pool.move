@@ -8,11 +8,13 @@ module scale::pool {
     friend scale::bond;
     friend scale::position;
     friend scale::market;
+    friend scale::bot;
     #[test_only]
     friend scale::pool_tests;
     // friend scale::account;
 
     const EZeroAmount: u64 = 501;
+    const EDaysTooLarge: u64 = 502;
 
     struct Scale has drop {}
     /// Original reserves of current pool funds
@@ -98,18 +100,27 @@ module scale::pool {
         join_profit_balance(pool,balance,epoch)
     }
 
-    public(friend) fun split_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64, epoch: u64):Balance<T>{
+    fun split_profit<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         let profit_balance_value = balance::value(&pool.profit_balance);
         if (profit_balance_value >= amount) {
-            let b = balance::split(&mut pool.profit_balance, amount);
-            update_epoch_profit(pool,epoch);
-            return b
+            return balance::split(&mut pool.profit_balance, amount)
         };
         let b = balance::split(&mut pool.profit_balance, profit_balance_value);
         let s = amount - balance::value(&b);
         balance::join(&mut b, balance::split(&mut pool.vault_balance, s));
+        b
+    }
+    public(friend) fun split_profit_balance<P,T>(pool: &mut Pool<P, T>, amount: u64, epoch: u64):Balance<T>{
+        let b = split_profit(pool,amount);
         update_epoch_profit(pool,epoch);
         b
+    }
+    
+    public(friend) fun take_profit_reward<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+        split_profit(pool,amount)
+    }
+    public(friend) fun take_profit_award<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
+       balance::split(&mut pool.profit_balance, amount)
     }
 
     fun update_epoch_profit<P,T>(pool: &mut Pool<P, T>, epoch: u64){
@@ -157,6 +168,7 @@ module scale::pool {
     public(friend) fun split_spread_profit<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         balance::split(&mut pool.spread_profit, amount)
     }
+
     #[test_only]
     public fun split_spread_profit_for_testing<P,T>(pool: &mut Pool<P, T>, amount: u64):Balance<T>{
         split_spread_profit(pool,amount)
@@ -178,6 +190,21 @@ module scale::pool {
         };
         *vec_map::get(&pool.epoch_profit, &epoch)
     }
+
+    public fun get_total_epoch_profit<P,T>(pool: &Pool<P, T>, day: u64):u64 {
+        let total = 0;
+        let size = vec_map::size(&pool.epoch_profit);
+        assert!(size >= day, EDaysTooLarge);
+        while (day > 0) {
+            let (_,v) = vec_map::get_entry_by_idx<u64,u64>(&pool.epoch_profit, day);
+            total = total + *v;
+            if (day > 0) {
+                day = day - 1;
+            };
+        };
+        total
+    }
+
     public fun get_insurance_balance<P,T>(pool: &Pool<P, T>):u64 {
         balance::value(&pool.insurance_balance)
     }

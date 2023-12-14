@@ -170,4 +170,5 @@ module scale::bond_tests {
         test_scenario::return_shared(factory);
         test_scenario::end(test_tx);
     }
+    // todo award test
 }

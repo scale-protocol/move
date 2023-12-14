@@ -15,7 +15,7 @@ module scale::enter {
     use sui::package::Publisher;
     use sui::clock::Clock;
     use std::string;
-    use scale::bot;
+    use scale::bot::{Self,ScaleBot};
 
     public entry fun create_account<T>(
         ctx: &mut TxContext
@@ -67,9 +67,9 @@ module scale::enter {
         publisher: &Publisher,
         ctx: &mut TxContext
     ){
-        market::create_list<T>(ctx);
+        let id = market::create_list<T>(ctx);
         bond::create_display<T>(publisher,ctx);
-        bot::create_bot<T>(ctx);
+        bot::create_bot<T>(ctx,id);
     }
 
     public entry fun create_market<T>(
@@ -188,12 +188,14 @@ module scale::enter {
     public entry fun trigger_update_opening_price<T>(
         symbol: vector<u8>,
         list: &mut List<T>,
+        scale_bot: &mut ScaleBot<T>,
         state: &oracle::State,
         c: &Clock,
         ctx: &mut TxContext
     ){
         let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(list),string::utf8(symbol));
         market::trigger_update_opening_price(market, state, c,ctx);
+        bot::set_scores(scale_bot,1,ctx);
     }
     /// Project side add NFT style
     public entry fun add_factory_mould(
@@ -223,6 +225,42 @@ module scale::enter {
     ){
         bond::set_penalty_fee(admin_cap,factory,penalty_fee);
     }
+
+    public entry fun update_award_ratio(
+        award_ratio: u64,
+        admin_cap: &mut AdminCap,
+        factory: &mut BondFactory,
+        _ctx: &TxContext
+    ){
+        bond::set_award_ratio(admin_cap,factory,award_ratio);
+    }
+
+    public entry fun update_bot_reward_ratio<T>(
+        reward_ratio: u64,
+        admin_cap: &mut AdminCap,
+        scale_bot: &mut ScaleBot<T>,
+        _ctx: &TxContext
+    ){
+        bot::set_reward_ratio(admin_cap,scale_bot,reward_ratio);
+    }
+    public entry fun receive_award<T>(
+        nft: &mut ScaleBond<T>,
+        list: &mut List<T>,
+        factory: &BondFactory,
+        c: &Clock,
+        ctx: &mut TxContext
+    ){
+        bond::receive_award(nft,list,factory,c,ctx);
+    }
+
+    public entry fun receive_reward<T>(
+        scale_bot: &mut ScaleBot<T>,
+        list: &mut List<T>,
+        ctx: &mut TxContext,
+    ){
+        bot::receive_reward(scale_bot,list,ctx);
+    }
+
     public entry fun investment<T>(
         coins: vector<Coin<T>>,
         nft_name: vector<u8>,
@@ -303,32 +341,38 @@ module scale::enter {
         state: &oracle::State,
         account: &mut Account<T>,
         list: &mut List<T>,
+        scale_bot: &mut ScaleBot<T>,
         c: &Clock,
         ctx: &mut TxContext,
     ){
         position::auto_close_position<T>(position_id,state,account,list,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
+        bot::set_scores(scale_bot,1,ctx);
     }
 
     public entry fun force_liquidation<T>(
         position_id: ID,
         list: &mut List<T>,
         account: &mut Account<T>,
+        scale_bot: &mut ScaleBot<T>,
         state: &oracle::State,
         c: &Clock,
         ctx: &mut TxContext,
     ){
         position::force_liquidation<T>(position_id,list,account,state,c,ctx);
         account::isolated_withdraw(account,tx_context::sender(ctx),ctx);
+        bot::set_scores(scale_bot,1,ctx);
     }
 
     public entry fun process_fund_fee<T>(
         list: &mut List<T>,
         account: &mut Account<T>,
+        scale_bot: &mut ScaleBot<T>,
         c: &Clock,
-        ctx: &TxContext,
+        ctx: &mut TxContext,
     ){
         position::process_fund_fee<T>(list,account,c,ctx);
+        bot::set_scores(scale_bot,1,ctx);
     }
 
     public entry fun update_cross_limit_position<T>(
@@ -362,11 +406,13 @@ module scale::enter {
         position_id: ID,
         list: &mut List<T>,
         account: &mut Account<T>,
+        scale_bot: &mut ScaleBot<T>,
         state: &oracle::State,
         c: &Clock,
-        _ctx: &mut TxContext,
+        ctx: &mut TxContext,
     ){
-        position::open_limit_position<T>(position_id,list,account,state,c,_ctx);
+        position::open_limit_position<T>(position_id,list,account,state,c,ctx);
+        bot::set_scores(scale_bot,1,ctx);
     }
     
     public entry fun update_automatic_price<T>(

@@ -12,10 +12,10 @@ module scale::market{
     use sui::url::{Self, Url};
     use scale::event;
     use sui::clock::{Self,Clock};
-
     friend scale::position;
     friend scale::bond;
     friend scale::enter;
+    friend scale::bot;
     #[test_only]
     friend scale::bond_tests;
     #[test_only]

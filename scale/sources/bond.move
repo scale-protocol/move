@@ -21,6 +21,9 @@ module scale::bond {
     friend scale::enter;
     #[test_only]
     friend scale::bond_tests;
+    // day
+    const SETTLEMENT_CYCLE:u64 = 30;
+    const DENOMINATOR: u64 = 10000;
 
     const ENameRequired:u64 = 401;
     const EDescriptionRequired:u64 = 402;
@@ -30,8 +33,8 @@ module scale::bond {
     const EInsufficientCoins:u64 = 406;
     const EInvalidIssueTime:u64 = 407;
     const EInvalidPenaltyFee:u64 = 408;
+    const EInvalidSettlementCycle:u64 = 409;
 
-    const DENOMINATOR: u64 = 10000;
     /// scale bond nft
     struct ScaleBond<phantom T> has key ,store {
         id: UID,
@@ -42,6 +45,7 @@ module scale::bond {
         denomination: Balance<LSP<Scale,T>>,
         issue_expiration_time: u64,
         list_id: ID,
+        latest_settlement_ms: u64,
     }
 
     struct BOND has drop {}
@@ -50,7 +54,10 @@ module scale::bond {
     struct BondFactory has key {
         id: UID,
         penalty_fee: u64,
-        mould: Table<String,BondItem>
+        mould: Table<String,BondItem>,
+        latest_epoch: u64,
+        // Reward a portion of profits to the robot
+        award_ratio: u64, 
     }
     /// The scale nft item
     struct BondItem has store {
@@ -66,6 +73,8 @@ module scale::bond {
             id: object::new(ctx),
             penalty_fee: 300,
             mould: table::new<String,BondItem>(ctx),
+            latest_epoch: 0,
+            award_ratio: 1000,
         })
     }
 
@@ -128,6 +137,7 @@ module scale::bond {
             denomination: coin::into_balance(pool::add_liquidity(market::get_pool_mut(list),coins,ctx)),
             issue_expiration_time: now + issue_time_ms,
             list_id: object::id(list),
+            latest_settlement_ms: clock::timestamp_ms(c),
         },tx_context::sender(ctx));
         event::update<List<T>>(object::id(list));
     }
@@ -149,6 +159,7 @@ module scale::bond {
             denomination,
             issue_expiration_time,
             list_id,
+            latest_settlement_ms:_,
         } = nft;
         assert!(list_id == object::id(list), EInvalidMarketID);
         let p = market::get_pool_mut(list);
@@ -162,6 +173,7 @@ module scale::bond {
         transfer::public_transfer(bl,tx_context::sender(ctx));
         object::delete(id);
     }
+
     /// Project side add NFT style
     public fun add_factory_mould(
         _admin_cap:&mut AdminCap,
@@ -200,6 +212,35 @@ module scale::bond {
     ) {
         assert!(penalty_fee > 0 && factory.penalty_fee <= DENOMINATOR, EInvalidPenaltyFee);
         factory.penalty_fee = penalty_fee;
+    }
+
+    public fun set_award_ratio(
+        _admin_cap: &mut AdminCap,
+        factory: &mut BondFactory,
+        ratio: u64,
+    ) {
+        assert!(ratio > 0 && ratio <= DENOMINATOR, EInvalidPenaltyFee);
+        factory.award_ratio = ratio;
+    }
+
+    public fun receive_award<T>(
+        nft: &mut ScaleBond<T>,
+        list: &mut List<T>,
+        factory: &BondFactory,
+        c: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let now = clock::timestamp_ms(c);
+        assert!(now - nft.latest_settlement_ms >= SETTLEMENT_CYCLE * 24 * 60 * 60 * 1000, EInvalidSettlementCycle);
+        assert!(nft.list_id == object::id(list), EInvalidMarketID);
+        let p = market::get_pool_mut(list);
+        let total_award = pool::get_total_epoch_profit(p,SETTLEMENT_CYCLE);
+        let award = total_award * factory.award_ratio * balance::value(&nft.denomination) / (pool::get_vault_supply(p) * DENOMINATOR);
+        if (award > 0) {
+            let c: Coin<T> = coin::from_balance(pool::take_profit_award(p,award),ctx);
+            transfer::public_transfer(c,sender(ctx));
+            nft.latest_settlement_ms = now;
+        }
     }
 
     public fun get_bond_denomination<T>(nft: &ScaleBond<T>): u64{

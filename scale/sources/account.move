@@ -14,9 +14,9 @@ module scale::account {
     friend scale::position;
     friend scale::enter;
         
-    const EInsufficientCoins: u64 = 1;
-    const ENotOwner: u64 = 2;
-    const EInsufficientEquity: u64 = 3;
+    const EInsufficientCoins: u64 = 800;
+    const ENotOwner: u64 = 801;
+    const EInsufficientEquity: u64 = 802;
 
     struct UserAccount has key {
         id: UID,
