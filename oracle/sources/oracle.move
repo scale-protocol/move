@@ -77,6 +77,7 @@ module oracle::oracle {
         timeout_ms: u64,
         _ctx: &TxContext,
     ){
+        assert!(timeout_ms > 0, EInvalidTimestamp);
         state.price_timeout_ms = timeout_ms;
     }
 
