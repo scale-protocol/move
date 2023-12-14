@@ -56,7 +56,7 @@ module scale::bond {
         penalty_fee: u64,
         mould: Table<String,BondItem>,
         latest_epoch: u64,
-        // Reward a portion of profits to the robot
+        // Reward a portion of profits to the NFT holder
         award_ratio: u64, 
     }
     /// The scale nft item

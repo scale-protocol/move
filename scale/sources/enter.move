@@ -243,6 +243,7 @@ module scale::enter {
     ){
         bot::set_reward_ratio(admin_cap,scale_bot,reward_ratio);
     }
+    
     public entry fun receive_award<T>(
         nft: &mut ScaleBond<T>,
         list: &mut List<T>,
