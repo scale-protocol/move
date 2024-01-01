@@ -316,7 +316,7 @@ module scale::position_tests {
             // add liquidity
             let lsp_coin = pool::add_liquidity_for_testing<Scale,SCALE>(
                 market::get_pool_mut_for_testing<SCALE>(&mut list),
-                coin::mint_for_testing<SCALE>(18446744073709551615 - 1000000 -1,
+                coin::mint_for_testing<SCALE>(18_446_744_073_709_551_615 - 1000000 -1,
                 test_scenario::ctx(tx)),test_scenario::ctx(tx)
             );
             // 18446744073709551615

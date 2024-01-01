@@ -126,6 +126,7 @@ module scale::bond {
         assert!(!vector::is_empty(&nft_name), ENameRequired);
         let mould = table::borrow(&factory.mould,string::utf8(nft_name));
         let uid = object::new(ctx);
+        let id = object::uid_to_inner(&uid);
         // Index all existing NFTs for interest distribution
         field::add(&mut factory.id,object::uid_to_inner(&uid),now);
         transfer::transfer(ScaleBond<T> {
@@ -139,6 +140,7 @@ module scale::bond {
             list_id: object::id(list),
             latest_settlement_ms: clock::timestamp_ms(c),
         },tx_context::sender(ctx));
+        event::create<ScaleBond<T>>(id);
         event::update<List<T>>(object::id(list));
     }
 
@@ -171,6 +173,8 @@ module scale::bond {
         };
         let _: u64 = field::remove(&mut factory.id,object::uid_to_inner(&id));
         transfer::public_transfer(bl,tx_context::sender(ctx));
+        event::delete<ScaleBond<T>>(object::uid_to_inner(&id));
+        event::update<List<T>>(object::id(list));
         object::delete(id);
     }
 

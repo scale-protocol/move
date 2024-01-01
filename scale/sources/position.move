@@ -107,7 +107,7 @@ module scale::position {
         close_time: u64,
         /// Opening operator (the user manually, or the clearing robot in the listing mode)
         open_operator: address,
-        /// Account number of warehouse closing operator (user manual, or clearing robot Qiangping)
+        /// Account number of warehouse closing operator (user manual, or clearing robot force close)
         close_operator: address,
         symbol: String,
         /// Market account number of the position
