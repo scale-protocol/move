@@ -301,7 +301,7 @@ module scale::position {
     }
 
     public fun get_equity<T>(
-        total_liquidity: u64,
+        // total_liquidity: u64,
         list: &List<T>,
         account: &Account<T>,
         state: &oracle::State,
@@ -322,7 +322,11 @@ module scale::position {
             if ( ps.info.status == 1 ){
                 let market: &Market = dof::borrow(market::get_list_uid(list),ps.info.symbol);
                 let price = market::get_price(market,state,c);
-                pl = position_pl_fund_fee(total_liquidity, market, &price, ps);
+                let size = size(ps.info.lot,ps.info.unit_size);
+                let fund_size = fund_size(size,ps.info.open_real_price);
+                let p = get_pl(size, fund_size, ps.info.direction, &price);
+                pl = i64::i64_add(&pl,&p);
+                // pl = position_pl_fund_fee(total_liquidity, market, &price, ps);
             };
             i = i + 1;
         };
@@ -330,14 +334,15 @@ module scale::position {
         pl
     }
 
-    fun position_pl_fund_fee<T>(total_liquidity:u64, market: &Market, price: &Price, ps: &Position<T>): I64{
-        let pl = i64::new(0,false);
-        let size = size(ps.info.lot,ps.info.unit_size);
-        let fund_size = fund_size(size,ps.info.open_real_price);
-        let p = get_pl(size, fund_size, ps.info.direction, price);
-        let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
-        i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p))
-    }
+    // fun position_pl_fund_fee<T>(total_liquidity:u64, market: &Market, price: &Price, ps: &Position<T>): I64{
+    //     let pl = i64::new(0,false);
+    //     let size = size(ps.info.lot,ps.info.unit_size);
+    //     let fund_size = fund_size(size,ps.info.open_real_price);
+    //     let p = get_pl(size, fund_size, ps.info.direction, price);
+    //     let fund_fee = get_position_fund_fee(total_liquidity, fund_size, ps.info.direction, market);
+    //     i64::i64_add(&pl,&i64::i64_add(&fund_fee, &p))
+    // }
+    
     /// get Floating P/L
     public fun get_pl(size: u64, fund_size: u64, direction: u8,price: &Price) :I64 {
         if (direction == 1) {
@@ -640,7 +645,7 @@ module scale::position {
         );
         if ( type == 1 ){
             let equity = get_equity<T>(
-                total_liquidity,
+                // total_liquidity,
                 list,
                 account,
                 state,
@@ -835,9 +840,9 @@ module scale::position {
         let market_id = object::id(&market);
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         if (position.info.type == 1){
-            let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
+            // let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
             let equity = get_equity<T>(
-                total_liquidity,
+                // total_liquidity,
                 list,
                 account,
                 state,
@@ -1015,7 +1020,7 @@ module scale::position {
         dof::add(market::get_list_uid_mut(list),position.info.symbol,market);
         if ( position.info.type == 1 ){
             let equity = get_equity<T>(
-                total_liquidity,
+                // total_liquidity,
                 list,
                 account,
                 state,

@@ -195,7 +195,7 @@ module scale::position_tests {
                 &c,
                 test_scenario::ctx(tx)
             );
-            let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
+            // let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
             // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
             // let price = market::get_price(market,&state,&c);
             // balabce = balance - insurance_fee - fund_fee => 10000 - 1 - 0 = 9999
@@ -205,7 +205,7 @@ module scale::position_tests {
             // =>  9 - 10 
             // =>  -1
             let equity = position::get_equity(
-                    total_liquidity,
+                    // total_liquidity,
                     &list,
                     &account,
                     &state,
@@ -234,7 +234,7 @@ module scale::position_tests {
                 &c,
                 test_scenario::ctx(tx)
             );
-            let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
+            // let total_liquidity = pool::get_total_liquidity(market::get_pool(&list));
             // let market: &mut Market = dof::borrow_mut(market::get_list_uid_mut(&mut list),symbol);
             // let price = market::get_price(market,&state,&c);
             // pl_1= (sell_price - open_real_price ) * size
@@ -248,7 +248,7 @@ module scale::position_tests {
             // =>  150 - 151.1
             // =>  -1.1
             let equity = position::get_equity(
-                    total_liquidity,
+                    // total_liquidity,
                     &list,
                     &account,
                     &state,

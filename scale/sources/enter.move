@@ -11,7 +11,7 @@ module scale::enter {
     use oracle::oracle;
     use std::vector;
     use sui::pay;
-    use scale::pool::{Self,Scale};
+    // use scale::pool::{Self,Scale};
     use sui::package::Publisher;
     use sui::clock::Clock;
     use std::string;
@@ -42,8 +42,8 @@ module scale::enter {
         c: &Clock,
         ctx: &mut TxContext
     ){
-        let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
-        account::withdrawal<T>(position::get_equity<T>(total_liquidity,list, account,state,c),account,amount,ctx);
+        // let total_liquidity = pool::get_total_liquidity<Scale,T>(market::get_pool(list));
+        account::withdrawal<T>(position::get_equity<T>(list, account,state,c),account,amount,ctx);
     }
 
     public entry fun add_admin_member(
